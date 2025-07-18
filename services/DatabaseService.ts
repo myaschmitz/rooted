@@ -39,6 +39,7 @@ export class DatabaseService {
         notes TEXT,
         fertilizer_concentration TEXT,
         fertilizer_amount TEXT,
+        health_status TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         synced INTEGER DEFAULT 0,
@@ -81,6 +82,13 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_plant_photos_plant_id ON plant_photos (plant_id);
       CREATE INDEX IF NOT EXISTS idx_plant_notes_plant_id ON plant_notes (plant_id);
     `);
+
+    // Add health_status column to care_events if it doesn't exist (migration)
+    try {
+      await db.execAsync(`ALTER TABLE care_events ADD COLUMN health_status TEXT;`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
   }
 
   static async resetDatabase(): Promise<void> {

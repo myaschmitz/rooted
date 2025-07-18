@@ -80,7 +80,61 @@ export class PhotoService {
     }
   }
 
-  private static async savePhoto(plantId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
+  static async takePhoto(): Promise<{ uri: string } | null> {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        throw new Error('Permission to access camera is required!');
+      }
+
+      // Take photo
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return null;
+      }
+
+      return { uri: result.assets[0].uri };
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      throw error;
+    }
+  }
+
+  static async pickPhoto(): Promise<{ uri: string } | null> {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        throw new Error('Permission to access camera roll is required!');
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (result.canceled) {
+        return null;
+      }
+
+      return { uri: result.assets[0].uri };
+    } catch (error) {
+      console.error('Error picking photo:', error);
+      throw error;
+    }
+  }
+
+  static async savePhoto(plantId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
     await this.ensurePhotosDirectory();
 
     const photoId = uuid.v4() as string;

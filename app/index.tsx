@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { Plant } from '../types/Plant';
 
@@ -8,11 +8,7 @@ export default function HomeScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPlants();
-  }, []);
-
-  const loadPlants = async () => {
+  const loadPlants = useCallback(async () => {
     try {
       const allPlants = await PlantService.getAllPlants();
       setPlants(allPlants);
@@ -22,21 +18,46 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPlants();
+    }, [loadPlants])
+  );
+
+  useEffect(() => {
+    loadPlants();
+  }, []);
+
+  const getHealthStatusDisplay = (status?: string) => {
+    switch (status) {
+      case 'excellent': return { text: 'Excellent', color: '#2E7D32' };
+      case 'good': return { text: 'Good', color: '#4CAF50' };
+      case 'okay': return { text: 'Okay', color: '#FF9800' };
+      case 'poor': return { text: 'Poor', color: '#FF5722' };
+      case 'concerning': return { text: 'Concerning', color: '#F44336' };
+      case 'critical': return { text: 'Critical', color: '#B71C1C' };
+      default: return { text: 'Good', color: '#4CAF50' };
+    }
   };
 
-  const renderPlantItem = ({ item }: { item: Plant }) => (
-    <TouchableOpacity
-      style={styles.plantCard}
-      onPress={() => router.push(`/plant/${item.id}`)}
-    >
-      <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
-      <Text style={styles.plantType}>{item.type}</Text>
-      {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
-      <Text style={styles.healthStatus}>
-        Health: {item.health_status || 'Good'}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderPlantItem = ({ item }: { item: Plant }) => {
+    const healthDisplay = getHealthStatusDisplay(item.health_status);
+    return (
+      <TouchableOpacity
+        style={styles.plantCard}
+        onPress={() => router.push(`/plant/${item.id}`)}
+      >
+        <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
+        <Text style={styles.plantType}>{item.type}</Text>
+        {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
+        <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
+          Health: {healthDisplay.text}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -54,7 +75,7 @@ export default function HomeScreen() {
           <Text style={styles.emptySubtext}>Add your first plant to get started</Text>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => router.push('/add-plant')}
+            onPress={() => router.navigate('/add-plant')}
           >
             <Text style={styles.addButtonText}>Add Plant</Text>
           </TouchableOpacity>
@@ -69,7 +90,7 @@ export default function HomeScreen() {
           />
           <TouchableOpacity
             style={styles.fab}
-            onPress={() => router.push('/add-plant')}
+            onPress={() => router.navigate('/add-plant')}
           >
             <Text style={styles.fabText}>+</Text>
           </TouchableOpacity>

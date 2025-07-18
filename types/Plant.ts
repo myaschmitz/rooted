@@ -3,7 +3,7 @@ export interface Plant {
   name?: string;
   type: string;
   location?: string;
-  health_status?: 'good' | 'okay' | 'concerning';
+  health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -18,6 +18,7 @@ export interface CareEvent {
   notes?: string;
   fertilizer_concentration?: string;
   fertilizer_amount?: string;
+  health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   created_at: string;
   updated_at: string;
   synced: boolean;

@@ -24,6 +24,7 @@ export default function LogCareScreen() {
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
+  const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical' | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -59,11 +60,16 @@ export default function LogCareScreen() {
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
+        health_status: healthStatus,
       });
 
-      Alert.alert('Success', 'Care event logged successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      // If health status was provided, update the plant's health status too
+      if (healthStatus && plant) {
+        await PlantService.updatePlant(plant.id, { health_status: healthStatus });
+      }
+
+      // Navigate back directly to refresh the plant detail screen
+      router.back();
     } catch (error) {
       console.error('Failed to log care event:', error);
       Alert.alert('Error', 'Failed to log care event');

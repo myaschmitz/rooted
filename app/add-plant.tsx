@@ -9,16 +9,19 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { PlantService } from '../services/PlantService';
+import { PhotoService } from '../services/PhotoService';
 
 export default function AddPlantScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
-  const [healthStatus, setHealthStatus] = useState<'good' | 'okay' | 'concerning'>('good');
+  const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical'>('good');
   const [notes, setNotes] = useState('');
+  const [plantPhoto, setPlantPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -29,7 +32,7 @@ export default function AddPlantScreen() {
 
     setSaving(true);
     try {
-      await PlantService.createPlant({
+      const newPlant = await PlantService.createPlant({
         name: name.trim() || undefined,
         type: type.trim(),
         location: location.trim() || undefined,
@@ -37,9 +40,17 @@ export default function AddPlantScreen() {
         notes: notes.trim() || undefined,
       });
 
-      Alert.alert('Success', 'Plant added successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      // If there's a photo, save it
+      if (plantPhoto && newPlant) {
+        try {
+          await PhotoService.savePhoto(newPlant.id, plantPhoto, 'Initial photo');
+        } catch (photoError) {
+          console.warn('Failed to save photo, but plant was created:', photoError);
+        }
+      }
+
+      // Navigate back and refresh the home screen
+      router.replace('/');
     } catch (error) {
       console.error('Failed to create plant:', error);
       Alert.alert('Error', 'Failed to add plant');
@@ -48,10 +59,49 @@ export default function AddPlantScreen() {
     }
   };
 
+  const handleAddPhoto = () => {
+    Alert.alert(
+      'Add Photo',
+      'Choose how to add a photo',
+      [
+        { text: '📷 Take Photo', onPress: handleTakePhoto },
+        { text: '🖼️ Photo Library', onPress: handlePickPhoto },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const photo = await PhotoService.takePhoto();
+      if (photo) {
+        setPlantPhoto(photo.uri);
+      }
+    } catch (error) {
+      console.error('Failed to take photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const handlePickPhoto = async () => {
+    try {
+      const photo = await PhotoService.pickPhoto();
+      if (photo) {
+        setPlantPhoto(photo.uri);
+      }
+    } catch (error) {
+      console.error('Failed to pick photo:', error);
+      Alert.alert('Error', 'Failed to pick photo');
+    }
+  };
+
   const healthOptions = [
-    { value: 'good', label: 'Good', color: '#4CAF50' },
-    { value: 'okay', label: 'Okay', color: '#FF9800' },
-    { value: 'concerning', label: 'Concerning', color: '#F44336' },
+    { value: 'excellent', label: 'Excellent', color: '#2E7D32', emoji: '🌟' },
+    { value: 'good', label: 'Good', color: '#4CAF50', emoji: '😊' },
+    { value: 'okay', label: 'Okay', color: '#FF9800', emoji: '😐' },
+    { value: 'poor', label: 'Poor', color: '#FF5722', emoji: '😟' },
+    { value: 'concerning', label: 'Concerning', color: '#F44336', emoji: '😰' },
+    { value: 'critical', label: 'Critical', color: '#B71C1C', emoji: '💀' },
   ] as const;
 
   return (
@@ -61,7 +111,24 @@ export default function AddPlantScreen() {
     >
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
-          {/* Plant Name */}
+          <View style={styles.inputGroup}>
+            <TouchableOpacity style={styles.photoContainer} onPress={handleAddPhoto}>
+              {plantPhoto ? (
+                <View style={styles.photoWrapper}>
+                  <Image source={{ uri: plantPhoto }} style={styles.plantImage} />
+                  <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
+                    <Text style={styles.changePhotoText}>📷</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Text style={styles.photoPlaceholderText}>📷</Text>
+                  <Text style={styles.photoPlaceholderSubtext}>Tap to add photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Plant Name</Text>
             <TextInput
@@ -73,7 +140,6 @@ export default function AddPlantScreen() {
             />
           </View>
 
-          {/* Plant Type */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Plant Type *</Text>
             <TextInput
@@ -85,19 +151,17 @@ export default function AddPlantScreen() {
             />
           </View>
 
-          {/* Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Location</Text>
             <TextInput
               style={styles.input}
               value={location}
               onChangeText={setLocation}
-              placeholder="e.g., Living Room, Kitchen Window"
-              autoCapitalize="words"
+              placeholder="e.g., living room, kitchen window"
+              autoCapitalize="none"
             />
           </View>
 
-          {/* Health Status */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Health Status</Text>
             <View style={styles.healthOptions}>
@@ -106,25 +170,33 @@ export default function AddPlantScreen() {
                   key={option.value}
                   style={[
                     styles.healthOption,
-                    healthStatus === option.value && styles.healthOptionSelected,
-                    { borderColor: option.color }
+                    healthStatus === option.value && [
+                      styles.healthOptionSelected,
+                      { backgroundColor: option.color + '20', borderColor: option.color }
+                    ]
                   ]}
                   onPress={() => setHealthStatus(option.value)}
                 >
+                  <Text style={styles.healthEmoji}>{option.emoji}</Text>
                   <Text
                     style={[
                       styles.healthOptionText,
-                      healthStatus === option.value && { color: option.color },
+                      healthStatus === option.value && { 
+                        color: option.color, 
+                        fontWeight: 'bold' 
+                      }
                     ]}
                   >
                     {option.label}
                   </Text>
+                  {healthStatus === option.value && (
+                    <View style={[styles.selectedIndicator, { backgroundColor: option.color }]} />
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
           </View>
 
-          {/* Notes */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Notes</Text>
             <TextInput
@@ -138,7 +210,6 @@ export default function AddPlantScreen() {
             />
           </View>
 
-          {/* Save Button */}
           <TouchableOpacity
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
@@ -185,25 +256,92 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 100,
   },
+  photoContainer: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  photoWrapper: {
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
+  plantImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  changePhotoButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  changePhotoText: {
+    fontSize: 18,
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+  },
+  photoPlaceholderText: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  photoPlaceholderSubtext: {
+    fontSize: 16,
+    color: '#666',
+  },
   healthOptions: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   healthOption: {
     flex: 1,
+    minWidth: '30%',
     backgroundColor: 'white',
     borderWidth: 2,
+    borderColor: '#ddd',
     borderRadius: 8,
-    padding: 15,
+    padding: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    position: 'relative',
   },
   healthOptionSelected: {
-    backgroundColor: '#f0f9ff',
+    borderWidth: 3,
+  },
+  healthEmoji: {
+    fontSize: 18,
+    marginRight: 6,
   },
   healthOptionText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#666',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   saveButton: {
     backgroundColor: '#4CAF50',

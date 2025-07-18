@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,17 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Image,
+  Modal,
+  Dimensions,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function PlantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,17 +26,12 @@ export default function PlantDetailScreen() {
   const [photos, setPhotos] = useState<PlantPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fullScreenPhoto, setFullScreenPhoto] = useState<PlantPhoto | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      loadPlantData();
-    }
-  }, [id]);
-
-  const loadPlantData = async () => {
+  const loadPlantData = useCallback(async () => {
+    if (!id) return;
+    
     try {
-      if (!id) return;
-      
       const [plantData, eventsData, photosData] = await Promise.all([
         PlantService.getPlantById(id),
         CareEventService.getCareEventsByPlantId(id),
@@ -43,12 +43,24 @@ export default function PlantDetailScreen() {
       setPhotos(photosData);
     } catch (error) {
       console.error('Failed to load plant data:', error);
-      Alert.alert('Error', 'Failed to load plant data');
+      Alert.alert('Error', 'Failed to load plant details');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPlantData();
+    }, [loadPlantData])
+  );
+
+  useEffect(() => {
+    if (id) {
+      loadPlantData();
+    }
+  }, [id]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -59,13 +71,69 @@ export default function PlantDetailScreen() {
     router.push(`/log-care?plantId=${id}`);
   };
 
-  const handleAddPhoto = async () => {
+  const handleAddPhoto = () => {
+    Alert.alert(
+      'Add Photo',
+      'Choose how to add a photo',
+      [
+        { text: '📷 Take Photo', onPress: handleTakePhoto },
+        { text: '🖼️ Photo Library', onPress: handlePickPhoto },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleTakePhoto = async () => {
     try {
-      await PhotoService.pickAndSavePhoto(id!, 'Plant photo');
-      loadPlantData(); // Refresh to show new photo
+      const photo = await PhotoService.takePhoto();
+      if (photo && id) {
+        await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
+        loadPlantData(); // Refresh to show new photo
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to add photo');
+      console.error('Failed to take photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
     }
+  };
+
+  const handlePickPhoto = async () => {
+    try {
+      const photo = await PhotoService.pickPhoto();
+      if (photo && id) {
+        await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
+        loadPlantData(); // Refresh to show new photo
+      }
+    } catch (error) {
+      console.error('Failed to pick photo:', error);
+      Alert.alert('Error', 'Failed to pick photo');
+    }
+  };
+
+  const handlePhotoPress = (photo: PlantPhoto) => {
+    setFullScreenPhoto(photo);
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to delete this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await PhotoService.deletePhoto(photoId);
+              loadPlantData(); // Refresh to remove deleted photo
+            } catch (error) {
+              console.error('Failed to delete photo:', error);
+              Alert.alert('Error', 'Failed to delete photo');
+            }
+          }
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -98,87 +166,146 @@ export default function PlantDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      {/* Plant Info Header */}
-      <View style={styles.header}>
-        <Text style={styles.plantName}>{plant.name || `Unnamed ${plant.type}`}</Text>
-        <Text style={styles.plantType}>{plant.type}</Text>
-        {plant.location && (
-          <Text style={styles.location}>📍 {plant.location}</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {/* Plant Info Header */}
+        <View style={styles.header}>
+          <Text style={styles.plantName}>{plant.name || `Unnamed ${plant.type}`}</Text>
+          <Text style={styles.plantType}>{plant.type}</Text>
+          {plant.location && (
+            <Text style={styles.location}>📍 {plant.location}</Text>
+          )}
+          <View style={styles.healthStatus}>
+            <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
+              Health: {plant.health_status || 'Good'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleLogCare}>
+            <Text style={styles.actionButtonText}>Log Care Event</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleAddPhoto}>
+            <Text style={styles.actionButtonText}>📷 Add Photo</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Plant Notes */}
+        {plant.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notes</Text>
+            <Text style={styles.notesText}>{plant.notes}</Text>
+          </View>
         )}
-        <View style={styles.healthStatus}>
-          <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
-            Health: {plant.health_status || 'Good'}
-          </Text>
-        </View>
-      </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleLogCare}>
-          <Text style={styles.actionButtonText}>Log Care Event</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={handleAddPhoto}>
-          <Text style={styles.actionButtonText}>Add Photo</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Photos */}
+        {photos.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {photos.slice(0, 5).map((photo, index) => (
+                <TouchableOpacity 
+                  key={photo.id} 
+                  style={styles.photoItem}
+                  onPress={() => handlePhotoPress(photo)}
+                >
+                  <Image 
+                    source={{ uri: photo.file_path }} 
+                    style={styles.photoImage}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity 
+                    style={styles.deletePhotoButton}
+                    onPress={() => handleDeletePhoto(photo.id)}
+                  >
+                    <Text style={styles.deletePhotoText}>×</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.photoDate}>{formatDate(photo.taken_at)}</Text>
+                  {photo.caption && (
+                    <Text style={styles.photoCaption}>{photo.caption}</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-      {/* Plant Notes */}
-      {plant.notes && (
+        {/* Care History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notes</Text>
-          <Text style={styles.notesText}>{plant.notes}</Text>
-        </View>
-      )}
-
-      {/* Recent Photos */}
-      {photos.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Photos ({photos.length})</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {photos.slice(0, 5).map((photo, index) => (
-              <View key={photo.id} style={styles.photoItem}>
-                <Text style={styles.photoDate}>{formatDate(photo.taken_at)}</Text>
-                {photo.caption && (
-                  <Text style={styles.photoCaption}>{photo.caption}</Text>
+          <Text style={styles.sectionTitle}>Care History ({careEvents.length})</Text>
+          {careEvents.length === 0 ? (
+            <Text style={styles.emptyCareText}>No care events recorded yet</Text>
+          ) : (
+            careEvents.slice(0, 10).map((event) => (
+              <View key={event.id} style={styles.careEventItem}>
+                <View style={styles.careEventHeader}>
+                  <Text style={styles.careEventType}>
+                    {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
+                  </Text>
+                  <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
+                </View>
+                {event.notes && (
+                  <Text style={styles.careEventNotes}>{event.notes}</Text>
+                )}
+                {event.fertilizer_concentration && (
+                  <Text style={styles.fertilizerInfo}>
+                    Concentration: {event.fertilizer_concentration}
+                    {event.fertilizer_amount && ` • Amount: ${event.fertilizer_amount}`}
+                  </Text>
                 )}
               </View>
-            ))}
-          </ScrollView>
+            ))
+          )}
         </View>
-      )}
+      </ScrollView>
 
-      {/* Care History */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Care History ({careEvents.length})</Text>
-        {careEvents.length === 0 ? (
-          <Text style={styles.emptyCareText}>No care events recorded yet</Text>
-        ) : (
-          careEvents.slice(0, 10).map((event) => (
-            <View key={event.id} style={styles.careEventItem}>
-              <View style={styles.careEventHeader}>
-                <Text style={styles.careEventType}>
-                  {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
-                </Text>
-                <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
-              </View>
-              {event.notes && (
-                <Text style={styles.careEventNotes}>{event.notes}</Text>
-              )}
-              {event.fertilizer_concentration && (
-                <Text style={styles.fertilizerInfo}>
-                  Concentration: {event.fertilizer_concentration}
-                  {event.fertilizer_amount && ` • Amount: ${event.fertilizer_amount}`}
-                </Text>
+      <Modal
+        visible={!!fullScreenPhoto}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullScreenPhoto(null)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            onPress={() => setFullScreenPhoto(null)}
+          >
+            <View style={styles.modalContent}>
+              {fullScreenPhoto && (
+                <>
+                  <Image
+                    source={{ uri: fullScreenPhoto.file_path }}
+                    style={styles.fullScreenImage}
+                    resizeMode="contain"
+                  />
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setFullScreenPhoto(null)}
+                  >
+                    <Text style={styles.modalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                  <View style={styles.photoInfo}>
+                    <Text style={styles.photoInfoText}>
+                      {formatDate(fullScreenPhoto.taken_at)}
+                    </Text>
+                    {fullScreenPhoto.caption && (
+                      <Text style={styles.photoInfoCaption}>
+                        {fullScreenPhoto.caption}
+                      </Text>
+                    )}
+                  </View>
+                </>
               )}
             </View>
-          ))
-        )}
-      </View>
-    </ScrollView>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -251,6 +378,29 @@ const styles = StyleSheet.create({
   photoItem: {
     marginRight: 15,
     width: 120,
+    alignItems: 'center',
+  },
+  photoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  deletePhotoButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deletePhotoText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   photoDate: {
     fontSize: 12,
@@ -294,6 +444,65 @@ const styles = StyleSheet.create({
   fertilizerInfo: {
     fontSize: 12,
     color: '#888',
+    fontStyle: 'italic',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: screenWidth,
+    height: screenHeight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: screenWidth - 40,
+    height: screenHeight - 200,
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  photoInfo: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 15,
+    borderRadius: 8,
+  },
+  photoInfoText: {
+    color: 'white',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  photoInfoCaption: {
+    color: 'white',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 5,
     fontStyle: 'italic',
   },
 });
