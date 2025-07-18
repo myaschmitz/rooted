@@ -1,0 +1,171 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { router } from 'expo-router';
+import { PlantService } from '../services/PlantService';
+import { Plant } from '../types/Plant';
+
+export default function HomeScreen() {
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPlants();
+  }, []);
+
+  const loadPlants = async () => {
+    try {
+      const allPlants = await PlantService.getAllPlants();
+      setPlants(allPlants);
+    } catch (error) {
+      console.error('Failed to load plants:', error);
+      Alert.alert('Error', 'Failed to load plants');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderPlantItem = ({ item }: { item: Plant }) => (
+    <TouchableOpacity
+      style={styles.plantCard}
+      onPress={() => router.push(`/plant/${item.id}`)}
+    >
+      <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
+      <Text style={styles.plantType}>{item.type}</Text>
+      {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
+      <Text style={styles.healthStatus}>
+        Health: {item.health_status || 'Good'}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading plants...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {plants.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No plants yet!</Text>
+          <Text style={styles.emptySubtext}>Add your first plant to get started</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/add-plant')}
+          >
+            <Text style={styles.addButtonText}>Add Plant</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <FlatList
+            data={plants}
+            renderItem={renderPlantItem}
+            keyExtractor={(item) => item.id}
+            style={styles.list}
+          />
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => router.push('/add-plant')}
+          >
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  list: {
+    flex: 1,
+    padding: 16,
+  },
+  plantCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  plantName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  plantType: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  plantLocation: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  healthStatus: {
+    fontSize: 12,
+    color: '#4CAF50',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  emptySubtext: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  fabText: {
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});
