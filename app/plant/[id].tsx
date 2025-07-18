@@ -12,6 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { SquarePen } from 'lucide-react-native';
 import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
@@ -76,8 +77,8 @@ export default function PlantDetailScreen() {
       'Add Photo',
       'Choose how to add a photo',
       [
-        { text: '📷 Take Photo', onPress: handleTakePhoto },
-        { text: '🖼️ Photo Library', onPress: handlePickPhoto },
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Photo Library', onPress: handlePickPhoto },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -173,15 +174,25 @@ export default function PlantDetailScreen() {
       >
         {/* Plant Info Header */}
         <View style={styles.header}>
-          <Text style={styles.plantName}>{plant.name || `Unnamed ${plant.type}`}</Text>
-          <Text style={styles.plantType}>{plant.type}</Text>
-          {plant.location && (
-            <Text style={styles.location}>📍 {plant.location}</Text>
-          )}
-          <View style={styles.healthStatus}>
-            <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
-              Health: {plant.health_status || 'Good'}
-            </Text>
+          <View style={styles.headerTop}>
+            <View style={styles.headerContent}>
+              <Text style={styles.plantName}>{plant.name || `Unnamed ${plant.type}`}</Text>
+              <Text style={styles.plantType}>{plant.type}</Text>
+              {plant.location && (
+                <Text style={styles.location}>📍 {plant.location}</Text>
+              )}
+              <View style={styles.healthStatus}>
+                <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
+                  Health: {plant.health_status || 'Good'}
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.editButton} 
+              onPress={() => router.push(`/edit-plant?id=${id}`)}
+            >
+              <SquarePen size={16} color="#666" />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -226,9 +237,6 @@ export default function PlantDetailScreen() {
                     <Text style={styles.deletePhotoText}>×</Text>
                   </TouchableOpacity>
                   <Text style={styles.photoDate}>{formatDate(photo.taken_at)}</Text>
-                  {photo.caption && (
-                    <Text style={styles.photoCaption}>{photo.caption}</Text>
-                  )}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -244,10 +252,18 @@ export default function PlantDetailScreen() {
             careEvents.slice(0, 10).map((event) => (
               <View key={event.id} style={styles.careEventItem}>
                 <View style={styles.careEventHeader}>
-                  <Text style={styles.careEventType}>
-                    {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
-                  </Text>
-                  <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
+                  <View style={styles.careEventInfo}>
+                    <Text style={styles.careEventType}>
+                      {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
+                    </Text>
+                    <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.editCareButton}
+                    onPress={() => router.push(`/edit-care-event?id=${event.id}`)}
+                  >
+                    <SquarePen size={12} color="#666" />
+                  </TouchableOpacity>
                 </View>
                 {event.notes && (
                   <Text style={styles.careEventNotes}>{event.notes}</Text>
@@ -293,11 +309,6 @@ export default function PlantDetailScreen() {
                     <Text style={styles.photoInfoText}>
                       {formatDate(fullScreenPhoto.taken_at)}
                     </Text>
-                    {fullScreenPhoto.caption && (
-                      <Text style={styles.photoInfoCaption}>
-                        {fullScreenPhoto.caption}
-                      </Text>
-                    )}
                   </View>
                 </>
               )}
@@ -504,5 +515,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
     fontStyle: 'italic',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  editButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginLeft: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  careEventInfo: {
+    flex: 1,
+  },
+  editCareButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

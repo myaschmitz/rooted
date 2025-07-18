@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,14 @@ import {
   Platform,
   Image,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
+import { Plant } from '../types/Plant';
 
-export default function AddPlantScreen() {
+export default function EditPlantScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [plant, setPlant] = useState<Plant | null>(null);
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
@@ -23,6 +26,32 @@ export default function AddPlantScreen() {
   const [notes, setNotes] = useState('');
   const [plantPhoto, setPlantPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadPlantData();
+  }, [id]);
+
+  const loadPlantData = async () => {
+    if (!id) return;
+    
+    try {
+      const plantData = await PlantService.getPlantById(id);
+      if (plantData) {
+        setPlant(plantData);
+        setName(plantData.name || '');
+        setType(plantData.type);
+        setLocation(plantData.location || '');
+        setHealthStatus(plantData.health_status || 'good');
+        setNotes(plantData.notes || '');
+      }
+    } catch (error) {
+      console.error('Failed to load plant:', error);
+      Alert.alert('Error', 'Failed to load plant data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!type.trim()) {
@@ -30,9 +59,11 @@ export default function AddPlantScreen() {
       return;
     }
 
+    if (!id) return;
+
     setSaving(true);
     try {
-      const newPlant = await PlantService.createPlant({
+      await PlantService.updatePlant(id, {
         name: name.trim() || undefined,
         type: type.trim(),
         location: location.trim() || undefined,
@@ -40,20 +71,19 @@ export default function AddPlantScreen() {
         notes: notes.trim() || undefined,
       });
 
-      // If there's a photo, save it
-      if (plantPhoto && newPlant) {
+      // If there's a new photo, save it
+      if (plantPhoto) {
         try {
-          await PhotoService.savePhoto(newPlant.id, plantPhoto, 'Initial photo');
+          await PhotoService.savePhoto(id, plantPhoto, 'Updated photo');
         } catch (photoError) {
-          console.warn('Failed to save photo, but plant was created:', photoError);
+          console.warn('Failed to save photo, but plant was updated:', photoError);
         }
       }
 
-      // Navigate back and refresh the home screen
       router.back();
     } catch (error) {
-      console.error('Failed to create plant:', error);
-      Alert.alert('Error', 'Failed to add plant');
+      console.error('Failed to update plant:', error);
+      Alert.alert('Error', 'Failed to update plant');
     } finally {
       setSaving(false);
     }
@@ -104,6 +134,22 @@ export default function AddPlantScreen() {
     { value: 'critical', label: 'Critical', color: '#B71C1C', emoji: '💀' },
   ] as const;
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading plant data...</Text>
+      </View>
+    );
+  }
+
+  if (!plant) {
+    return (
+      <View style={styles.container}>
+        <Text>Plant not found</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -111,6 +157,7 @@ export default function AddPlantScreen() {
     >
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
+          {/* Plant Photo */}
           <View style={styles.inputGroup}>
             <TouchableOpacity style={styles.photoContainer} onPress={handleAddPhoto}>
               {plantPhoto ? (
@@ -129,6 +176,7 @@ export default function AddPlantScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Plant Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Plant Name</Text>
             <TextInput
@@ -140,6 +188,7 @@ export default function AddPlantScreen() {
             />
           </View>
 
+          {/* Plant Type */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Plant Type *</Text>
             <TextInput
@@ -151,6 +200,7 @@ export default function AddPlantScreen() {
             />
           </View>
 
+          {/* Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Location</Text>
             <TextInput
@@ -162,6 +212,7 @@ export default function AddPlantScreen() {
             />
           </View>
 
+          {/* Health Status */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Health Status</Text>
             <View style={styles.healthOptions}>
@@ -197,6 +248,7 @@ export default function AddPlantScreen() {
             </View>
           </View>
 
+          {/* Notes */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Notes</Text>
             <TextInput
@@ -210,13 +262,14 @@ export default function AddPlantScreen() {
             />
           </View>
 
+          {/* Save Button */}
           <TouchableOpacity
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? 'Adding Plant...' : 'Add Plant'}
+              {saving ? 'Updating Plant...' : 'Update Plant'}
             </Text>
           </TouchableOpacity>
         </View>
