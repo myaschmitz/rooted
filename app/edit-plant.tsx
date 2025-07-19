@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
 import { Plant } from '../types/Plant';
+import LocationDropdown from '../components/LocationDropdown';
 
 export default function EditPlantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -203,12 +204,10 @@ export default function EditPlantScreen() {
           {/* Location */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
+            <LocationDropdown
               value={location}
-              onChangeText={setLocation}
-              placeholder="e.g., living room, kitchen window"
-              autoCapitalize="none"
+              onValueChange={setLocation}
+              placeholder="Select or enter location (e.g., living room, kitchen window)"
             />
           </View>
 

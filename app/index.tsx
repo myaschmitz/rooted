@@ -1,15 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image, SectionList } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
+import { LocationService } from '../services/LocationService';
 import { Plant } from '../types/Plant';
 
 export default function HomeScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [loading, setLoading] = useState(true);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
+  const [groupByLocation, setGroupByLocation] = useState(true);
 
   const loadPlants = useCallback(async () => {
     try {
@@ -38,13 +41,34 @@ export default function HomeScreen() {
         }
       }
       setPlantThumbnails(thumbnails);
+
+      // Group plants by location if enabled
+      if (groupByLocation) {
+        const groupedPlants = await LocationService.getPlantsGroupedByLocation();
+        const sections = Object.entries(groupedPlants).map(([location, plants]) => ({
+          title: location,
+          data: plants as Plant[]
+        }));
+        
+        // Sort sections: "No Location" last, others alphabetically
+        sections.sort((a, b) => {
+          if (a.title === 'No Location') return 1;
+          if (b.title === 'No Location') return -1;
+          return a.title.localeCompare(b.title);
+        });
+        
+        setPlantsGrouped(sections);
+      } else {
+        // Single section with all plants
+        setPlantsGrouped([{ title: 'All Plants', data: allPlants }]);
+      }
     } catch (error) {
       console.error('Failed to load plants:', error);
       Alert.alert('Error', 'Failed to load plants');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [groupByLocation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -88,7 +112,9 @@ export default function HomeScreen() {
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
-            {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
+            {!groupByLocation && item.location && (
+              <Text style={styles.plantLocation}>📍 {item.location}</Text>
+            )}
             <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
               Health: {healthDisplay.text}
             </Text>
@@ -97,6 +123,15 @@ export default function HomeScreen() {
       </TouchableOpacity>
     );
   };
+
+  const renderSectionHeader = ({ section }: { section: { title: string, data: Plant[] } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <Text style={styles.sectionCount}>
+        {section.data.length} plant{section.data.length !== 1 ? 's' : ''}
+      </Text>
+    </View>
+  );
 
   if (loading) {
     return (
@@ -111,12 +146,22 @@ export default function HomeScreen() {
       {/* Header with settings button */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Plants</Text>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => router.push('/settings')}
-        >
-          <Settings size={24} color="#666" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.toggleButton}
+            onPress={() => setGroupByLocation(!groupByLocation)}
+          >
+            <Text style={styles.toggleButtonText}>
+              {groupByLocation ? '📍' : '📋'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
+            <Settings size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {plants.length === 0 ? (
@@ -132,11 +177,13 @@ export default function HomeScreen() {
         </View>
       ) : (
         <>
-          <FlatList
-            data={plants}
+          <SectionList
+            sections={plantsGrouped}
             renderItem={renderPlantItem}
+            renderSectionHeader={groupByLocation ? renderSectionHeader : undefined}
             keyExtractor={(item) => item.id}
             style={styles.list}
+            stickySectionHeadersEnabled={false}
           />
           <TouchableOpacity
             style={styles.fab}
@@ -270,5 +317,37 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: 'white',
     fontWeight: 'bold',
+  },
+  sectionHeader: {
+    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  sectionCount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f0f0f0',
+  },
+  toggleButtonText: {
+    fontSize: 18,
   },
 });

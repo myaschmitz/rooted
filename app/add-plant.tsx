@@ -14,6 +14,7 @@ import {
 import { router } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
+import LocationDropdown from '../components/LocationDropdown';
 
 export default function AddPlantScreen() {
   const [name, setName] = useState('');
@@ -153,12 +154,10 @@ export default function AddPlantScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
+            <LocationDropdown
               value={location}
-              onChangeText={setLocation}
-              placeholder="e.g., living room, kitchen window"
-              autoCapitalize="none"
+              onValueChange={setLocation}
+              placeholder="Select or enter location (e.g., living room, kitchen window)"
             />
           </View>
 
