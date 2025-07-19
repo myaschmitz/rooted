@@ -1,12 +1,25 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 
-export default function RootLayout() {
+function ThemedStack() {
+  const { theme } = useTheme();
+  
   return (
     <>
-      <StatusBar style="auto" />
-      <Stack>
+      <StatusBar style={theme.colors.statusBar === 'light-content' ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: theme.colors.surface,
+          },
+          headerTintColor: theme.colors.text,
+          headerTitleStyle: {
+            color: theme.colors.text,
+          },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 
           name="plant/[id]" 
@@ -43,7 +56,22 @@ export default function RootLayout() {
             headerBackTitle: 'Back'
           }} 
         />
+        <Stack.Screen 
+          name="theme-settings" 
+          options={{ 
+            title: 'Theme Settings',
+            headerBackTitle: 'Back'
+          }} 
+        />
       </Stack>
     </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <ThemedStack />
+    </ThemeProvider>
   );
 }

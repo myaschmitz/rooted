@@ -19,10 +19,12 @@ import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function PlantDetailScreen() {
+  const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [careEvents, setCareEvents] = useState<CareEvent[]>([]);
@@ -324,18 +326,20 @@ export default function PlantDetailScreen() {
     return '(Severe)';
   };
 
+  const styles = createStyles(theme);
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading plant details...</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.text }}>Loading plant details...</Text>
       </View>
     );
   }
 
   if (!plant) {
     return (
-      <View style={styles.container}>
-        <Text>Plant not found</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.text }}>Plant not found</Text>
       </View>
     );
   }
@@ -564,13 +568,13 @@ export default function PlantDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     padding: 20,
     marginBottom: 10,
   },
@@ -578,15 +582,16 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: theme.colors.text,
   },
   plantType: {
     fontSize: 18,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
   },
   location: {
     fontSize: 16,
-    color: '#888',
+    color: theme.colors.textTertiary,
     marginBottom: 10,
   },
   healthStatus: {
@@ -603,7 +608,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.primary,
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -614,7 +619,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     margin: 10,
     marginTop: 0,
     padding: 15,
@@ -624,11 +629,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: theme.colors.text,
   },
   notesText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: theme.colors.text,
   },
   photoItem: {
     marginRight: 15,
@@ -659,22 +665,22 @@ const styles = StyleSheet.create({
   },
   photoDate: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   photoCaption: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
   },
   emptyCareText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontStyle: 'italic',
   },
   careEventItem: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.border,
   },
   careEventHeader: {
     flexDirection: 'row',
@@ -685,11 +691,11 @@ const styles = StyleSheet.create({
   careEventType: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: theme.colors.primary,
   },
   careEventDate: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   careEventHealth: {
     fontSize: 13,
@@ -698,12 +704,12 @@ const styles = StyleSheet.create({
   },
   careEventNotes: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 3,
   },
   fertilizerInfo: {
     fontSize: 12,
-    color: '#888',
+    color: theme.colors.textTertiary,
     fontStyle: 'italic',
   },
   pestSeverityInfo: {
@@ -713,7 +719,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: theme.colors.modalBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -747,7 +753,7 @@ const styles = StyleSheet.create({
   modalCloseText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text,
   },
   photoInfo: {
     position: 'absolute',
@@ -803,7 +809,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   thumbnailButtonText: {
-    color: '#333',
+    color: theme.colors.text,
     fontSize: 16,
     fontWeight: '600',
   },

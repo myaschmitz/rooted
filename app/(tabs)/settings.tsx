@@ -9,11 +9,13 @@ import {
   Modal,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ChevronDown } from 'lucide-react-native';
+import { ChevronDown, Palette, Sun, Moon, Monitor } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useColorScheme } from 'react-native';
 
 const DATE_FORMATS = [
   { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
@@ -27,6 +29,9 @@ const TIME_FORMATS = [
 ];
 
 export default function SettingsScreen() {
+  const { theme, themeMode, setThemeMode } = useTheme();
+  const systemColorScheme = useColorScheme();
+  const styles = createStyles(theme.colors);
   const [dateFormat, setDateFormat] = useState('MM/DD/YYYY');
   const [timeFormat, setTimeFormat] = useState('12');
   const [loading, setLoading] = useState(false);
@@ -142,19 +147,57 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Date & Time Format</Text>
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Theme Settings Section */}
+      <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Appearance</Text>
         
-        <Text style={styles.settingLabel}>Date Format</Text>
+        <View style={[styles.settingRow, { borderColor: theme.colors.border }]}>
+          <View style={styles.settingInfo}>
+            <Palette size={20} color={theme.colors.primary} />
+            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Theme</Text>
+          </View>
+          
+          <View style={[styles.themeSelector, { backgroundColor: theme.colors.background }]}>
+            {[
+              { value: 'light', icon: Sun },
+              { value: 'dark', icon: Moon },
+              { value: 'system', icon: Monitor },
+            ].map((option) => {
+              const IconComponent = option.icon;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.themeOptionCompact,
+                    themeMode === option.value && [styles.selectedThemeOptionCompact, { backgroundColor: theme.colors.primary }],
+                  ]}
+                  onPress={() => setThemeMode(option.value as 'light' | 'dark' | 'system')}
+                >
+                  <IconComponent 
+                    size={18} 
+                    color={themeMode === option.value ? '#fff' : theme.colors.text}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Date & Time Format</Text>
+        
+        <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Date Format</Text>
         
         {/* Dropdown for Date Format */}
         <TouchableOpacity
-          style={styles.dropdown}
+          style={[styles.dropdown, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
           onPress={() => setDropdownVisible(true)}
         >
-          <Text style={styles.dropdownText}>{dateFormat}</Text>
-          <ChevronDown size={20} color="#666" />
+          <Text style={[styles.dropdownText, { color: theme.colors.text }]}>{dateFormat}</Text>
+          <ChevronDown size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {/* Dropdown Modal */}
@@ -241,16 +284,17 @@ export default function SettingsScreen() {
         </Text>
       </View>
     </ScrollView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.background,
   },
   section: {
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
     margin: 15,
     padding: 20,
     borderRadius: 10,
@@ -264,10 +308,32 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#333',
+    color: theme.text,
+  },
+  themeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  themeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  themeButtonText: {
+    fontSize: 16,
+    color: theme.text,
+    marginLeft: 15,
+  },
+  settingValue: {
+    fontSize: 14,
+    color: theme.textSecondary,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.primary,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 6,
@@ -280,7 +346,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   dangerButton: {
-    backgroundColor: '#F44336',
+    backgroundColor: theme.danger,
   },
   dangerButtonText: {
     color: 'white',
@@ -289,23 +355,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 10,
-    color: '#555',
+    color: theme.text,
   },
   formatOption: {
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.border,
     marginBottom: 8,
   },
   selectedFormat: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
   },
   formatText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.text,
   },
   selectedFormatText: {
     color: 'white',
@@ -315,16 +381,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: theme.surface,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.border,
     marginBottom: 8,
   },
   dropdownText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.text,
   },
   modalOverlay: {
     flex: 1,
@@ -333,7 +399,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dropdownModal: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.surface,
     borderRadius: 8,
     padding: 8,
     minWidth: 200,
@@ -352,11 +418,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   selectedDropdownOption: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.primary,
   },
   dropdownOptionText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.text,
     textAlign: 'center',
   },
   selectedDropdownOptionText: {
@@ -364,7 +430,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   deleteButton: {
-    backgroundColor: '#F44336',
+    backgroundColor: theme.danger,
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -381,19 +447,51 @@ const styles = StyleSheet.create({
   },
   warningText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.textSecondary,
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 10,
   },
   aboutText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.text,
     marginBottom: 5,
     lineHeight: 22,
   },
   versionText: {
     fontSize: 14,
-    color: '#666',
+    color: theme.textSecondary,
+  },
+  // Compact theme selector styles
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  themeSelector: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
+  },
+  themeOptionCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedThemeOptionCompact: {
+    backgroundColor: theme.primary,
+  },
+  themeIconCompact: {
+    fontSize: 16,
   },
 });

@@ -7,9 +7,11 @@ import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { CareEventService } from '../../services/CareEventService';
 import { Plant } from '../../types/Plant';
-import { GlobalStyles, CareStyles, Colors } from '../../styles';
+import { GlobalStyles, CareStyles } from '../../styles';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function QuickCareScreen() {
+  const { theme } = useTheme();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [selectedPlants, setSelectedPlants] = useState<Set<string>>(new Set());
@@ -218,7 +220,7 @@ export default function QuickCareScreen() {
             <View style={[
               CareStyles.checkbox, 
               allSelected && CareStyles.checkboxSelected,
-              someSelected && !allSelected && { backgroundColor: Colors.gray400 }
+              someSelected && !allSelected && { backgroundColor: theme.colors.border }
             ]}>
               {allSelected && <Check size={16} color="white" />}
               {someSelected && !allSelected && <Text style={CareStyles.checkboxText}>−</Text>}
@@ -260,11 +262,11 @@ export default function QuickCareScreen() {
               >
                 <Text style={[
                   GlobalStyles.body,
-                  selectedLocation === item && { color: Colors.primary }
+                  selectedLocation === item && { color: theme.colors.primary }
                 ]}>
                   {item}
                 </Text>
-                {selectedLocation === item && <Check size={20} color={Colors.primary} />}
+                {selectedLocation === item && <Check size={20} color={theme.colors.primary} />}
               </TouchableOpacity>
             )}
           />
@@ -335,7 +337,7 @@ export default function QuickCareScreen() {
           style={[GlobalStyles.flexRowCenter, GlobalStyles.buttonSecondary]}
           onPress={() => setShowLocationModal(true)}
         >
-          <Filter size={20} color={Colors.textSecondary} />
+          <Filter size={20} color={theme.colors.textSecondary} />
           <Text style={[GlobalStyles.buttonTextSecondary, { marginLeft: 8 }]}>{selectedLocation}</Text>
         </TouchableOpacity>
         

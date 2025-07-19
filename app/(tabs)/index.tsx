@@ -6,8 +6,11 @@ import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { Plant } from '../../types/Plant';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function HomeScreen() {
+  const { theme } = useTheme();
+  const styles = createStyles(theme.colors);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,27 +193,27 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.border,
   },
   list: {
     flex: 1,
     padding: 16,
   },
   plantCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
@@ -263,16 +266,16 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#333',
+    color: theme.text,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#666',
+    color: theme.textSecondary,
     marginBottom: 24,
     textAlign: 'center',
   },
   addButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.primary,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
