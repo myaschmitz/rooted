@@ -20,10 +20,18 @@ export default function HomeScreen() {
       const thumbnails: {[plantId: string]: string} = {};
       for (const plant of allPlants) {
         try {
-          const photos = await PhotoService.getPhotosByPlantId(plant.id);
-          if (photos.length > 0) {
-            // Use the first photo as thumbnail for now
-            thumbnails[plant.id] = photos[0].file_path;
+          if (plant.thumbnail_photo_id) {
+            // Use the designated thumbnail photo
+            const thumbnailPhoto = await PhotoService.getThumbnailPhoto(plant.id);
+            if (thumbnailPhoto) {
+              thumbnails[plant.id] = thumbnailPhoto.file_path;
+            }
+          } else {
+            // Fall back to first photo if no thumbnail is set
+            const photos = await PhotoService.getPhotosByPlantId(plant.id);
+            if (photos.length > 0) {
+              thumbnails[plant.id] = photos[0].file_path;
+            }
           }
         } catch (error) {
           console.error(`Failed to load photos for plant ${plant.id}:`, error);

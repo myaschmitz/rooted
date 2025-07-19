@@ -34,10 +34,10 @@ export class PlantService {
     };
 
     await db.runAsync(
-      `INSERT INTO plants (id, name, type, location, health_status, notes, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO plants (id, name, type, location, health_status, notes, thumbnail_photo_id, created_at, updated_at, synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [plant.id, plant.name || null, plant.type, plant.location || null, plant.health_status || 'good', 
-       plant.notes || null, plant.created_at, plant.updated_at, plant.synced ? 1 : 0]
+       plant.notes || null, plant.thumbnail_photo_id || null, plant.created_at, plant.updated_at, plant.synced ? 1 : 0]
     );
 
     return plant;
@@ -58,11 +58,11 @@ export class PlantService {
     };
 
     await db.runAsync(
-      `UPDATE plants SET name = ?, type = ?, location = ?, health_status = ?, notes = ?, updated_at = ?, synced = ?
+      `UPDATE plants SET name = ?, type = ?, location = ?, health_status = ?, notes = ?, thumbnail_photo_id = ?, updated_at = ?, synced = ?
        WHERE id = ?`,
       [updatedPlant.name || null, updatedPlant.type, updatedPlant.location || null, 
        updatedPlant.health_status || 'good', updatedPlant.notes || null, 
-       updatedPlant.updated_at, updatedPlant.synced ? 1 : 0, id]
+       updatedPlant.thumbnail_photo_id || null, updatedPlant.updated_at, updatedPlant.synced ? 1 : 0, id]
     );
 
     return updatedPlant;

@@ -23,6 +23,7 @@ export class DatabaseService {
         location TEXT,
         health_status TEXT DEFAULT 'good',
         notes TEXT,
+        thumbnail_photo_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
         synced INTEGER DEFAULT 0
@@ -86,6 +87,13 @@ export class DatabaseService {
     // Add health_status column to care_events if it doesn't exist (migration)
     try {
       await db.execAsync(`ALTER TABLE care_events ADD COLUMN health_status TEXT;`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+
+    // Add thumbnail_photo_id column to plants if it doesn't exist (migration)
+    try {
+      await db.execAsync(`ALTER TABLE plants ADD COLUMN thumbnail_photo_id TEXT;`);
     } catch (error) {
       // Column might already exist, ignore error
     }

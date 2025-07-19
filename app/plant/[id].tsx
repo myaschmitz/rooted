@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   Dimensions,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen } from 'lucide-react-native';
@@ -29,6 +30,7 @@ export default function PlantDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PlantPhoto | null>(null);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -40,7 +42,24 @@ export default function PlantDetailScreen() {
         PhotoService.getPhotosByPlantId(id),
       ]);
 
-      setPlant(plantData);
+      // If there are photos but no thumbnail is set, auto-set the oldest photo as thumbnail
+      if (photosData.length > 0 && !plantData?.thumbnail_photo_id) {
+        // Sort photos by taken_at ascending to get the oldest first
+        const sortedPhotos = [...photosData].sort((a, b) => 
+          new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+        );
+        const oldestPhoto = sortedPhotos[0];
+        
+        // Set the oldest photo as thumbnail
+        await PhotoService.setThumbnailPhoto(id, oldestPhoto.id);
+        
+        // Update the plant data to reflect the new thumbnail
+        const updatedPlant = await PlantService.getPlantById(id);
+        setPlant(updatedPlant);
+      } else {
+        setPlant(plantData);
+      }
+
       setCareEvents(eventsData);
       setPhotos(photosData);
     } catch (error) {
@@ -112,6 +131,8 @@ export default function PlantDetailScreen() {
   };
 
   const handlePhotoPress = (photo: PlantPhoto) => {
+    const photoIndex = photos.findIndex(p => p.id === photo.id);
+    setCurrentPhotoIndex(photoIndex);
     setFullScreenPhoto(photo);
   };
 
@@ -126,14 +147,61 @@ export default function PlantDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Check if we're deleting the current thumbnail
+              const isCurrentThumbnail = plant?.thumbnail_photo_id === photoId;
+              
               await PhotoService.deletePhoto(photoId);
-              loadPlantData(); // Refresh to remove deleted photo
+              
+              // If we deleted the thumbnail photo, we need to set a new one
+              if (isCurrentThumbnail && id) {
+                // Get remaining photos
+                const remainingPhotos = await PhotoService.getPhotosByPlantId(id);
+                
+                if (remainingPhotos.length > 0) {
+                  // Sort photos by taken_at ascending to get the oldest first
+                  const sortedPhotos = [...remainingPhotos].sort((a, b) => 
+                    new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+                  );
+                  const newThumbnail = sortedPhotos[0];
+                  
+                  // Set the oldest remaining photo as the new thumbnail
+                  await PhotoService.setThumbnailPhoto(id, newThumbnail.id);
+                } else {
+                  // No photos left, clear the thumbnail
+                  await PhotoService.clearThumbnailPhoto(id);
+                }
+              }
+              
+              loadPlantData(); // Refresh to remove deleted photo and update thumbnail
             } catch (error) {
               console.error('Failed to delete photo:', error);
               Alert.alert('Error', 'Failed to delete photo');
             }
           }
         },
+      ]
+    );
+  };
+
+  const handleSetThumbnail = async (photoId: string) => {
+    try {
+      await PhotoService.setThumbnailPhoto(id!, photoId);
+      loadPlantData(); // Refresh to update thumbnail
+      Alert.alert('Success', 'Thumbnail photo updated');
+    } catch (error) {
+      console.error('Failed to set thumbnail:', error);
+      Alert.alert('Error', 'Failed to set thumbnail photo');
+    }
+  };
+
+  const handlePhotoOptions = (photo: PlantPhoto) => {
+    Alert.alert(
+      'Photo Options',
+      'Choose an action',
+      [
+        { text: 'Set as Thumbnail', onPress: () => handleSetThumbnail(photo.id) },
+        { text: 'Delete Photo', onPress: () => handleDeletePhoto(photo.id), style: 'destructive' },
+        { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
@@ -250,12 +318,18 @@ export default function PlantDetailScreen() {
                   key={photo.id} 
                   style={styles.photoItem}
                   onPress={() => handlePhotoPress(photo)}
+                  onLongPress={() => handlePhotoOptions(photo)}
                 >
                   <Image 
                     source={{ uri: photo.file_path }} 
                     style={styles.photoImage}
                     resizeMode="cover"
                   />
+                  {plant?.thumbnail_photo_id === photo.id && (
+                    <View style={styles.thumbnailBadge}>
+                      <Text style={styles.thumbnailBadgeText}>★</Text>
+                    </View>
+                  )}
                   <TouchableOpacity 
                     style={styles.deletePhotoButton}
                     onPress={() => handleDeletePhoto(photo.id)}
@@ -318,33 +392,67 @@ export default function PlantDetailScreen() {
         onRequestClose={() => setFullScreenPhoto(null)}
       >
         <View style={styles.modalContainer}>
-          <TouchableOpacity 
-            style={styles.modalBackdrop} 
-            onPress={() => setFullScreenPhoto(null)}
-          >
-            <View style={styles.modalContent}>
-              {fullScreenPhoto && (
-                <>
-                  <Image
-                    source={{ uri: fullScreenPhoto.file_path }}
-                    style={styles.fullScreenImage}
-                    resizeMode="contain"
-                  />
-                  <TouchableOpacity
-                    style={styles.modalCloseButton}
-                    onPress={() => setFullScreenPhoto(null)}
-                  >
-                    <Text style={styles.modalCloseText}>✕</Text>
-                  </TouchableOpacity>
-                  <View style={styles.photoInfo}>
-                    <Text style={styles.photoInfoText}>
-                      {formattedDates[fullScreenPhoto.id] || 'Loading...'}
-                    </Text>
+          {fullScreenPhoto && photos.length > 0 && (
+            <>
+              <FlatList
+                data={photos}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                initialScrollIndex={currentPhotoIndex}
+                getItemLayout={(data, index) => ({
+                  length: screenWidth,
+                  offset: screenWidth * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(event) => {
+                  const newIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
+                  setCurrentPhotoIndex(newIndex);
+                  setFullScreenPhoto(photos[newIndex]);
+                }}
+                renderItem={({ item }) => (
+                  <View style={styles.photoSlide}>
+                    <Image
+                      source={{ uri: item.file_path }}
+                      style={styles.fullScreenImage}
+                      resizeMode="contain"
+                    />
                   </View>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
+                )}
+                keyExtractor={(item) => item.id}
+              />
+              
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setFullScreenPhoto(null)}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.photoInfo}>
+                <Text style={styles.photoInfoText}>
+                  {formattedDates[fullScreenPhoto.id] || 'Loading...'}
+                </Text>
+                {photos.length > 1 && (
+                  <Text style={styles.photoCounter}>
+                    {currentPhotoIndex + 1} of {photos.length}
+                  </Text>
+                )}
+              </View>
+              
+              <TouchableOpacity
+                style={styles.thumbnailButton}
+                onPress={() => {
+                  handleSetThumbnail(fullScreenPhoto.id);
+                  setFullScreenPhoto(null);
+                }}
+              >
+                <Text style={styles.thumbnailButtonText}>
+                  {plant?.thumbnail_photo_id === fullScreenPhoto.id ? '★ Thumbnail' : 'Set as Thumbnail'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Modal>
     </View>
@@ -544,6 +652,50 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     textAlign: 'center',
+  },
+  photoCounter: {
+    color: 'white',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 5,
+    opacity: 0.8,
+  },
+  photoSlide: {
+    width: screenWidth,
+    height: screenHeight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailBadge: {
+    position: 'absolute',
+    top: 5,
+    left: 5,
+    backgroundColor: '#FFD700',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbnailBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  thumbnailButton: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  thumbnailButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
   },
   photoInfoCaption: {
     color: 'white',

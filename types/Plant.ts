@@ -5,6 +5,7 @@ export interface Plant {
   location?: string;
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   notes?: string;
+  thumbnail_photo_id?: string;
   created_at: string;
   updated_at: string;
   synced: boolean;

@@ -26,6 +26,18 @@ export class PhotoService {
     })) as PlantPhoto[];
   }
 
+  static async getPhotosByPlantIdOldestFirst(plantId: string): Promise<PlantPhoto[]> {
+    const db = await DatabaseService.getDatabase();
+    const result = await db.getAllAsync(
+      'SELECT * FROM plant_photos WHERE plant_id = ? ORDER BY taken_at ASC',
+      [plantId]
+    );
+    return result.map(row => ({
+      ...(row as any),
+      synced: Boolean((row as any).synced)
+    })) as PlantPhoto[];
+  }
+
   static async pickAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
     try {
       // Request permission
@@ -36,7 +48,7 @@ export class PhotoService {
 
       // Pick image
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -63,10 +75,12 @@ export class PhotoService {
 
       // Take photo
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
+        cameraType: ImagePicker.CameraType.back,
+        allowsMultipleSelection: false,
       });
 
       if (result.canceled) {
@@ -94,6 +108,8 @@ export class PhotoService {
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
+        cameraType: ImagePicker.CameraType.back,
+        allowsMultipleSelection: false,
       });
 
       if (result.canceled) {
@@ -167,6 +183,19 @@ export class PhotoService {
       [photo.id, photo.plant_id, photo.file_path, photo.caption || null,
        photo.taken_at, photo.created_at, photo.updated_at, photo.synced ? 1 : 0]
     );
+
+    // Check if this plant has no thumbnail yet, and if so, set this as the thumbnail
+    const plantResult = await db.getFirstAsync(
+      'SELECT thumbnail_photo_id FROM plants WHERE id = ?',
+      [plantId]
+    ) as { thumbnail_photo_id: string | null } | null;
+    
+    if (plantResult && !plantResult.thumbnail_photo_id) {
+      await db.runAsync(
+        'UPDATE plants SET thumbnail_photo_id = ?, updated_at = ? WHERE id = ?',
+        [photoId, now, plantId]
+      );
+    }
 
     return photo;
   }
@@ -305,8 +334,61 @@ export class PhotoService {
     const db = await DatabaseService.getDatabase();
     const result = await db.getAllAsync('SELECT * FROM plant_photos');
     return result.map(row => ({
-      ...row,
+      ...(row as any),
       synced: Boolean((row as any).synced)
     })) as PlantPhoto[];
+  }
+
+  static async setThumbnailPhoto(plantId: string, photoId: string): Promise<void> {
+    try {
+      const db = await DatabaseService.getDatabase();
+      const now = new Date().toISOString();
+      
+      await db.runAsync(
+        'UPDATE plants SET thumbnail_photo_id = ?, updated_at = ? WHERE id = ?',
+        [photoId, now, plantId]
+      );
+    } catch (error) {
+      console.error('Error setting thumbnail photo:', error);
+      throw error;
+    }
+  }
+
+  static async clearThumbnailPhoto(plantId: string): Promise<void> {
+    try {
+      const db = await DatabaseService.getDatabase();
+      const now = new Date().toISOString();
+      
+      await db.runAsync(
+        'UPDATE plants SET thumbnail_photo_id = NULL, updated_at = ? WHERE id = ?',
+        [now, plantId]
+      );
+    } catch (error) {
+      console.error('Error clearing thumbnail photo:', error);
+      throw error;
+    }
+  }
+
+  static async getThumbnailPhoto(plantId: string): Promise<PlantPhoto | null> {
+    try {
+      const db = await DatabaseService.getDatabase();
+      const result = await db.getFirstAsync(`
+        SELECT pp.* FROM plant_photos pp
+        JOIN plants p ON p.thumbnail_photo_id = pp.id
+        WHERE p.id = ?
+      `, [plantId]);
+      
+      if (!result) {
+        return null;
+      }
+      
+      return {
+        ...(result as any),
+        synced: Boolean((result as any).synced)
+      } as PlantPhoto;
+    } catch (error) {
+      console.error('Error getting thumbnail photo:', error);
+      throw error;
+    }
   }
 }
