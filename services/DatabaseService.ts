@@ -40,6 +40,7 @@ export class DatabaseService {
         notes TEXT,
         fertilizer_concentration TEXT,
         fertilizer_amount TEXT,
+        pest_severity INTEGER,
         health_status TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -94,6 +95,13 @@ export class DatabaseService {
     // Add thumbnail_photo_id column to plants if it doesn't exist (migration)
     try {
       await db.execAsync(`ALTER TABLE plants ADD COLUMN thumbnail_photo_id TEXT;`);
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+
+    // Add pest_severity column to care_events if it doesn't exist (migration)
+    try {
+      await db.execAsync(`ALTER TABLE care_events ADD COLUMN pest_severity INTEGER;`);
     } catch (error) {
       // Column might already exist, ignore error
     }

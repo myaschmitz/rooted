@@ -14,11 +14,12 @@ export interface Plant {
 export interface CareEvent {
   id: string;
   plant_id: string;
-  event_type: 'water' | 'fertilize' | 'repot' | 'prune' | 'other';
+  event_type: 'water' | 'fertilize' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
   date: string;
   notes?: string;
   fertilizer_concentration?: string;
   fertilizer_amount?: string;
+  pest_severity?: number; // 1-10 scale for pest events
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   created_at: string;
   updated_at: string;

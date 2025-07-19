@@ -27,12 +27,12 @@ export class CareEventService {
     };
 
     await db.runAsync(
-      `INSERT INTO care_events (id, plant_id, event_type, date, notes, fertilizer_concentration, fertilizer_amount, health_status, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO care_events (id, plant_id, event_type, date, notes, fertilizer_concentration, fertilizer_amount, pest_severity, health_status, created_at, updated_at, synced)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [careEvent.id, careEvent.plant_id, careEvent.event_type, careEvent.date,
        careEvent.notes || null, careEvent.fertilizer_concentration || null,
-       careEvent.fertilizer_amount || null, careEvent.health_status || null,
-       careEvent.created_at, careEvent.updated_at, careEvent.synced ? 1 : 0]
+       careEvent.fertilizer_amount || null, careEvent.pest_severity || null,
+       careEvent.health_status || null, careEvent.created_at, careEvent.updated_at, careEvent.synced ? 1 : 0]
     );
 
     return careEvent;
@@ -54,12 +54,12 @@ export class CareEventService {
 
     await db.runAsync(
       `UPDATE care_events SET plant_id = ?, event_type = ?, date = ?, notes = ?, 
-       fertilizer_concentration = ?, fertilizer_amount = ?, health_status = ?, updated_at = ?, synced = ?
+       fertilizer_concentration = ?, fertilizer_amount = ?, pest_severity = ?, health_status = ?, updated_at = ?, synced = ?
        WHERE id = ?`,
       [updatedEvent.plant_id, updatedEvent.event_type, updatedEvent.date,
        updatedEvent.notes || null, updatedEvent.fertilizer_concentration || null,
-       updatedEvent.fertilizer_amount || null, updatedEvent.health_status || null,
-       updatedEvent.updated_at, updatedEvent.synced ? 1 : 0, id]
+       updatedEvent.fertilizer_amount || null, updatedEvent.pest_severity || null,
+       updatedEvent.health_status || null, updatedEvent.updated_at, updatedEvent.synced ? 1 : 0, id]
     );
 
     return updatedEvent;

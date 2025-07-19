@@ -20,7 +20,7 @@ import { Plant } from '../types/Plant';
 export default function LogCareScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'repot' | 'prune' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [careDateTime, setCareDateTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -28,6 +28,7 @@ export default function LogCareScreen() {
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
+  const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical' | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
@@ -62,6 +63,7 @@ export default function LogCareScreen() {
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
+        pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
         health_status: healthStatus,
       });
 
@@ -85,10 +87,13 @@ export default function LogCareScreen() {
     { value: 'fertilize', label: 'Fertilize', icon: '🌱' },
     { value: 'repot', label: 'Repot', icon: '🪴' },
     { value: 'prune', label: 'Prune', icon: '✂️' },
+    { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
+    { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
     { value: 'other', label: 'Other', icon: '📝' },
   ] as const;
 
   const showFertilizerOptions = eventType === 'fertilize';
+  const showPestSeverity = eventType === 'pest_spotted';
 
   return (
     <KeyboardAvoidingView
@@ -252,6 +257,38 @@ export default function LogCareScreen() {
                 />
               </View>
             </>
+          )}
+
+          {/* Pest Severity (only show for pest_spotted) */}
+          {showPestSeverity && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Pest Severity (1-10 scale)</Text>
+              <Text style={styles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+              <View style={styles.severityContainer}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
+                  <TouchableOpacity
+                    key={severity}
+                    style={[
+                      styles.severityButton,
+                      pestSeverity === severity && styles.severityButtonSelected,
+                      severity <= 3 && styles.severityLow,
+                      severity >= 4 && severity <= 6 && styles.severityMedium,
+                      severity >= 7 && styles.severityHigh,
+                    ]}
+                    onPress={() => setPestSeverity(severity)}
+                  >
+                    <Text
+                      style={[
+                        styles.severityText,
+                        pestSeverity === severity && styles.severityTextSelected,
+                      ]}
+                    >
+                      {severity}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           )}
 
           {/* Notes */}
@@ -460,5 +497,50 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  sublabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  severityContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  severityButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  severityButtonSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#4CAF50',
+  },
+  severityLow: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#f1f8e9',
+  },
+  severityMedium: {
+    borderColor: '#FF9800',
+    backgroundColor: '#fff3e0',
+  },
+  severityHigh: {
+    borderColor: '#F44336',
+    backgroundColor: '#ffebee',
+  },
+  severityText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  severityTextSelected: {
+    color: 'white',
   },
 });

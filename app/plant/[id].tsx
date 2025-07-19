@@ -244,6 +244,18 @@ export default function PlantDetailScreen() {
     }
   };
 
+  const getPestSeverityColor = (severity: number) => {
+    if (severity <= 3) return '#4CAF50';    // Green for low
+    if (severity <= 6) return '#FF9800';    // Orange for medium
+    return '#F44336';                       // Red for high
+  };
+
+  const getPestSeverityLabel = (severity: number) => {
+    if (severity <= 3) return '(Minor)';
+    if (severity <= 6) return '(Moderate)';
+    return '(Severe)';
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -354,7 +366,9 @@ export default function PlantDetailScreen() {
                 <View style={styles.careEventHeader}>
                   <View style={styles.careEventInfo}>
                     <Text style={styles.careEventType}>
-                      {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
+                      {event.event_type === 'pest_spotted' ? 'Pest Spotted' :
+                       event.event_type === 'insecticide_spray' ? 'Insecticide Spray' :
+                       event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
                     </Text>
                     <Text style={styles.careEventDate}>{formattedDates[event.id] || 'Loading...'}</Text>
                     {event.health_status && (
@@ -377,6 +391,11 @@ export default function PlantDetailScreen() {
                   <Text style={styles.fertilizerInfo}>
                     Concentration: {event.fertilizer_concentration}
                     {event.fertilizer_amount && ` • Amount: ${event.fertilizer_amount}`}
+                  </Text>
+                )}
+                {event.pest_severity && (
+                  <Text style={[styles.pestSeverityInfo, { color: getPestSeverityColor(event.pest_severity) }]}>
+                    Pest Severity: {event.pest_severity}/10 {getPestSeverityLabel(event.pest_severity)}
                   </Text>
                 )}
               </View>
@@ -599,6 +618,11 @@ const styles = StyleSheet.create({
   fertilizerInfo: {
     fontSize: 12,
     color: '#888',
+    fontStyle: 'italic',
+  },
+  pestSeverityInfo: {
+    fontSize: 12,
+    fontWeight: '500',
     fontStyle: 'italic',
   },
   modalContainer: {

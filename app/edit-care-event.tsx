@@ -17,11 +17,12 @@ import { CareEvent } from '../types/Plant';
 export default function EditCareEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'prune' | 'repot' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical'>('good');
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
+  const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +42,7 @@ export default function EditCareEventScreen() {
         setNotes(eventData.notes || '');
         setFertilizerConcentration(eventData.fertilizer_concentration || '');
         setFertilizerAmount(eventData.fertilizer_amount || '');
+        setPestSeverity(eventData.pest_severity || 1);
       }
     } catch (error) {
       console.error('Failed to load care event:', error);
@@ -61,6 +63,7 @@ export default function EditCareEventScreen() {
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
+        pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 
       router.back();
@@ -77,6 +80,8 @@ export default function EditCareEventScreen() {
     { value: 'fertilize', label: 'Fertilizing', emoji: '🌱' },
     { value: 'prune', label: 'Pruning', emoji: '✂️' },
     { value: 'repot', label: 'Repotting', emoji: '🪴' },
+    { value: 'pest_spotted', label: 'Pest Spotted', emoji: '🐛' },
+    { value: 'insecticide_spray', label: 'Insecticide Spray', emoji: '🧴' },
     { value: 'other', label: 'Other', emoji: '📝' },
   ] as const;
 
@@ -200,6 +205,38 @@ export default function EditCareEventScreen() {
                 />
               </View>
             </>
+          )}
+
+          {/* Pest Severity (only show for pest_spotted) */}
+          {eventType === 'pest_spotted' && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Pest Severity (1-10 scale)</Text>
+              <Text style={styles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+              <View style={styles.severityContainer}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
+                  <TouchableOpacity
+                    key={severity}
+                    style={[
+                      styles.severityButton,
+                      pestSeverity === severity && styles.severityButtonSelected,
+                      severity <= 3 && styles.severityLow,
+                      severity >= 4 && severity <= 6 && styles.severityMedium,
+                      severity >= 7 && styles.severityHigh,
+                    ]}
+                    onPress={() => setPestSeverity(severity)}
+                  >
+                    <Text
+                      style={[
+                        styles.severityText,
+                        pestSeverity === severity && styles.severityTextSelected,
+                      ]}
+                    >
+                      {severity}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           )}
 
           {/* Notes */}
@@ -349,5 +386,50 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  sublabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  severityContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  severityButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    backgroundColor: 'white',
+  },
+  severityButtonSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#4CAF50',
+  },
+  severityLow: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#f1f8e9',
+  },
+  severityMedium: {
+    borderColor: '#FF9800',
+    backgroundColor: '#fff3e0',
+  },
+  severityHigh: {
+    borderColor: '#F44336',
+    backgroundColor: '#ffebee',
+  },
+  severityText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  severityTextSelected: {
+    color: 'white',
   },
 });
