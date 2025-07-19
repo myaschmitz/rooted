@@ -1,64 +1,246 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { router } from 'expo-router';
-import { DatabaseService } from '../../services/DatabaseService';
+import { ChevronDown } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PlantService } from '../../services/PlantService';
+import { CareEventService } from '../../services/CareEventService';
+import { PhotoService } from '../../services/PhotoService';
+
+const DATE_FORMATS = [
+  { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
+  { label: 'DD/MM/YYYY', value: 'DD/MM/YYYY' },
+  { label: 'YYYY/MM/DD', value: 'YYYY/MM/DD' },
+];
+
+const TIME_FORMATS = [
+  { label: '12-hour (AM/PM)', value: '12' },
+  { label: '24-hour', value: '24' },
+];
 
 export default function SettingsScreen() {
-  const handleResetDatabase = () => {
+  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY');
+  const [timeFormat, setTimeFormat] = useState('12');
+  const [loading, setLoading] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+
+  // Load saved preferences
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const savedDateFormat = await AsyncStorage.getItem('dateFormat');
+        const savedTimeFormat = await AsyncStorage.getItem('timeFormat');
+        
+        if (savedDateFormat) {
+          setDateFormat(savedDateFormat);
+        }
+        if (savedTimeFormat) {
+          setTimeFormat(savedTimeFormat);
+        }
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+      }
+    };
+
+    loadPreferences();
+  }, []);
+
+  // Save date format preference
+  const handleDateFormatChange = async (format: string) => {
+    try {
+      await AsyncStorage.setItem('dateFormat', format);
+      setDateFormat(format);
+      setDropdownVisible(false);
+    } catch (error) {
+      console.error('Error saving date format:', error);
+    }
+  };
+
+  const saveTimeFormat = async (format: string) => {
+    try {
+      await AsyncStorage.setItem('timeFormat', format);
+      setTimeFormat(format);
+    } catch (error) {
+      console.error('Failed to save time format:', error);
+      Alert.alert('Error', 'Failed to save time format setting');
+    }
+  };
+
+  const handleDeleteAllData = () => {
     Alert.alert(
-      'Reset Database',
-      'This will delete all your plants, photos, and care events. This action cannot be undone.',
+      'Delete All Data',
+      'This will permanently delete all plants, care events, photos, and settings. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Delete All',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await DatabaseService.resetDatabase();
-              Alert.alert('Success', 'Database has been reset');
-            } catch (error) {
-              console.error('Failed to reset database:', error);
-              Alert.alert('Error', 'Failed to reset database');
-            }
-          }
-        }
+          onPress: confirmDeleteAllData,
+        },
       ]
     );
   };
 
+  const confirmDeleteAllData = () => {
+    Alert.alert(
+      'Are you absolutely sure?',
+      'This will delete everything and cannot be recovered.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, Delete Everything',
+          style: 'destructive',
+          onPress: deleteAllData,
+        },
+      ]
+    );
+  };
+
+  const deleteAllData = async () => {
+    setLoading(true);
+    try {
+      // Delete all photos first
+      await PhotoService.deleteAllPhotos();
+      
+      // Delete all care events
+      await CareEventService.deleteAllCareEvents();
+      
+      // Delete all plants
+      await PlantService.deleteAllPlants();
+      
+      // Clear all AsyncStorage settings
+      await AsyncStorage.clear();
+      
+      Alert.alert(
+        'Success',
+        'All data has been deleted successfully.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reset preferences to defaults
+              setDateFormat('MM/DD/YYYY');
+              setTimeFormat('12');
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Failed to delete all data:', error);
+      Alert.alert('Error', 'Failed to delete all data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>App Actions</Text>
+        <Text style={styles.sectionTitle}>Date & Time Format</Text>
         
+        <Text style={styles.settingLabel}>Date Format</Text>
+        
+        {/* Dropdown for Date Format */}
         <TouchableOpacity
-          style={styles.button}
-          onPress={() => router.push('/add-plant')}
+          style={styles.dropdown}
+          onPress={() => setDropdownVisible(true)}
         >
-          <Text style={styles.buttonText}>Add New Plant</Text>
+          <Text style={styles.dropdownText}>{dateFormat}</Text>
+          <ChevronDown size={20} color="#666" />
         </TouchableOpacity>
+
+        {/* Dropdown Modal */}
+        <Modal
+          visible={dropdownVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setDropdownVisible(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            onPress={() => setDropdownVisible(false)}
+          >
+            <View style={styles.dropdownModal}>
+              {DATE_FORMATS.map((format) => (
+                <TouchableOpacity
+                  key={format.value}
+                  style={[
+                    styles.dropdownOption,
+                    dateFormat === format.value && styles.selectedDropdownOption,
+                  ]}
+                  onPress={() => handleDateFormatChange(format.value)}
+                >
+                  <Text style={[
+                    styles.dropdownOptionText,
+                    dateFormat === format.value && styles.selectedDropdownOptionText,
+                  ]}>
+                    {format.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        <Text style={[styles.settingLabel, { marginTop: 20 }]}>Time Format</Text>
+        {TIME_FORMATS.map((format) => (
+          <TouchableOpacity
+            key={format.value}
+            style={[
+              styles.formatOption,
+              timeFormat === format.value && styles.selectedFormat,
+            ]}
+            onPress={() => saveTimeFormat(format.value)}
+          >
+            <Text
+              style={[
+                styles.formatText,
+                timeFormat === format.value && styles.selectedFormatText,
+              ]}
+            >
+              {format.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Database</Text>
+        <Text style={styles.sectionTitle}>Data Management</Text>
         
         <TouchableOpacity
-          style={[styles.button, styles.dangerButton]}
-          onPress={handleResetDatabase}
+          style={[styles.deleteButton, loading && styles.disabledButton]}
+          onPress={handleDeleteAllData}
+          disabled={loading}
         >
-          <Text style={[styles.buttonText, styles.dangerButtonText]}>Reset Database</Text>
+          <Text style={styles.deleteButtonText}>
+            {loading ? 'Deleting...' : 'Delete All Plants & Data'}
+          </Text>
         </TouchableOpacity>
+        
+        <Text style={styles.warningText}>
+          This will permanently delete all plants, care history, photos, and settings.
+        </Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>About</Text>
         <Text style={styles.aboutText}>
-          Plant Care Tracker v1.0{'\n'}
+          Rooted - Plant Care Tracker{'\n'}
           Track your plants, log care events, and keep your green friends healthy!
         </Text>
+        <Text style={styles.versionText}>
+          Version 1.0.0
+        </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -66,13 +248,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 20,
   },
   section: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+    margin: 15,
+    padding: 20,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -80,9 +261,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 15,
     color: '#333',
   },
   button: {
@@ -104,9 +285,115 @@ const styles = StyleSheet.create({
   dangerButtonText: {
     color: 'white',
   },
-  aboutText: {
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#555',
+  },
+  formatOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 8,
+  },
+  selectedFormat: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  formatText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectedFormatText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  dropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 8,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownModal: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 8,
+    minWidth: 200,
+    maxWidth: 300,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  dropdownOption: {
+    padding: 12,
+    borderRadius: 4,
+  },
+  selectedDropdownOption: {
+    backgroundColor: '#4CAF50',
+  },
+  dropdownOptionText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+  selectedDropdownOptionText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    backgroundColor: '#F44336',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  warningText: {
     fontSize: 14,
     color: '#666',
-    lineHeight: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 10,
+  },
+  aboutText: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
+    lineHeight: 22,
+  },
+  versionText: {
+    fontSize: 14,
+    color: '#666',
   },
 });

@@ -360,6 +360,7 @@ export default function QuickCareScreen() {
             renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
             style={styles.list}
+            contentContainerStyle={selectedPlants.size > 0 ? styles.listWithButton : undefined}
             stickySectionHeadersEnabled={false}
           />
           
@@ -418,6 +419,9 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     padding: 16,
+  },
+  listWithButton: {
+    paddingBottom: 100, // Add space for the floating button
   },
   plantCard: {
     backgroundColor: 'white',
