@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -7,6 +7,7 @@ import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { CareEventService } from '../../services/CareEventService';
 import { Plant } from '../../types/Plant';
+import { GlobalStyles, CareStyles, Colors } from '../../styles';
 
 export default function QuickCareScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -178,27 +179,25 @@ export default function QuickCareScreen() {
     
     return (
       <TouchableOpacity
-        style={[styles.plantCard, isSelected && styles.selectedPlantCard]}
+        style={[CareStyles.plantCard, isSelected && CareStyles.plantCardSelected]}
         onPress={() => togglePlantSelection(item.id)}
       >
-        <View style={styles.plantCardContent}>
-          <View style={styles.checkboxContainer}>
-            <View style={[styles.checkbox, isSelected && styles.checkedCheckbox]}>
-              {isSelected && <Check size={16} color="white" />}
-            </View>
+        <View style={GlobalStyles.flexRowCenter}>
+          <View style={[CareStyles.checkbox, isSelected && CareStyles.checkboxSelected]}>
+            {isSelected && <Check size={16} color="white" />}
           </View>
           
           {thumbnail && (
             <Image 
               source={{ uri: thumbnail }} 
-              style={styles.plantThumbnail}
+              style={{ width: 50, height: 50, borderRadius: 8, marginRight: 12 }}
               resizeMode="cover"
             />
           )}
           
-          <View style={styles.plantInfo}>
-            <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
-            <Text style={styles.plantType}>{item.type}</Text>
+          <View style={CareStyles.plantDetails}>
+            <Text style={CareStyles.plantCardName}>{item.name || `Unnamed ${item.type}`}</Text>
+            <Text style={CareStyles.plantCardType}>{item.type}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -210,23 +209,23 @@ export default function QuickCareScreen() {
     const someSelected = section.data.some(plant => selectedPlants.has(plant.id));
     
     return (
-      <View style={styles.sectionHeader}>
+      <View style={CareStyles.locationHeader}>
         <TouchableOpacity
-          style={styles.sectionHeaderContent}
+          style={GlobalStyles.flexRowBetween}
           onPress={() => selectAllInLocation(section.data)}
         >
-          <View style={styles.sectionHeaderLeft}>
+          <View style={GlobalStyles.flexRowCenter}>
             <View style={[
-              styles.checkbox, 
-              allSelected && styles.checkedCheckbox,
-              someSelected && !allSelected && styles.indeterminateCheckbox
+              CareStyles.checkbox, 
+              allSelected && CareStyles.checkboxSelected,
+              someSelected && !allSelected && { backgroundColor: Colors.gray400 }
             ]}>
               {allSelected && <Check size={16} color="white" />}
-              {someSelected && !allSelected && <Text style={styles.indeterminateText}>−</Text>}
+              {someSelected && !allSelected && <Text style={CareStyles.checkboxText}>−</Text>}
             </View>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={[CareStyles.locationTitle, { marginLeft: 12 }]}>{section.title}</Text>
           </View>
-          <Text style={styles.sectionCount}>
+          <Text style={CareStyles.selectAllText}>
             {section.data.length} plant{section.data.length !== 1 ? 's' : ''}
           </Text>
         </TouchableOpacity>
@@ -241,9 +240,9 @@ export default function QuickCareScreen() {
       animationType="slide"
       onRequestClose={() => setShowLocationModal(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.locationModal}>
-          <Text style={styles.modalTitle}>Filter by Location</Text>
+      <View style={GlobalStyles.modalOverlay}>
+        <View style={GlobalStyles.modalContent}>
+          <Text style={GlobalStyles.modalTitle}>Filter by Location</Text>
           
           <FlatList
             data={locations}
@@ -251,8 +250,8 @@ export default function QuickCareScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
-                  styles.locationItem,
-                  selectedLocation === item && styles.selectedLocationItem
+                  GlobalStyles.listItem,
+                  selectedLocation === item && GlobalStyles.listItemSelected
                 ]}
                 onPress={() => {
                   setSelectedLocation(item);
@@ -260,12 +259,12 @@ export default function QuickCareScreen() {
                 }}
               >
                 <Text style={[
-                  styles.locationText,
-                  selectedLocation === item && styles.selectedLocationText
+                  GlobalStyles.body,
+                  selectedLocation === item && { color: Colors.primary }
                 ]}>
                   {item}
                 </Text>
-                {selectedLocation === item && <Check size={20} color="#4CAF50" />}
+                {selectedLocation === item && <Check size={20} color={Colors.primary} />}
               </TouchableOpacity>
             )}
           />
@@ -329,28 +328,28 @@ export default function QuickCareScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={GlobalStyles.container}>
       {/* Header with location filter */}
-      <View style={styles.header}>
+      <View style={GlobalStyles.flexRowBetween}>
         <TouchableOpacity 
-          style={styles.filterButton}
+          style={[GlobalStyles.flexRowCenter, GlobalStyles.buttonSecondary]}
           onPress={() => setShowLocationModal(true)}
         >
-          <Filter size={20} color="#666" />
-          <Text style={styles.filterText}>{selectedLocation}</Text>
+          <Filter size={20} color={Colors.textSecondary} />
+          <Text style={[GlobalStyles.buttonTextSecondary, { marginLeft: 8 }]}>{selectedLocation}</Text>
         </TouchableOpacity>
         
         {selectedPlants.size > 0 && (
-          <Text style={styles.selectedCount}>
+          <Text style={GlobalStyles.bodySmall}>
             {selectedPlants.size} selected
           </Text>
         )}
       </View>
 
       {plants.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No plants yet!</Text>
-          <Text style={styles.emptySubtext}>Add some plants first to use Quick Care</Text>
+        <View style={GlobalStyles.emptyState}>
+          <Text style={GlobalStyles.emptyStateText}>No plants yet!</Text>
+          <Text style={[GlobalStyles.bodySmall, GlobalStyles.textCenter]}>Add some plants first to use Quick Care</Text>
         </View>
       ) : (
         <>

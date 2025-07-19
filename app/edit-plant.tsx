@@ -207,7 +207,7 @@ export default function EditPlantScreen() {
             <LocationDropdown
               value={location}
               onValueChange={setLocation}
-              placeholder="Select or enter location (e.g., living room, kitchen window)"
+              placeholder="Select or enter location"
             />
           </View>
 
@@ -287,6 +287,7 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 20,
+    paddingBottom: 40, // Extra bottom padding for keyboard
   },
   inputGroup: {
     marginBottom: 20,
@@ -401,6 +402,7 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
     marginTop: 20,
+    marginBottom: 30, // Extra bottom margin for keyboard accessibility
   },
   saveButtonDisabled: {
     backgroundColor: '#ccc',
