@@ -18,6 +18,7 @@ export default function RootLayout() {
         <Stack.Screen name="edit-plant" options={{ title: 'Edit Plant' }} />
         <Stack.Screen name="log-care" options={{ title: 'Log Care Event' }} />
         <Stack.Screen name="edit-care-event" options={{ title: 'Edit Care Event' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack>
     </>
   );

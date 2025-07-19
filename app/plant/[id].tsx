@@ -17,6 +17,7 @@ import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
+import { DateTimeService } from '../../services/DateTimeService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -137,9 +138,31 @@ export default function PlantDetailScreen() {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+  const formatDate = async (dateString: string) => {
+    return await DateTimeService.formatDate(dateString);
   };
+
+  const [formattedDates, setFormattedDates] = useState<{[key: string]: string}>({});
+
+  const updateFormattedDates = useCallback(async () => {
+    const dateMap: {[key: string]: string} = {};
+    
+    // Format care event dates
+    for (const event of careEvents) {
+      dateMap[event.id] = await DateTimeService.formatDate(event.date);
+    }
+    
+    // Format photo dates
+    for (const photo of photos) {
+      dateMap[photo.id] = await DateTimeService.formatDate(photo.taken_at);
+    }
+    
+    setFormattedDates(dateMap);
+  }, [careEvents, photos]);
+
+  useEffect(() => {
+    updateFormattedDates();
+  }, [updateFormattedDates]);
 
   const getHealthStatusColor = (status?: string) => {
     switch (status) {
@@ -186,7 +209,7 @@ export default function PlantDetailScreen() {
               )}
               <View style={styles.healthStatus}>
                 <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
-                  Health: {plant.health_status || 'Good'}
+                  Health: {plant.health_status ? plant.health_status.charAt(0).toUpperCase() + plant.health_status.slice(1) : 'Good'}
                 </Text>
               </View>
             </View>
@@ -239,7 +262,7 @@ export default function PlantDetailScreen() {
                   >
                     <Text style={styles.deletePhotoText}>×</Text>
                   </TouchableOpacity>
-                  <Text style={styles.photoDate}>{formatDate(photo.taken_at)}</Text>
+                  <Text style={styles.photoDate}>{formattedDates[photo.id] || 'Loading...'}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -259,7 +282,7 @@ export default function PlantDetailScreen() {
                     <Text style={styles.careEventType}>
                       {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
                     </Text>
-                    <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
+                    <Text style={styles.careEventDate}>{formattedDates[event.id] || 'Loading...'}</Text>
                     {event.health_status && (
                       <Text style={[styles.careEventHealth, { color: getHealthStatusColor(event.health_status) }]}>
                         Health: {event.health_status.charAt(0).toUpperCase() + event.health_status.slice(1)}
@@ -315,7 +338,7 @@ export default function PlantDetailScreen() {
                   </TouchableOpacity>
                   <View style={styles.photoInfo}>
                     <Text style={styles.photoInfoText}>
-                      {formatDate(fullScreenPhoto.taken_at)}
+                      {formattedDates[fullScreenPhoto.id] || 'Loading...'}
                     </Text>
                   </View>
                 </>

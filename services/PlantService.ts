@@ -110,4 +110,9 @@ export class PlantService {
       synced: Boolean(row.synced)
     })) as Plant[];
   }
+
+  static async deleteAllPlants(): Promise<void> {
+    const db = await DatabaseService.getDatabase();
+    await db.runAsync('DELETE FROM plants');
+  }
 }

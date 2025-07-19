@@ -11,16 +11,20 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { CareEventService } from '../services/CareEventService';
 import { PlantService } from '../services/PlantService';
+import { DateTimeService } from '../services/DateTimeService';
 import { Plant } from '../types/Plant';
 
 export default function LogCareScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'repot' | 'prune' | 'other'>('water');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState(new Date().toTimeString().split(' ')[0].slice(0, 5));
+  const [careDateTime, setCareDateTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempDateTime, setTempDateTime] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
@@ -51,12 +55,10 @@ export default function LogCareScreen() {
 
     setSaving(true);
     try {
-      const eventDateTime = new Date(`${date}T${time}`);
-      
       await CareEventService.createCareEvent({
         plant_id: plantId,
         event_type: eventType,
-        date: eventDateTime.toISOString(),
+        date: careDateTime.toISOString(),
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
@@ -131,25 +133,100 @@ export default function LogCareScreen() {
           </View>
 
           {/* Date and Time */}
-          <View style={styles.dateTimeRow}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-              <Text style={styles.label}>Date</Text>
-              <TextInput
-                style={styles.input}
-                value={date}
-                onChangeText={setDate}
-                placeholder="YYYY-MM-DD"
-              />
-            </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-              <Text style={styles.label}>Time</Text>
-              <TextInput
-                style={styles.input}
-                value={time}
-                onChangeText={setTime}
-                placeholder="HH:MM"
-              />
-            </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Date & Time</Text>
+            
+            <TouchableOpacity
+              style={styles.dateTimeButton}
+              onPress={() => {
+                setShowTimePicker(false);
+                setTempDateTime(new Date(careDateTime));
+                setShowDatePicker(true);
+              }}
+            >
+              <Text style={styles.dateTimeText}>
+                Date: {DateTimeService.formatDate(careDateTime)}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.dateTimeButton}
+              onPress={() => {
+                setShowDatePicker(false);
+                setTempDateTime(new Date(careDateTime));
+                setShowTimePicker(true);
+              }}
+            >
+              <Text style={styles.dateTimeText}>
+                Time: {DateTimeService.formatTime(careDateTime)}
+              </Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={styles.pickerButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerTitle}>Select Date</Text>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, styles.pickerButtonDone]}
+                    onPress={() => {
+                      setCareDateTime(tempDateTime);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={tempDateTime}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setTempDateTime(selectedDate);
+                    }
+                  }}
+                />
+              </View>
+            )}
+
+            {showTimePicker && (
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => setShowTimePicker(false)}
+                  >
+                    <Text style={styles.pickerButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.pickerTitle}>Select Time</Text>
+                  <TouchableOpacity
+                    style={[styles.pickerButton, styles.pickerButtonDone]}
+                    onPress={() => {
+                      setCareDateTime(tempDateTime);
+                      setShowTimePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={tempDateTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedTime) => {
+                    if (selectedTime) {
+                      setTempDateTime(selectedTime);
+                    }
+                  }}
+                />
+              </View>
+            )}
           </View>
 
           {/* Fertilizer Options (only show for fertilize) */}
@@ -196,9 +273,7 @@ export default function LogCareScreen() {
             <TouchableOpacity
               style={styles.quickButton}
               onPress={() => {
-                const now = new Date();
-                setDate(now.toISOString().split('T')[0]);
-                setTime(now.toTimeString().split(' ')[0].slice(0, 5));
+                setCareDateTime(new Date());
               }}
             >
               <Text style={styles.quickButtonText}>Set to Now</Text>
@@ -316,6 +391,60 @@ const styles = StyleSheet.create({
   quickButtonText: {
     fontSize: 14,
     color: '#666',
+  },
+  dateTimeButton: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  pickerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  pickerButtonDone: {
+    backgroundColor: '#4CAF50',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  pickerButtonTextDone: {
+    color: 'white',
+    fontWeight: '600',
   },
   saveButton: {
     backgroundColor: '#4CAF50',

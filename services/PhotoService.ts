@@ -263,4 +263,50 @@ export class PhotoService {
       console.error('Error cleaning up orphaned photos:', error);
     }
   }
+
+  static async deleteAllPhotos(): Promise<void> {
+    try {
+      const db = await DatabaseService.getDatabase();
+      
+      // Get all photos before deleting from database
+      const photos = await this.getAllPhotosForDeletion();
+      
+      // Delete all files
+      for (const photo of photos) {
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
+          if (fileInfo.exists) {
+            await FileSystem.deleteAsync(photo.file_path);
+          }
+        } catch (error) {
+          console.error(`Error deleting photo file ${photo.file_path}:`, error);
+        }
+      }
+      
+      // Delete all database records
+      await db.runAsync('DELETE FROM plant_photos');
+      
+      // Clean up photos directory if it exists
+      const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
+      if (dirInfo.exists && dirInfo.isDirectory) {
+        try {
+          await FileSystem.deleteAsync(this.PHOTOS_DIR);
+        } catch (error) {
+          console.error('Error deleting photos directory:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting all photos:', error);
+      throw error;
+    }
+  }
+
+  private static async getAllPhotosForDeletion(): Promise<PlantPhoto[]> {
+    const db = await DatabaseService.getDatabase();
+    const result = await db.getAllAsync('SELECT * FROM plant_photos');
+    return result.map(row => ({
+      ...row,
+      synced: Boolean((row as any).synced)
+    })) as PlantPhoto[];
+  }
 }

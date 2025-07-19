@@ -133,4 +133,9 @@ export class CareEventService {
       lastRepotted: lastRepotted?.date,
     };
   }
+
+  static async deleteAllCareEvents(): Promise<void> {
+    const db = await DatabaseService.getDatabase();
+    await db.runAsync('DELETE FROM care_events');
+  }
 }

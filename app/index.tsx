@@ -1,17 +1,35 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Settings } from 'lucide-react-native';
 import { PlantService } from '../services/PlantService';
+import { PhotoService } from '../services/PhotoService';
 import { Plant } from '../types/Plant';
 
 export default function HomeScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
 
   const loadPlants = useCallback(async () => {
     try {
       const allPlants = await PlantService.getAllPlants();
       setPlants(allPlants);
+      
+      // Load thumbnails for each plant
+      const thumbnails: {[plantId: string]: string} = {};
+      for (const plant of allPlants) {
+        try {
+          const photos = await PhotoService.getPhotosByPlantId(plant.id);
+          if (photos.length > 0) {
+            // Use the first photo as thumbnail for now
+            thumbnails[plant.id] = photos[0].file_path;
+          }
+        } catch (error) {
+          console.error(`Failed to load photos for plant ${plant.id}:`, error);
+        }
+      }
+      setPlantThumbnails(thumbnails);
     } catch (error) {
       console.error('Failed to load plants:', error);
       Alert.alert('Error', 'Failed to load plants');
@@ -44,17 +62,30 @@ export default function HomeScreen() {
 
   const renderPlantItem = ({ item }: { item: Plant }) => {
     const healthDisplay = getHealthStatusDisplay(item.health_status);
+    const thumbnail = plantThumbnails[item.id];
+    
     return (
       <TouchableOpacity
         style={styles.plantCard}
         onPress={() => router.push(`/plant/${item.id}`)}
       >
-        <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
-        <Text style={styles.plantType}>{item.type}</Text>
-        {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
-        <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
-          Health: {healthDisplay.text}
-        </Text>
+        <View style={styles.plantCardContent}>
+          {thumbnail && (
+            <Image 
+              source={{ uri: thumbnail }} 
+              style={styles.plantThumbnail}
+              resizeMode="cover"
+            />
+          )}
+          <View style={styles.plantInfo}>
+            <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
+            <Text style={styles.plantType}>{item.type}</Text>
+            {item.location && <Text style={styles.plantLocation}>📍 {item.location}</Text>}
+            <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
+              Health: {healthDisplay.text}
+            </Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -69,6 +100,17 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header with settings button */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My Plants</Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => router.push('/settings')}
+        >
+          <Settings size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
+
       {plants.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No plants yet!</Text>
@@ -105,6 +147,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  settingsButton: {
+    padding: 8,
+  },
   list: {
     flex: 1,
     padding: 16,
@@ -119,6 +179,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  plantCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  plantThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#f0f0f0',
+  },
+  plantInfo: {
+    flex: 1,
   },
   plantName: {
     fontSize: 18,
