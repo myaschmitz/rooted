@@ -143,10 +143,13 @@ export default function PlantDetailScreen() {
 
   const getHealthStatusColor = (status?: string) => {
     switch (status) {
-      case 'good': return '#4CAF50';
-      case 'okay': return '#FF9800';
-      case 'concerning': return '#F44336';
-      default: return '#4CAF50';
+      case 'excellent': return '#2E7D32';  // Dark green
+      case 'good': return '#4CAF50';       // Green
+      case 'okay': return '#FF9800';       // Orange
+      case 'poor': return '#F57C00';       // Dark orange
+      case 'concerning': return '#F44336'; // Red
+      case 'critical': return '#B71C1C';   // Dark red
+      default: return '#8d8d8dff';           // Default to green
     }
   };
 
@@ -257,6 +260,11 @@ export default function PlantDetailScreen() {
                       {event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
                     </Text>
                     <Text style={styles.careEventDate}>{formatDate(event.date)}</Text>
+                    {event.health_status && (
+                      <Text style={[styles.careEventHealth, { color: getHealthStatusColor(event.health_status) }]}>
+                        Health: {event.health_status.charAt(0).toUpperCase() + event.health_status.slice(1)}
+                      </Text>
+                    )}
                   </View>
                   <TouchableOpacity
                     style={styles.editCareButton}
@@ -446,6 +454,11 @@ const styles = StyleSheet.create({
   careEventDate: {
     fontSize: 14,
     color: '#666',
+  },
+  careEventHealth: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
   },
   careEventNotes: {
     fontSize: 14,
