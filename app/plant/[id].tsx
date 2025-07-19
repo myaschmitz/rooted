@@ -13,7 +13,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import { SquarePen } from 'lucide-react-native';
+import { SquarePen, Trash2 } from 'lucide-react-native';
 import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
@@ -194,6 +194,74 @@ export default function PlantDetailScreen() {
     }
   };
 
+  const handleDeletePlant = async () => {
+    if (!plant || !id) return;
+
+    Alert.alert(
+      'Delete Plant',
+      `Are you sure you want to delete "${plant.name || `Unnamed ${plant.type}`}"? This will also delete all care events and photos associated with this plant. This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete the plant (this should also cascade delete care events and photos via foreign key constraints)
+              const success = await PlantService.deletePlant(id);
+              
+              if (success) {
+                Alert.alert('Success', 'Plant deleted successfully', [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Navigate back to the main plants screen
+                      router.back();
+                    },
+                  },
+                ]);
+              } else {
+                Alert.alert('Error', 'Failed to delete plant');
+              }
+            } catch (error) {
+              console.error('Failed to delete plant:', error);
+              Alert.alert('Error', 'Failed to delete plant');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteCareEvent = async (eventId: string, eventType: string) => {
+    Alert.alert(
+      'Delete Care Event',
+      `Are you sure you want to delete this ${eventType} event? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await CareEventService.deleteCareEvent(eventId);
+              
+              if (success) {
+                loadPlantData(); // Refresh to remove deleted care event
+                Alert.alert('Success', 'Care event deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete care event');
+              }
+            } catch (error) {
+              console.error('Failed to delete care event:', error);
+              Alert.alert('Error', 'Failed to delete care event');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handlePhotoOptions = (photo: PlantPhoto) => {
     Alert.alert(
       'Photo Options',
@@ -293,12 +361,20 @@ export default function PlantDetailScreen() {
                 </Text>
               </View>
             </View>
-            <TouchableOpacity 
-              style={styles.editButton} 
-              onPress={() => router.push(`/edit-plant?id=${id}`)}
-            >
-              <SquarePen size={16} color="#666" />
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={() => router.push(`/edit-plant?id=${id}`)}
+              >
+                <SquarePen size={16} color="#666" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.deleteButton} 
+                onPress={handleDeletePlant}
+              >
+                <Trash2 size={16} color="#F44336" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -362,7 +438,8 @@ export default function PlantDetailScreen() {
             <Text style={styles.emptyCareText}>No care events recorded yet</Text>
           ) : (
             careEvents.slice(0, 10).map((event) => (
-              <View key={event.id} style={styles.careEventItem}>
+              <React.Fragment key={event.id}>
+                <View style={styles.careEventItem}>
                 <View style={styles.careEventHeader}>
                   <View style={styles.careEventInfo}>
                     <Text style={styles.careEventType}>
@@ -377,12 +454,20 @@ export default function PlantDetailScreen() {
                       </Text>
                     )}
                   </View>
-                  <TouchableOpacity
-                    style={styles.editCareButton}
-                    onPress={() => router.push(`/edit-care-event?id=${event.id}`)}
-                  >
-                    <SquarePen size={12} color="#666" />
-                  </TouchableOpacity>
+                  <View style={styles.careEventActions}>
+                    <TouchableOpacity
+                      style={styles.editCareButton}
+                      onPress={() => router.push(`/edit-care-event?id=${event.id}`)}
+                    >
+                      <SquarePen size={12} color="#666" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteCareButton}
+                      onPress={() => handleDeleteCareEvent(event.id, event.event_type)}
+                    >
+                      <Trash2 size={12} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {event.notes && (
                   <Text style={styles.careEventNotes}>{event.notes}</Text>
@@ -399,6 +484,7 @@ export default function PlantDetailScreen() {
                   </Text>
                 )}
               </View>
+              </React.Fragment>
             ))
           )}
         </View>
@@ -736,11 +822,21 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   editButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
-    marginLeft: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -748,6 +844,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   editCareButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  careEventActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  deleteCareButton: {
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 4,

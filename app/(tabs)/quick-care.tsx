@@ -270,10 +270,10 @@ export default function QuickCareScreen() {
           />
           
           <TouchableOpacity
-            style={styles.cancelButton}
+            style={GlobalStyles.buttonSecondary}
             onPress={() => setShowLocationModal(false)}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={GlobalStyles.buttonTextSecondary}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -287,10 +287,10 @@ export default function QuickCareScreen() {
       animationType="slide"
       onRequestClose={() => setShowCareTypeModal(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.careTypeModal}>
-          <Text style={styles.modalTitle}>Select Care Type</Text>
-          <Text style={styles.modalSubtitle}>
+      <View style={GlobalStyles.modalOverlay}>
+        <View style={GlobalStyles.modalContent}>
+          <Text style={GlobalStyles.modalTitle}>Select Care Type</Text>
+          <Text style={GlobalStyles.bodySmall}>
             {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
           </Text>
           
@@ -299,20 +299,20 @@ export default function QuickCareScreen() {
             return (
               <TouchableOpacity
                 key={careType.type}
-                style={styles.careTypeButton}
+                style={[GlobalStyles.listItem, { flexDirection: 'row', alignItems: 'center' }]}
                 onPress={() => handleCareTypeSelect(careType.type)}
               >
                 <IconComponent size={24} color={careType.color} />
-                <Text style={styles.careTypeText}>{careType.label}</Text>
+                <Text style={[GlobalStyles.body, { marginLeft: 12 }]}>{careType.label}</Text>
               </TouchableOpacity>
             );
           })}
           
           <TouchableOpacity
-            style={styles.cancelButton}
+            style={GlobalStyles.buttonSecondary}
             onPress={() => setShowCareTypeModal(false)}
           >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Text style={GlobalStyles.buttonTextSecondary}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -321,8 +321,8 @@ export default function QuickCareScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading plants...</Text>
+      <View style={GlobalStyles.container}>
+        <Text style={GlobalStyles.body}>Loading plants...</Text>
       </View>
     );
   }
@@ -358,17 +358,17 @@ export default function QuickCareScreen() {
             renderItem={renderPlantItem}
             renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
-            style={styles.list}
-            contentContainerStyle={selectedPlants.size > 0 ? styles.listWithButton : undefined}
+            style={GlobalStyles.list}
+            contentContainerStyle={selectedPlants.size > 0 ? GlobalStyles.listContent : undefined}
             stickySectionHeadersEnabled={false}
           />
           
           {selectedPlants.size > 0 && (
             <TouchableOpacity
-              style={styles.careButton}
+              style={GlobalStyles.fab}
               onPress={() => setShowCareTypeModal(true)}
             >
-              <Text style={styles.careButtonText}>
+              <Text style={[GlobalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
                 Add Care Event ({selectedPlants.size})
               </Text>
             </TouchableOpacity>
@@ -381,250 +381,3 @@ export default function QuickCareScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 6,
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  selectedCount: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  list: {
-    flex: 1,
-    padding: 16,
-  },
-  listWithButton: {
-    paddingBottom: 100, // Add space for the floating button
-  },
-  plantCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  selectedPlantCard: {
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-    backgroundColor: '#f8fff8',
-  },
-  plantCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkboxContainer: {
-    marginRight: 12,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkedCheckbox: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  indeterminateCheckbox: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  indeterminateText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  plantThumbnail: {
-    width: 50,
-    height: 50,
-    borderRadius: 6,
-    marginRight: 12,
-    backgroundColor: '#f0f0f0',
-  },
-  plantInfo: {
-    flex: 1,
-  },
-  plantName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  plantType: {
-    fontSize: 14,
-    color: '#666',
-  },
-  sectionHeader: {
-    backgroundColor: '#f8f8f8',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  sectionHeaderContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  sectionCount: {
-    fontSize: 14,
-    color: '#666',
-  },
-  careButton: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  careButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  careTypeModal: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  careTypeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-    gap: 12,
-  },
-  careTypeText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  cancelButton: {
-    marginTop: 12,
-    paddingVertical: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  locationModal: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    maxHeight: '60%',
-  },
-  locationItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  selectedLocationItem: {
-    backgroundColor: '#f8fff8',
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  selectedLocationText: {
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-});
