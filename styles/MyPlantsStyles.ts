@@ -119,7 +119,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 25,
   },
   addButtonText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -140,7 +140,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     elevation: 8,
   },
   fabText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 28,
     lineHeight: 28,
   },
