@@ -62,39 +62,50 @@ export const BaseColors = {
 } as const;
 
 // Theme-aware color functions
-export const getThemeColors = (isDark: boolean) => ({
-  // Primary colors
-  primary: isDark ? BaseColors.primaryLight : BaseColors.primary,
-  primaryDark: BaseColors.primaryDark,
-  
-  // Status colors
-  success: isDark ? BaseColors.successDark : BaseColors.success,
-  warning: isDark ? BaseColors.warningDark : BaseColors.warning,
-  error: isDark ? BaseColors.errorDark : BaseColors.error,
-  info: BaseColors.info,
-  
-  // Background colors
-  background: isDark ? '#121212' : '#f5f5f5',
-  surface: isDark ? '#1e1e1e' : '#FFFFFF',
-  surfaceSecondary: isDark ? '#2a2a2a' : '#f8f8f8',
-  surfaceVariant: isDark ? '#333333' : '#f0f0f0',
-  
-  // Text colors
-  text: isDark ? '#ffffff' : '#333333',
-  textSecondary: isDark ? '#b3b3b3' : '#666666',
-  textTertiary: isDark ? '#888888' : '#999999',
-  textInverse: isDark ? '#000000' : '#ffffff',
-  
-  // Border colors
-  border: isDark ? '#333333' : '#dddddd',
-  borderLight: isDark ? '#2a2a2a' : '#eeeeee',
-  borderFocus: isDark ? BaseColors.primaryLight : BaseColors.primary,
-  
-  // Special colors
-  overlay: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
-  modalBackground: isDark ? 'rgba(0, 0, 0, 0.95)' : 'rgba(0, 0, 0, 0.9)',
-  shadow: isDark ? '#000000' : '#000000',
-});
+export const getThemeColors = (isDark: boolean) => {
+  const colors = {
+    // Primary colors
+    primary: isDark ? BaseColors.primaryLight : BaseColors.primary,
+    primaryLight: isDark ? BaseColors.primaryLight : BaseColors.primary,
+    primaryDark: BaseColors.primaryDark,
+    
+    // Status colors
+    success: isDark ? BaseColors.successDark : BaseColors.success,
+    warning: isDark ? BaseColors.warningDark : BaseColors.warning,
+    error: isDark ? BaseColors.errorDark : BaseColors.error,
+    info: BaseColors.info,
+    
+    // Background colors
+    background: isDark ? '#121212' : '#f5f5f5',
+    surface: isDark ? '#1e1e1e' : '#FFFFFF',
+    surfaceSecondary: isDark ? '#2a2a2a' : '#f0f0f0',
+    surfaceVariant: isDark ? '#333333' : '#e0e0e0',
+
+    // Text colors
+    text: isDark ? BaseColors.darkGray[900] : BaseColors.lightGray[900],
+    textPrimary: isDark ? BaseColors.darkGray[900] : BaseColors.lightGray[900],
+    textSecondary: isDark ? BaseColors.darkGray[700] : BaseColors.lightGray[700],
+    textTertiary: isDark ? BaseColors.darkGray[500] : BaseColors.lightGray[500],
+    textInverse: isDark ? BaseColors.lightGray[900] : BaseColors.darkGray[900],
+    
+    // Border colors
+    border: isDark ? BaseColors.darkGray[200] : BaseColors.lightGray[300],
+    borderLight: isDark ? BaseColors.darkGray[100] : BaseColors.lightGray[200],
+    borderFocus: isDark ? BaseColors.primaryLight : BaseColors.primary,
+    
+    // Special colors
+    overlay: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+    modalBackground: isDark ? 'rgba(0, 0, 0, 0.95)' : 'rgba(0, 0, 0, 0.9)',
+    shadow: isDark ? '#000000' : '#000000',
+    
+    // Grayscale colors from the palette
+    gray100: isDark ? BaseColors.darkGray[100] : BaseColors.lightGray[100],
+    gray200: isDark ? BaseColors.darkGray[200] : BaseColors.lightGray[200],
+    gray400: isDark ? BaseColors.darkGray[400] : BaseColors.lightGray[400],
+  };
+
+  return colors;
+};
 
 export const Typography = {
   // Font sizes

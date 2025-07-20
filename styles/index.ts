@@ -80,7 +80,8 @@ export {
   ButtonStyles, 
   InputStyles, 
   TextStyles, 
-  CommonStyles 
+  CommonStyles,
+  useGlobalStyles
 } from './GlobalStyles';
 
 export { CareStyles } from './CareStyles';

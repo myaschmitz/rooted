@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -7,11 +7,14 @@ import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { CareEventService } from '../../services/CareEventService';
 import { Plant } from '../../types/Plant';
-import { GlobalStyles, CareStyles } from '../../styles';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
+
 
 export default function QuickCareScreen() {
   const { theme } = useTheme();
+  const globalStyles = useGlobalStyles();
+  const styles = createStyles(theme);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [selectedPlants, setSelectedPlants] = useState<Set<string>>(new Set());
@@ -181,11 +184,11 @@ export default function QuickCareScreen() {
     
     return (
       <TouchableOpacity
-        style={[CareStyles.plantCard, isSelected && CareStyles.plantCardSelected]}
+        style={[styles.plantCard, isSelected && styles.plantCardSelected]}
         onPress={() => togglePlantSelection(item.id)}
       >
-        <View style={GlobalStyles.flexRowCenter}>
-          <View style={[CareStyles.checkbox, isSelected && CareStyles.checkboxSelected]}>
+        <View style={globalStyles.flexRowCenter}>
+          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
             {isSelected && <Check size={16} color="white" />}
           </View>
           
@@ -197,9 +200,9 @@ export default function QuickCareScreen() {
             />
           )}
           
-          <View style={CareStyles.plantDetails}>
-            <Text style={CareStyles.plantCardName}>{item.name || `Unnamed ${item.type}`}</Text>
-            <Text style={CareStyles.plantCardType}>{item.type}</Text>
+          <View style={styles.plantDetails}>
+            <Text style={styles.plantCardName}>{item.name || `Unnamed ${item.type}`}</Text>
+            <Text style={styles.plantCardType}>{item.type}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -211,23 +214,23 @@ export default function QuickCareScreen() {
     const someSelected = section.data.some(plant => selectedPlants.has(plant.id));
     
     return (
-      <View style={CareStyles.locationHeader}>
+      <View style={styles.locationHeader}>
         <TouchableOpacity
-          style={GlobalStyles.flexRowBetween}
+          style={globalStyles.flexRowBetween}
           onPress={() => selectAllInLocation(section.data)}
         >
-          <View style={GlobalStyles.flexRowCenter}>
+          <View style={globalStyles.flexRowCenter}>
             <View style={[
-              CareStyles.checkbox, 
-              allSelected && CareStyles.checkboxSelected,
+              styles.checkbox, 
+              allSelected && styles.checkboxSelected,
               someSelected && !allSelected && { backgroundColor: theme.colors.border }
             ]}>
               {allSelected && <Check size={16} color="white" />}
-              {someSelected && !allSelected && <Text style={CareStyles.checkboxText}>−</Text>}
+              {someSelected && !allSelected && <Text style={styles.checkboxText}>−</Text>}
             </View>
-            <Text style={[CareStyles.locationTitle, { marginLeft: 12 }]}>{section.title}</Text>
+            <Text style={[styles.locationTitle, { marginLeft: 12 }]}>{section.title}</Text>
           </View>
-          <Text style={CareStyles.selectAllText}>
+          <Text style={styles.selectAllText}>
             {section.data.length} plant{section.data.length !== 1 ? 's' : ''}
           </Text>
         </TouchableOpacity>
@@ -242,9 +245,9 @@ export default function QuickCareScreen() {
       animationType="slide"
       onRequestClose={() => setShowLocationModal(false)}
     >
-      <View style={GlobalStyles.modalOverlay}>
-        <View style={GlobalStyles.modalContent}>
-          <Text style={GlobalStyles.modalTitle}>Filter by Location</Text>
+      <View style={globalStyles.modalOverlay}>
+        <View style={globalStyles.modalContent}>
+          <Text style={globalStyles.modalTitle}>Filter by Location</Text>
           
           <FlatList
             data={locations}
@@ -252,8 +255,8 @@ export default function QuickCareScreen() {
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
-                  GlobalStyles.listItem,
-                  selectedLocation === item && GlobalStyles.listItemSelected
+                  globalStyles.listItem,
+                  selectedLocation === item && globalStyles.listItemSelected
                 ]}
                 onPress={() => {
                   setSelectedLocation(item);
@@ -261,7 +264,7 @@ export default function QuickCareScreen() {
                 }}
               >
                 <Text style={[
-                  GlobalStyles.body,
+                  globalStyles.body,
                   selectedLocation === item && { color: theme.colors.primary }
                 ]}>
                   {item}
@@ -272,10 +275,10 @@ export default function QuickCareScreen() {
           />
           
           <TouchableOpacity
-            style={GlobalStyles.buttonSecondary}
+            style={globalStyles.buttonSecondary}
             onPress={() => setShowLocationModal(false)}
           >
-            <Text style={GlobalStyles.buttonTextSecondary}>Cancel</Text>
+            <Text style={globalStyles.buttonTextSecondary}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -289,10 +292,10 @@ export default function QuickCareScreen() {
       animationType="slide"
       onRequestClose={() => setShowCareTypeModal(false)}
     >
-      <View style={GlobalStyles.modalOverlay}>
-        <View style={GlobalStyles.modalContent}>
-          <Text style={GlobalStyles.modalTitle}>Select Care Type</Text>
-          <Text style={GlobalStyles.bodySmall}>
+      <View style={globalStyles.modalOverlay}>
+        <View style={globalStyles.modalContent}>
+          <Text style={globalStyles.modalTitle}>Select Care Type</Text>
+          <Text style={globalStyles.bodySmall}>
             {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
           </Text>
           
@@ -301,20 +304,20 @@ export default function QuickCareScreen() {
             return (
               <TouchableOpacity
                 key={careType.type}
-                style={[GlobalStyles.listItem, { flexDirection: 'row', alignItems: 'center' }]}
+                style={[globalStyles.listItem, { flexDirection: 'row', alignItems: 'center' }]}
                 onPress={() => handleCareTypeSelect(careType.type)}
               >
                 <IconComponent size={24} color={careType.color} />
-                <Text style={[GlobalStyles.body, { marginLeft: 12 }]}>{careType.label}</Text>
+                <Text style={[globalStyles.body, { marginLeft: 12 }]}>{careType.label}</Text>
               </TouchableOpacity>
             );
           })}
           
           <TouchableOpacity
-            style={GlobalStyles.buttonSecondary}
+            style={globalStyles.buttonSecondary}
             onPress={() => setShowCareTypeModal(false)}
           >
-            <Text style={GlobalStyles.buttonTextSecondary}>Cancel</Text>
+            <Text style={globalStyles.buttonTextSecondary}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -323,35 +326,35 @@ export default function QuickCareScreen() {
 
   if (loading) {
     return (
-      <View style={GlobalStyles.container}>
-        <Text style={GlobalStyles.body}>Loading plants...</Text>
+      <View style={globalStyles.container}>
+        <Text style={globalStyles.body}>Loading plants...</Text>
       </View>
     );
   }
 
   return (
-    <View style={GlobalStyles.container}>
+    <View style={globalStyles.container}>
       {/* Header with location filter */}
-      <View style={GlobalStyles.flexRowBetween}>
+      <View style={globalStyles.flexRowBetween}>
         <TouchableOpacity 
-          style={[GlobalStyles.flexRowCenter, GlobalStyles.buttonSecondary]}
+          style={[globalStyles.flexRowCenter, globalStyles.buttonSecondary]}
           onPress={() => setShowLocationModal(true)}
         >
           <Filter size={20} color={theme.colors.textSecondary} />
-          <Text style={[GlobalStyles.buttonTextSecondary, { marginLeft: 8 }]}>{selectedLocation}</Text>
+          <Text style={[globalStyles.buttonTextSecondary, { marginLeft: 8 }]}>{selectedLocation}</Text>
         </TouchableOpacity>
         
         {selectedPlants.size > 0 && (
-          <Text style={GlobalStyles.bodySmall}>
+          <Text style={globalStyles.bodySmall}>
             {selectedPlants.size} selected
           </Text>
         )}
       </View>
 
       {plants.length === 0 ? (
-        <View style={GlobalStyles.emptyState}>
-          <Text style={GlobalStyles.emptyStateText}>No plants yet!</Text>
-          <Text style={[GlobalStyles.bodySmall, GlobalStyles.textCenter]}>Add some plants first to use Quick Care</Text>
+        <View style={globalStyles.emptyState}>
+          <Text style={globalStyles.emptyStateText}>No plants yet!</Text>
+          <Text style={[globalStyles.bodySmall, globalStyles.textCenter]}>Add some plants first to use Quick Care</Text>
         </View>
       ) : (
         <>
@@ -360,17 +363,17 @@ export default function QuickCareScreen() {
             renderItem={renderPlantItem}
             renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
-            style={GlobalStyles.list}
-            contentContainerStyle={selectedPlants.size > 0 ? GlobalStyles.listContent : undefined}
+            style={globalStyles.list}
+            contentContainerStyle={selectedPlants.size > 0 ? globalStyles.listContent : undefined}
             stickySectionHeadersEnabled={false}
           />
           
           {selectedPlants.size > 0 && (
             <TouchableOpacity
-              style={GlobalStyles.fab}
+              style={globalStyles.fab}
               onPress={() => setShowCareTypeModal(true)}
             >
-              <Text style={[GlobalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
+              <Text style={[globalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
                 Add Care Event ({selectedPlants.size})
               </Text>
             </TouchableOpacity>
@@ -383,3 +386,72 @@ export default function QuickCareScreen() {
     </View>
   );
 }
+
+const createStyles = (theme) => StyleSheet.create({
+  plantCard: {
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  plantCardSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  checkboxSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  plantDetails: {
+    flex: 1,
+  },
+  plantCardName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  plantCardType: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  locationHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    marginBottom: 8,
+  },
+  locationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  selectAllText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+});

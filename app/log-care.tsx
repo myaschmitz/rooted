@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -15,9 +16,13 @@ import { CareEventService } from '../services/CareEventService';
 import { PlantService } from '../services/PlantService';
 import { DateTimeService } from '../services/DateTimeService';
 import { Plant } from '../types/Plant';
-import { GlobalStyles, CareStyles, CommonStyles } from '../styles';
+import { useGlobalStyles } from '../styles';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function LogCareScreen() {
+  const { theme } = useTheme();
+  const globalStyles = useGlobalStyles();
+  const styles = createStyles(theme);
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
@@ -97,37 +102,37 @@ export default function LogCareScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={GlobalStyles.container}
+      style={globalStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView style={GlobalStyles.scrollView} keyboardShouldPersistTaps="handled">
-        <View style={CommonStyles.formContainer}>
+      <ScrollView style={globalStyles.scrollView} keyboardShouldPersistTaps="handled">
+        <View style={globalStyles.form}>
           {/* Plant Info */}
           {plant && (
-            <View style={CareStyles.plantInfo}>
-              <Text style={CareStyles.plantName}>{plant.name}</Text>
-              <Text style={CareStyles.plantType}>{plant.type}</Text>
+            <View style={styles.plantInfo}>
+              <Text style={styles.plantName}>{plant.name}</Text>
+              <Text style={styles.plantType}>{plant.type}</Text>
             </View>
           )}
 
           {/* Care Type Selection */}
-          <View style={GlobalStyles.inputGroup}>
-            <Text style={GlobalStyles.label}>Care Type</Text>
-            <View style={CareStyles.careTypeGrid}>
+          <View style={globalStyles.inputGroup}>
+            <Text style={globalStyles.label}>Care Type</Text>
+            <View style={styles.careTypeGrid}>
               {careTypes.map((type) => (
                 <TouchableOpacity
                   key={type.value}
                   style={[
-                    CareStyles.careTypeOption,
-                    eventType === type.value && CareStyles.careTypeOptionSelected,
+                    styles.careTypeOption,
+                    eventType === type.value && styles.careTypeOptionSelected,
                   ]}
                   onPress={() => setEventType(type.value)}
                 >
-                  <Text style={CareStyles.careTypeIcon}>{type.icon}</Text>
+                  <Text style={styles.careTypeIcon}>{type.icon}</Text>
                   <Text
                     style={[
-                      CareStyles.careTypeText,
-                      eventType === type.value && CareStyles.careTypeTextSelected,
+                      styles.careTypeText,
+                      eventType === type.value && styles.careTypeTextSelected,
                     ]}
                   >
                     {type.label}
@@ -138,53 +143,53 @@ export default function LogCareScreen() {
           </View>
 
           {/* Date and Time */}
-          <View style={GlobalStyles.inputGroup}>
-            <Text style={GlobalStyles.label}>Date & Time</Text>
+          <View style={globalStyles.inputGroup}>
+            <Text style={globalStyles.label}>Date & Time</Text>
             
             <TouchableOpacity
-              style={CareStyles.dateTimeButton}
+              style={styles.dateTimeButton}
               onPress={() => {
                 setShowTimePicker(false);
                 setTempDateTime(new Date(careDateTime));
                 setShowDatePicker(true);
               }}
             >
-              <Text style={CareStyles.dateTimeText}>
+              <Text style={styles.dateTimeText}>
                 Date: {DateTimeService.formatDate(careDateTime)}
               </Text>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={CareStyles.dateTimeButton}
+              style={styles.dateTimeButton}
               onPress={() => {
                 setShowDatePicker(false);
                 setTempDateTime(new Date(careDateTime));
                 setShowTimePicker(true);
               }}
             >
-              <Text style={CareStyles.dateTimeText}>
+              <Text style={styles.dateTimeText}>
                 Time: {DateTimeService.formatTime(careDateTime)}
               </Text>
             </TouchableOpacity>
 
             {showDatePicker && (
-              <View style={CareStyles.pickerContainer}>
-                <View style={CareStyles.pickerHeader}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
                   <TouchableOpacity
-                    style={CareStyles.pickerButton}
+                    style={styles.pickerButton}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <Text style={CareStyles.pickerButtonText}>Cancel</Text>
+                    <Text style={styles.pickerButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <Text style={CareStyles.pickerTitle}>Select Date</Text>
+                  <Text style={styles.pickerTitle}>Select Date</Text>
                   <TouchableOpacity
-                    style={[CareStyles.pickerButton, CareStyles.pickerButtonDone]}
+                    style={[styles.pickerButton, styles.pickerButtonDone]}
                     onPress={() => {
                       setCareDateTime(tempDateTime);
                       setShowDatePicker(false);
                     }}
                   >
-                    <Text style={[CareStyles.pickerButtonText, CareStyles.pickerButtonTextDone]}>Done</Text>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -201,23 +206,23 @@ export default function LogCareScreen() {
             )}
 
             {showTimePicker && (
-              <View style={CareStyles.pickerContainer}>
-                <View style={CareStyles.pickerHeader}>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
                   <TouchableOpacity
-                    style={CareStyles.pickerButton}
+                    style={styles.pickerButton}
                     onPress={() => setShowTimePicker(false)}
                   >
-                    <Text style={CareStyles.pickerButtonText}>Cancel</Text>
+                    <Text style={styles.pickerButtonText}>Cancel</Text>
                   </TouchableOpacity>
-                  <Text style={CareStyles.pickerTitle}>Select Time</Text>
+                  <Text style={styles.pickerTitle}>Select Time</Text>
                   <TouchableOpacity
-                    style={[CareStyles.pickerButton, CareStyles.pickerButtonDone]}
+                    style={[styles.pickerButton, styles.pickerButtonDone]}
                     onPress={() => {
                       setCareDateTime(tempDateTime);
                       setShowTimePicker(false);
                     }}
                   >
-                    <Text style={[CareStyles.pickerButtonText, CareStyles.pickerButtonTextDone]}>Done</Text>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
@@ -237,20 +242,20 @@ export default function LogCareScreen() {
           {/* Fertilizer Options (only show for fertilize) */}
           {showFertilizerOptions && (
             <>
-              <View style={GlobalStyles.inputGroup}>
-                <Text style={GlobalStyles.label}>Fertilizer Concentration</Text>
+              <View style={globalStyles.inputGroup}>
+                <Text style={globalStyles.label}>Fertilizer Concentration</Text>
                 <TextInput
-                  style={GlobalStyles.input}
+                  style={globalStyles.input}
                   value={fertilizerConcentration}
                   onChangeText={setFertilizerConcentration}
                   placeholder="e.g., 1/4 strength, 20-20-20"
                 />
               </View>
 
-              <View style={GlobalStyles.inputGroup}>
-                <Text style={GlobalStyles.label}>Amount Used</Text>
+              <View style={globalStyles.inputGroup}>
+                <Text style={globalStyles.label}>Amount Used</Text>
                 <TextInput
-                  style={GlobalStyles.input}
+                  style={globalStyles.input}
                   value={fertilizerAmount}
                   onChangeText={setFertilizerAmount}
                   placeholder="e.g., 1 cup, 500ml"
@@ -261,26 +266,26 @@ export default function LogCareScreen() {
 
           {/* Pest Severity (only show for pest_spotted) */}
           {showPestSeverity && (
-            <View style={GlobalStyles.inputGroup}>
-              <Text style={GlobalStyles.label}>Pest Severity (1-10 scale)</Text>
-              <Text style={GlobalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
-              <View style={CareStyles.severityContainer}>
+            <View style={globalStyles.inputGroup}>
+              <Text style={globalStyles.label}>Pest Severity (1-10 scale)</Text>
+              <Text style={globalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+              <View style={styles.severityContainer}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
                   <TouchableOpacity
                     key={severity}
                     style={[
-                      CareStyles.severityButton,
-                      pestSeverity === severity && CareStyles.severityButtonSelected,
-                      severity <= 3 && CareStyles.severityLow,
-                      severity >= 4 && severity <= 6 && CareStyles.severityMedium,
-                      severity >= 7 && CareStyles.severityHigh,
+                      styles.severityButton,
+                      pestSeverity === severity && styles.severityButtonSelected,
+                      severity <= 3 && styles.severityLow,
+                      severity >= 4 && severity <= 6 && styles.severityMedium,
+                      severity >= 7 && styles.severityHigh,
                     ]}
                     onPress={() => setPestSeverity(severity)}
                   >
                     <Text
                       style={[
-                        CareStyles.severityText,
-                        pestSeverity === severity && CareStyles.severityTextSelected,
+                        styles.severityText,
+                        pestSeverity === severity && styles.severityTextSelected,
                       ]}
                     >
                       {severity}
@@ -292,10 +297,10 @@ export default function LogCareScreen() {
           )}
 
           {/* Notes */}
-          <View style={GlobalStyles.inputGroup}>
-            <Text style={GlobalStyles.label}>Notes</Text>
+          <View style={globalStyles.inputGroup}>
+            <Text style={globalStyles.label}>Notes</Text>
             <TextInput
-              style={GlobalStyles.inputTextArea}
+              style={globalStyles.inputTextArea}
               value={notes}
               onChangeText={setNotes}
               placeholder="Additional notes about this care event..."
@@ -306,24 +311,24 @@ export default function LogCareScreen() {
           </View>
 
           {/* Quick Add Buttons */}
-          <View style={GlobalStyles.flexRow}>
+          <View style={globalStyles.flexRow}>
             <TouchableOpacity
-              style={GlobalStyles.buttonSmall}
+              style={globalStyles.buttonSmall}
               onPress={() => {
                 setCareDateTime(new Date());
               }}
             >
-              <Text style={GlobalStyles.buttonTextSmall}>Set to Now</Text>
+              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
             </TouchableOpacity>
           </View>
 
           {/* Save Button */}
           <TouchableOpacity
-            style={[CommonStyles.saveButton, saving && GlobalStyles.buttonDisabled]}
+            style={[styles.saveButton, saving && globalStyles.buttonDisabled]}
             onPress={handleSave}
             disabled={saving}
           >
-            <Text style={GlobalStyles.buttonText}>
+            <Text style={globalStyles.buttonText}>
               {saving ? 'Logging Event...' : 'Log Care Event'}
             </Text>
           </TouchableOpacity>
@@ -332,5 +337,125 @@ export default function LogCareScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const createStyles = (theme) => StyleSheet.create({
+  plantInfo: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  plantName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  plantType: {
+    fontSize: 18,
+    color: theme.colors.textSecondary,
+  },
+  careTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  careTypeOption: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 8,
+  },
+  careTypeOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  careTypeIcon: {
+    fontSize: 32,
+  },
+  careTypeText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  careTypeTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
+  dateTimeButton: {
+    backgroundColor: theme.colors.surface,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  pickerContainer: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  pickerButton: {
+    padding: 8,
+  },
+  pickerButtonDone: {},
+  pickerButtonText: {
+    fontSize: 16,
+    color: theme.colors.primary,
+  },
+  pickerButtonTextDone: {
+    fontWeight: 'bold',
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  severityContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  severityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  severityButtonSelected: {
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  severityText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  severityTextSelected: {
+    fontWeight: 'bold',
+  },
+  severityLow: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
+  severityMedium: { backgroundColor: '#FFC107', borderColor: '#FFC107' },
+  severityHigh: { backgroundColor: '#F44336', borderColor: '#F44336' },
+  saveButton: {
+    ...useGlobalStyles().buttonLarge,
+    marginTop: 20,
+  },
+});
 
 
