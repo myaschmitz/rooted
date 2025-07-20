@@ -7,10 +7,11 @@ import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
+import { createStyles } from '../../styles/MyPlantsStyles';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
-  const styles = createStyles(theme.colors);
+  const styles = createStyles(theme);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,13 +86,13 @@ export default function HomeScreen() {
 
   const getHealthStatusDisplay = (status?: string) => {
     switch (status) {
-      case 'excellent': return { text: 'Excellent', color: '#2E7D32' };
-      case 'good': return { text: 'Good', color: '#4CAF50' };
-      case 'okay': return { text: 'Okay', color: '#FF9800' };
-      case 'poor': return { text: 'Poor', color: '#FF5722' };
-      case 'concerning': return { text: 'Concerning', color: '#F44336' };
-      case 'critical': return { text: 'Critical', color: '#B71C1C' };
-      default: return { text: 'Good', color: '#4CAF50' };
+      case 'excellent': return { text: 'Excellent', color: theme.colors.healthExcellent };
+      case 'good': return { text: 'Good', color: theme.colors.healthGood };
+      case 'okay': return { text: 'Okay', color: theme.colors.healthOkay };
+      case 'poor': return { text: 'Poor', color: theme.colors.healthPoor };
+      case 'concerning': return { text: 'Concerning', color: theme.colors.healthConcerning };
+      case 'critical': return { text: 'Critical', color: theme.colors.healthCritical };
+      default: return { text: 'Good', color: theme.colors.healthGood };
     }
   };
 
@@ -139,7 +140,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Loading plants...</Text>
+        <Text style={styles.loadingText}>Loading plants...</Text>
       </View>
     );
   }
@@ -192,150 +193,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: theme.surface,
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-  },
-  list: {
-    flex: 1,
-    padding: 16,
-  },
-  plantCard: {
-    backgroundColor: theme.surface,
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  plantCardContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  plantThumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#f0f0f0',
-  },
-  plantInfo: {
-    flex: 1,
-  },
-  plantName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  plantType: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  plantLocation: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-  },
-  healthStatus: {
-    fontSize: 12,
-    color: '#4CAF50',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: theme.text,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    color: theme.textSecondary,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  addButton: {
-    backgroundColor: theme.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  fabText: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  sectionHeader: {
-    backgroundColor: '#f8f8f8',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  sectionCount: {
-    fontSize: 14,
-    color: '#666',
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  toggleButton: {
-    padding: 8,
-    borderRadius: 6,
-    backgroundColor: '#f0f0f0',
-  },
-  toggleButtonText: {
-    fontSize: 18,
-  },
-});

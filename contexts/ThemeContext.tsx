@@ -22,6 +22,14 @@ export interface Theme {
     success: string;
     warning: string;
     error: string;
+
+    // Health status colors
+    healthExcellent: string;
+    healthGood: string;
+    healthOkay: string;
+    healthPoor: string;
+    healthConcerning: string;
+    healthCritical: string;
     
     // Border and divider colors
     border: string;
@@ -51,6 +59,13 @@ const lightTheme: Theme = {
     success: '#4CAF50',
     warning: '#FF9800',
     error: '#F44336',
+
+    healthExcellent: '#2E7D32',
+    healthGood: '#4CAF50',
+    healthOkay: '#FF9800',
+    healthPoor: '#FF5722',
+    healthConcerning: '#F44336',
+    healthCritical: '#B71C1C',
     
     border: '#e0e0e0',
     divider: '#eeeeee',
@@ -77,6 +92,13 @@ const darkTheme: Theme = {
     success: '#66BB6A',
     warning: '#FFB74D',
     error: '#EF5350',
+
+    healthExcellent: '#66BB6A',
+    healthGood: '#81C784',
+    healthOkay: '#FFB74D',
+    healthPoor: '#FF8A65',
+    healthConcerning: '#EF5350',
+    healthCritical: '#E57373',
     
     border: '#333333',
     divider: '#2a2a2a',
