@@ -6,23 +6,6 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-  },
-  toggleButton: {
-    padding: 8,
-  },
-  toggleButtonText: {
-    fontSize: 24,
-    color: theme.colors.text,
-  },
   list: {
     flex: 1,
   },
@@ -32,10 +15,6 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 8,
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
   },
   plantCardContent: {

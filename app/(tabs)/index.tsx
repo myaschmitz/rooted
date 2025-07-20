@@ -16,7 +16,6 @@ export default function HomeScreen() {
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [loading, setLoading] = useState(true);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
-  const [groupByLocation, setGroupByLocation] = useState(true);
 
   const loadPlants = useCallback(async () => {
     try {
@@ -46,33 +45,28 @@ export default function HomeScreen() {
       }
       setPlantThumbnails(thumbnails);
 
-      // Group plants by location if enabled
-      if (groupByLocation) {
-        const groupedPlants = await LocationService.getPlantsGroupedByLocation();
-        const sections = Object.entries(groupedPlants).map(([location, plants]) => ({
-          title: location,
-          data: plants as Plant[]
-        }));
-        
-        // Sort sections: "No Location" last, others alphabetically
-        sections.sort((a, b) => {
-          if (a.title === 'No Location') return 1;
-          if (b.title === 'No Location') return -1;
-          return a.title.localeCompare(b.title);
-        });
-        
-        setPlantsGrouped(sections);
-      } else {
-        // Single section with all plants
-        setPlantsGrouped([{ title: 'All Plants', data: allPlants }]);
-      }
+      // Group plants by location
+      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
+      const sections = Object.entries(groupedPlants).map(([location, plants]) => ({
+        title: location,
+        data: plants as Plant[]
+      }));
+      
+      // Sort sections: "No Location" last, others alphabetically
+      sections.sort((a, b) => {
+        if (a.title === 'No Location') return 1;
+        if (b.title === 'No Location') return -1;
+        return a.title.localeCompare(b.title);
+      });
+      
+      setPlantsGrouped(sections);
     } catch (error) {
       console.error('Failed to load plants:', error);
       Alert.alert('Error', 'Failed to load plants');
     } finally {
       setLoading(false);
     }
-  }, [groupByLocation]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -116,9 +110,6 @@ export default function HomeScreen() {
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
-            {!groupByLocation && item.location && (
-              <Text style={styles.plantLocation}>📍 {item.location}</Text>
-            )}
             <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
               Health: {healthDisplay.text}
             </Text>
@@ -147,19 +138,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with toggle button */}
-      <View style={styles.header}>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.toggleButton}
-            onPress={() => setGroupByLocation(!groupByLocation)}
-          >
-            <Text style={styles.toggleButtonText}>
-              {groupByLocation ? '📍' : '📋'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
       {plants.length === 0 ? (
         <View style={styles.emptyState}>
@@ -177,7 +155,7 @@ export default function HomeScreen() {
           <SectionList
             sections={plantsGrouped}
             renderItem={renderPlantItem}
-            renderSectionHeader={groupByLocation ? renderSectionHeader : undefined}
+            renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
             style={styles.list}
             stickySectionHeadersEnabled={false}
