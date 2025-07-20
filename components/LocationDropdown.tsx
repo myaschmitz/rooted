@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { LocationService, PlantLocation } from '../services/LocationService';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface LocationDropdownProps {
   value: string;
@@ -23,6 +24,7 @@ export default function LocationDropdown({
   placeholder = "Select or enter location",
   style 
 }: LocationDropdownProps) {
+  const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [locations, setLocations] = useState<PlantLocation[]>([]);
@@ -76,6 +78,8 @@ export default function LocationDropdown({
     setIsOpen(true);
     setSearchQuery(value);
   };
+
+  const styles = createStyles(theme);
 
   return (
     <View style={[styles.container, style]}>
@@ -187,14 +191,14 @@ export default function LocationDropdown({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     position: 'relative',
   },
   dropdownButton: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 15,
     flexDirection: 'row',
@@ -203,15 +207,15 @@ const styles = StyleSheet.create({
   },
   dropdownText: {
     fontSize: 16,
-    color: '#333',
+    color: theme.colors.text,
     flex: 1,
   },
   placeholderText: {
-    color: '#999',
+    color: theme.colors.textTertiary,
   },
   dropdownArrow: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginLeft: 10,
   },
   modalOverlay: {
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     maxHeight: '80%',
     shadowColor: '#000',
@@ -244,28 +248,28 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.text,
   },
   closeButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   searchContainer: {
     padding: 20,
     paddingBottom: 10,
   },
   searchInput: {
-    backgroundColor: '#f8f8f8',
+    backgroundColor: theme.colors.surfaceSecondary,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
@@ -288,22 +292,22 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 2,
   },
   locationCount: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   createNewText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#4CAF50',
+    color: theme.colors.primary,
     marginBottom: 2,
   },
   createNewSubtext: {
     fontSize: 14,
-    color: '#4CAF50',
+    color: theme.colors.primary,
     fontStyle: 'italic',
   },
   selectIcon: {
@@ -312,7 +316,7 @@ const styles = StyleSheet.create({
   },
   createIcon: {
     fontSize: 24,
-    color: '#4CAF50',
+    color: theme.colors.primary,
     marginLeft: 10,
     fontWeight: 'bold',
   },
@@ -322,12 +326,12 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 5,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#999',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
   },
 });

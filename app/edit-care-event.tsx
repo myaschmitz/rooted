@@ -13,8 +13,10 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { CareEventService } from '../services/CareEventService';
 import { CareEvent } from '../types/Plant';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EditCareEventScreen() {
+  const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
@@ -25,6 +27,8 @@ export default function EditCareEventScreen() {
   const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  const styles = createStyles(theme);
 
   useEffect(() => {
     loadCareEventData();
@@ -269,10 +273,10 @@ export default function EditCareEventScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
@@ -287,15 +291,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: theme.colors.text,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
+    color: theme.colors.text,
   },
   notesInput: {
     minHeight: 100,
@@ -306,9 +311,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   optionButton: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   optionTextSelected: {
     color: '#2196F3',
@@ -342,9 +347,9 @@ const styles = StyleSheet.create({
   healthOption: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -362,7 +367,7 @@ const styles = StyleSheet.create({
   healthOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   selectedIndicator: {
     position: 'absolute',
@@ -373,23 +378,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 18,
     alignItems: 'center',
     marginTop: 20,
   },
   saveButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.colors.disabled,
   },
   saveButtonText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   sublabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 10,
     fontStyle: 'italic',
   },
@@ -405,12 +410,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ddd',
-    backgroundColor: 'white',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
   severityButtonSelected: {
     borderColor: '#4CAF50',
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.primary,
   },
   severityLow: {
     borderColor: '#4CAF50',
@@ -427,9 +432,9 @@ const styles = StyleSheet.create({
   severityText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.text,
   },
   severityTextSelected: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
   },
 });

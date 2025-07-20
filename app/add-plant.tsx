@@ -15,8 +15,10 @@ import { router } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
 import LocationDropdown from '../components/LocationDropdown';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddPlantScreen() {
+  const { theme } = useTheme();
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
@@ -24,6 +26,8 @@ export default function AddPlantScreen() {
   const [notes, setNotes] = useState('');
   const [plantPhoto, setPlantPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  
+  const styles = createStyles(theme);
 
   const handleSave = async () => {
     if (!type.trim()) {
@@ -224,10 +228,10 @@ export default function AddPlantScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
@@ -243,15 +247,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
+    color: theme.colors.text,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
+    color: theme.colors.text,
   },
   notesInput: {
     minHeight: 100,
@@ -293,7 +298,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
     borderRadius: 8,
   },
@@ -303,7 +308,7 @@ const styles = StyleSheet.create({
   },
   photoPlaceholderSubtext: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   healthOptions: {
     flexDirection: 'row',
@@ -313,9 +318,9 @@ const styles = StyleSheet.create({
   healthOption: {
     flex: 1,
     minWidth: '30%',
-    backgroundColor: 'white',
+    backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -333,7 +338,7 @@ const styles = StyleSheet.create({
   healthOptionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   selectedIndicator: {
     position: 'absolute',
@@ -344,7 +349,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
     padding: 18,
     alignItems: 'center',
@@ -352,10 +357,10 @@ const styles = StyleSheet.create({
     marginBottom: 30, // Extra bottom margin for keyboard accessibility
   },
   saveButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.colors.disabled,
   },
   saveButtonText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 18,
     fontWeight: 'bold',
   },

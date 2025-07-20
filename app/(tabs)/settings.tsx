@@ -438,7 +438,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 10,
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: theme.disabled,
   },
   deleteButtonText: {
     color: theme.textOnPrimary,

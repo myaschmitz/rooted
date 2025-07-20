@@ -189,7 +189,7 @@ export default function QuickCareScreen() {
       >
         <View style={globalStyles.flexRowCenter}>
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Check size={16} color="white" />}
+            {isSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
           </View>
           
           {thumbnail && (
@@ -225,7 +225,7 @@ export default function QuickCareScreen() {
               allSelected && styles.checkboxSelected,
               someSelected && !allSelected && { backgroundColor: theme.colors.border }
             ]}>
-              {allSelected && <Check size={16} color="white" />}
+              {allSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
               {someSelected && !allSelected && <Text style={styles.checkboxText}>−</Text>}
             </View>
             <Text style={[styles.locationTitle, { marginLeft: 12 }]}>{section.title}</Text>

@@ -13,10 +13,8 @@ export interface Theme {
     
     // Text colors
     text: string;
-    textPrimary: string;
     textSecondary: string;
     textTertiary: string;
-    textOnPrimary: string; // Text color to use on primary backgrounds
     
     // UI colors
     primary: string;
@@ -24,14 +22,6 @@ export interface Theme {
     success: string;
     warning: string;
     error: string;
-
-    // Health status colors
-    healthExcellent: string;
-    healthGood: string;
-    healthOkay: string;
-    healthPoor: string;
-    healthConcerning: string;
-    healthCritical: string;
     
     // Border and divider colors
     border: string;
@@ -40,9 +30,6 @@ export interface Theme {
     // Modal and overlay colors
     modalBackground: string;
     modalOverlay: string;
-    
-    // Shadow color
-    shadow: string;
     
     // Status bar
     statusBar: 'light-content' | 'dark-content';
@@ -56,30 +43,20 @@ const lightTheme: Theme = {
     surfaceSecondary: '#f8f9fa',
     
     text: '#333333',
-    textPrimary: '#333333',
     textSecondary: '#666666',
     textTertiary: '#888888',
-    textOnPrimary: '#ffffff',
     
     primary: '#4CAF50',
     primaryDark: '#2E7D32',
     success: '#4CAF50',
     warning: '#FF9800',
     error: '#F44336',
-
-    healthExcellent: '#2E7D32',
-    healthGood: '#4CAF50',
-    healthOkay: '#FF9800',
-    healthPoor: '#FF5722',
-    healthConcerning: '#F44336',
-    healthCritical: '#B71C1C',
     
     border: '#e0e0e0',
     divider: '#eeeeee',
     
     modalBackground: 'rgba(0, 0, 0, 0.9)',
     modalOverlay: 'rgba(0, 0, 0, 0.5)',
-    shadow: '#000000',
     
     statusBar: 'dark-content',
   },
@@ -92,30 +69,20 @@ const darkTheme: Theme = {
     surfaceSecondary: '#2a2a2a',
     
     text: '#ffffff',
-    textPrimary: '#ffffff',
     textSecondary: '#b3b3b3',
     textTertiary: '#888888',
-    textOnPrimary: '#ffffff',
     
     primary: '#66BB6A',
     primaryDark: '#4CAF50',
     success: '#66BB6A',
     warning: '#FFB74D',
     error: '#EF5350',
-
-    healthExcellent: '#66BB6A',
-    healthGood: '#81C784',
-    healthOkay: '#FFB74D',
-    healthPoor: '#FF8A65',
-    healthConcerning: '#EF5350',
-    healthCritical: '#E57373',
     
     border: '#333333',
     divider: '#2a2a2a',
     
     modalBackground: 'rgba(0, 0, 0, 0.95)',
     modalOverlay: 'rgba(0, 0, 0, 0.7)',
-    shadow: '#000000',
     
     statusBar: 'light-content',
   },
