@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     padding: 8,
     minWidth: 200,
     maxWidth: 300,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: {
       width: 0,
       height: 2,

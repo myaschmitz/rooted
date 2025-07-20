@@ -13,8 +13,10 @@ export interface Theme {
     
     // Text colors
     text: string;
+    textPrimary: string;
     textSecondary: string;
     textTertiary: string;
+    textOnPrimary: string; // Text color to use on primary backgrounds
     
     // UI colors
     primary: string;
@@ -39,6 +41,9 @@ export interface Theme {
     modalBackground: string;
     modalOverlay: string;
     
+    // Shadow color
+    shadow: string;
+    
     // Status bar
     statusBar: 'light-content' | 'dark-content';
   };
@@ -51,8 +56,10 @@ const lightTheme: Theme = {
     surfaceSecondary: '#f8f9fa',
     
     text: '#333333',
+    textPrimary: '#333333',
     textSecondary: '#666666',
     textTertiary: '#888888',
+    textOnPrimary: '#ffffff',
     
     primary: '#4CAF50',
     primaryDark: '#2E7D32',
@@ -72,6 +79,7 @@ const lightTheme: Theme = {
     
     modalBackground: 'rgba(0, 0, 0, 0.9)',
     modalOverlay: 'rgba(0, 0, 0, 0.5)',
+    shadow: '#000000',
     
     statusBar: 'dark-content',
   },
@@ -84,8 +92,10 @@ const darkTheme: Theme = {
     surfaceSecondary: '#2a2a2a',
     
     text: '#ffffff',
+    textPrimary: '#ffffff',
     textSecondary: '#b3b3b3',
     textTertiary: '#888888',
+    textOnPrimary: '#ffffff',
     
     primary: '#66BB6A',
     primaryDark: '#4CAF50',
@@ -105,6 +115,7 @@ const darkTheme: Theme = {
     
     modalBackground: 'rgba(0, 0, 0, 0.95)',
     modalOverlay: 'rgba(0, 0, 0, 0.7)',
+    shadow: '#000000',
     
     statusBar: 'light-content',
   },

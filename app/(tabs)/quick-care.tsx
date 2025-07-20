@@ -444,7 +444,7 @@ const createStyles = (theme) => StyleSheet.create({
   locationTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.colors.textPrimary,
+    color: theme.colors.text,
   },
   selectAllText: {
     fontSize: 14,

@@ -614,7 +614,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   actionButtonText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -659,7 +659,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   deletePhotoText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -765,12 +765,12 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderRadius: 8,
   },
   photoInfoText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 16,
     textAlign: 'center',
   },
   photoCounter: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 5,
@@ -794,7 +794,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   thumbnailBadgeText: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -814,7 +814,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: '600',
   },
   photoInfoCaption: {
-    color: 'white',
+    color: theme.colors.textOnPrimary,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 5,

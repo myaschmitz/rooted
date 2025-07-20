@@ -177,7 +177,7 @@ export default function SettingsScreen() {
                 >
                   <IconComponent 
                     size={18} 
-                    color={themeMode === option.value ? '#fff' : theme.colors.text}
+                    color={themeMode === option.value ? theme.colors.textOnPrimary : theme.colors.text}
                   />
                 </TouchableOpacity>
               );
@@ -298,7 +298,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     margin: 15,
     padding: 20,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -340,7 +340,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 8,
   },
   buttonText: {
-    color: 'white',
+    color: theme.textOnPrimary,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
@@ -349,7 +349,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.danger,
   },
   dangerButtonText: {
-    color: 'white',
+    color: theme.textOnPrimary,
   },
   settingLabel: {
     fontSize: 16,
@@ -374,7 +374,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.text,
   },
   selectedFormatText: {
-    color: 'white',
+    color: theme.textOnPrimary,
     fontWeight: '600',
   },
   dropdown: {
@@ -404,7 +404,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     padding: 8,
     minWidth: 200,
     maxWidth: 300,
-    shadowColor: '#000',
+    shadowColor: theme.shadow,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -426,7 +426,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     textAlign: 'center',
   },
   selectedDropdownOptionText: {
-    color: '#fff',
+    color: theme.textOnPrimary,
     fontWeight: 'bold',
   },
   deleteButton: {
@@ -441,7 +441,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: '#ccc',
   },
   deleteButtonText: {
-    color: 'white',
+    color: theme.textOnPrimary,
     fontSize: 16,
     fontWeight: 'bold',
   },
