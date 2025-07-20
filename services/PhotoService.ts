@@ -182,16 +182,19 @@ export class PhotoService {
           });
           console.log('File read as base64, length:', fileContent.length);
           
-          // Create a proper blob for React Native using fetch API
-          const response = await fetch(`data:image/jpeg;base64,${fileContent}`);
-          const blob = await response.blob();
-          console.log('Blob created, size:', blob.size);
+          // Convert base64 to Uint8Array for React Native
+          const binaryString = atob(fileContent);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          console.log('Converted to Uint8Array, size:', bytes.length);
 
           // Upload to Supabase Storage
           console.log('Uploading to bucket:', this.STORAGE_BUCKET);
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from(this.STORAGE_BUCKET)
-            .upload(fileName, blob, {
+            .upload(fileName, bytes, {
               contentType: 'image/jpeg',
               upsert: false
             });
