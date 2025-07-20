@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   KeyboardAvoidingView,
+  ActivityIndicator,
   Platform,
   Image,
 } from 'react-native';
@@ -141,8 +142,8 @@ export default function EditPlantScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading plant data...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -416,5 +417,11 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textOnPrimary,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
   },
 });

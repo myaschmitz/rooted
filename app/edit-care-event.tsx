@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CareEventService } from '../services/CareEventService';
@@ -100,8 +101,8 @@ export default function EditCareEventScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading care event data...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -436,5 +437,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   severityTextSelected: {
     color: theme.colors.textOnPrimary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
   },
 });

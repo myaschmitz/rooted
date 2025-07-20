@@ -442,6 +442,10 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   deleteButtonText: {
     color: theme.textOnPrimary,
+    backgroundColor: '#F44336',
+    padding: 18,
+    borderRadius: 8,
+    alignItems: 'center',
     fontSize: 16,
     fontWeight: 'bold',
   },

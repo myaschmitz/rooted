@@ -347,6 +347,7 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     color: 'white',
+    backgroundColor: '#F44336',
     fontSize: 16,
     fontWeight: 'bold',
   },
