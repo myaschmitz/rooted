@@ -109,7 +109,7 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -136,7 +136,7 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -168,26 +168,27 @@ export class PhotoService {
         to: localFilePath,
       });
 
-      // Upload to Supabase Storage (optional - for cloud backup)
-      let cloudFilePath = localFilePath; // Default to local path
+      // Upload to Supabase Storage for cloud backup and sync
+      let cloudFilePath: string | null = null;
       try {
+        console.log('Starting cloud upload for file:', fileName);
         const fileInfo = await FileSystem.getInfoAsync(localFilePath);
         if (fileInfo.exists) {
+          console.log('Local file exists, size:', fileInfo.size);
+          
           // Read file as base64
           const fileContent = await FileSystem.readAsStringAsync(localFilePath, {
             encoding: FileSystem.EncodingType.Base64,
           });
+          console.log('File read as base64, length:', fileContent.length);
           
-          // Convert base64 to blob
-          const byteCharacters = atob(fileContent);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'image/jpeg' });
+          // Create a proper blob for React Native using fetch API
+          const response = await fetch(`data:image/jpeg;base64,${fileContent}`);
+          const blob = await response.blob();
+          console.log('Blob created, size:', blob.size);
 
           // Upload to Supabase Storage
+          console.log('Uploading to bucket:', this.STORAGE_BUCKET);
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from(this.STORAGE_BUCKET)
             .upload(fileName, blob, {
@@ -195,7 +196,13 @@ export class PhotoService {
               upsert: false
             });
 
-          if (!uploadError && uploadData) {
+          if (uploadError) {
+            console.error('Supabase storage upload error:', uploadError);
+            throw uploadError;
+          }
+
+          if (uploadData) {
+            console.log('Upload successful:', uploadData);
             // Get public URL
             const { data: urlData } = supabase.storage
               .from(this.STORAGE_BUCKET)
@@ -203,12 +210,31 @@ export class PhotoService {
             
             if (urlData?.publicUrl) {
               cloudFilePath = urlData.publicUrl;
+              console.log('Public URL obtained:', cloudFilePath);
+            } else {
+              console.error('Failed to get public URL for uploaded file');
             }
+          } else {
+            console.error('Upload succeeded but no data returned');
           }
+        } else {
+          console.error('Local file does not exist:', localFilePath);
         }
       } catch (storageError) {
-        console.warn('Failed to upload to cloud storage, using local path:', storageError);
-        // Continue with local storage - this is acceptable for offline functionality
+        console.error('Failed to upload to cloud storage:', storageError);
+        console.error('Storage error details:', JSON.stringify(storageError, null, 2));
+        // Don't fallback to local path - only store cloud URLs in database
+      }
+
+      // Only proceed if we have a cloud URL
+      if (!cloudFilePath) {
+        // Clean up the local file since we couldn't upload to cloud
+        try {
+          await FileSystem.deleteAsync(localFilePath);
+        } catch (cleanupError) {
+          console.warn('Failed to clean up local file after cloud upload failure:', cleanupError);
+        }
+        throw new Error('Failed to upload photo to cloud storage. Please check your internet connection and try again.');
       }
 
       const now = new Date().toISOString();
@@ -484,6 +510,61 @@ export class PhotoService {
     } catch (error) {
       console.error('Error clearing thumbnail photo:', error);
       throw error;
+    }
+  }
+
+  static async testStorageConnection(): Promise<{ success: boolean; error?: string; bucketExists?: boolean }> {
+    try {
+      console.log('Testing Supabase storage connection...');
+      console.log('Testing bucket:', this.STORAGE_BUCKET);
+      
+      // Try to list files in the bucket to test permissions
+      const { data, error } = await supabase.storage
+        .from(this.STORAGE_BUCKET)
+        .list('', {
+          limit: 1
+        });
+
+      if (error) {
+        console.error('Storage bucket access test failed:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        // Check if bucket exists
+        if (error.message?.includes('bucket') && error.message?.includes('not found')) {
+          return { success: false, error: 'Bucket does not exist', bucketExists: false };
+        }
+        
+        return { success: false, error: error.message || 'Unknown storage error' };
+      }
+
+      console.log('Storage bucket access test successful:', data);
+      return { success: true, bucketExists: true };
+    } catch (error) {
+      console.error('Storage connection test error:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  static async createStorageBucket(): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('Creating storage bucket:', this.STORAGE_BUCKET);
+      
+      const { data, error } = await supabase.storage.createBucket(this.STORAGE_BUCKET, {
+        public: true,
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg'],
+        fileSizeLimit: 10485760 // 10MB
+      });
+
+      if (error) {
+        console.error('Failed to create storage bucket:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Storage bucket created successfully:', data);
+      return { success: true };
+    } catch (error) {
+      console.error('Error creating storage bucket:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
