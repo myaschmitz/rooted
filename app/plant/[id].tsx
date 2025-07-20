@@ -21,6 +21,7 @@ import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -85,6 +86,13 @@ export default function PlantDetailScreen() {
       loadPlantData();
     }
   }, [id]);
+
+  // Set up real-time subscriptions for automatic updates
+  useRealtimeUpdates({
+    onPlantsUpdate: loadPlantData,
+    onCareEventsUpdate: loadPlantData,
+    onPhotosUpdate: loadPlantData,
+  });
 
   const onRefresh = () => {
     setRefreshing(true);

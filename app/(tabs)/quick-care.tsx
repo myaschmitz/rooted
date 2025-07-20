@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -9,6 +9,7 @@ import { CareEventService } from '../../services/CareEventService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
+import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 
 
 export default function QuickCareScreen() {
@@ -20,6 +21,7 @@ export default function QuickCareScreen() {
   const [selectedPlants, setSelectedPlants] = useState<Set<string>>(new Set());
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showCareTypeModal, setShowCareTypeModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('All');
@@ -100,11 +102,27 @@ export default function QuickCareScreen() {
     }
   }, [selectedLocation]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadPlants();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadPlants]);
+
   useFocusEffect(
     useCallback(() => {
       loadPlants();
     }, [loadPlants])
   );
+
+  // Set up real-time subscriptions for automatic updates
+  useRealtimeUpdates({
+    onPlantsUpdate: loadPlants,
+    onCareEventsUpdate: loadPlants, // Care events don't directly affect this page, but keeping for consistency
+    onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
+  });
 
   const togglePlantSelection = (plantId: string) => {
     const newSelected = new Set(selectedPlants);
@@ -366,6 +384,14 @@ export default function QuickCareScreen() {
             style={globalStyles.list}
             contentContainerStyle={selectedPlants.size > 0 ? globalStyles.listContent : undefined}
             stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.primary}
+                colors={[theme.colors.primary]}
+              />
+            }
           />
           
           {selectedPlants.size > 0 && (

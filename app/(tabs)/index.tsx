@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image, SectionList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image, SectionList, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -8,6 +8,7 @@ import { LocationService } from '../../services/LocationService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
+import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
 
   const loadPlants = useCallback(async () => {
@@ -68,6 +70,15 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadPlants();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadPlants]);
+
   useFocusEffect(
     useCallback(() => {
       loadPlants();
@@ -77,6 +88,12 @@ export default function HomeScreen() {
   useEffect(() => {
     loadPlants();
   }, []);
+
+  // Set up real-time subscriptions for automatic updates
+  useRealtimeUpdates({
+    onPlantsUpdate: loadPlants,
+    onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
+  });
 
   const getHealthStatusDisplay = (status?: string) => {
     switch (status) {
@@ -159,6 +176,14 @@ export default function HomeScreen() {
             keyExtractor={(item) => item.id}
             style={styles.list}
             stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.primary}
+                colors={[theme.colors.primary]}
+              />
+            }
           />
           <TouchableOpacity
             style={styles.fab}
