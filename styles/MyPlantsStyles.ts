@@ -89,9 +89,11 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
   },
-  loadingText: {
-    color: theme.colors.text,
-    padding: 16
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
   },
   emptyState: {
     flex: 1,

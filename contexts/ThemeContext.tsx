@@ -13,16 +13,22 @@ export interface Theme {
     
     // Text colors
     text: string;
+    textPrimary: string;
     textSecondary: string;
     textTertiary: string;
+    textInverse: string;
+    textOnPrimary: string;
     
     // UI colors
     primary: string;
+    primaryLight: string;
     primaryDark: string;
     success: string;
     warning: string;
     error: string;
     disabled: string;
+    gray400: string;
+    surfaceVariant: string;
 
     // Health status colors
     healthExcellent: string;
@@ -34,7 +40,10 @@ export interface Theme {
     
     // Border and divider colors
     border: string;
+    borderLight: string;
+    borderFocus: string;
     divider: string;
+    overlay: string;
     
     // Modal and overlay colors
     modalBackground: string;
@@ -52,15 +61,21 @@ const lightTheme: Theme = {
     surfaceSecondary: '#f8f9fa',
     
     text: '#333333',
+    textPrimary: '#333333',
     textSecondary: '#666666',
     textTertiary: '#888888',
+    textInverse: '#ffffff',
+    textOnPrimary: '#ffffff',
     
     primary: '#4CAF50',
+    primaryLight: '#E8F5E8',
     primaryDark: '#2E7D32',
     success: '#4CAF50',
     warning: '#FF9800',
     error: '#F44336',
     disabled: '#cccccc',
+    gray400: '#cccccc',
+    surfaceVariant: '#f0f0f0',
 
     healthExcellent: '#2E7D32',
     healthGood: '#4CAF50',
@@ -70,7 +85,10 @@ const lightTheme: Theme = {
     healthCritical: '#B71C1C',
     
     border: '#e0e0e0',
+    borderLight: '#f0f0f0',
+    borderFocus: '#4CAF50',
     divider: '#eeeeee',
+    overlay: 'rgba(0, 0, 0, 0.5)',
     
     modalBackground: 'rgba(0, 0, 0, 0.9)',
     modalOverlay: 'rgba(0, 0, 0, 0.5)',
@@ -86,15 +104,21 @@ const darkTheme: Theme = {
     surfaceSecondary: '#2a2a2a',
     
     text: '#ffffff',
+    textPrimary: '#ffffff',
     textSecondary: '#b3b3b3',
     textTertiary: '#888888',
+    textInverse: '#333333',
+    textOnPrimary: '#ffffff',
     
     primary: '#66BB6A',
+    primaryLight: '#2a4a2b',
     primaryDark: '#4CAF50',
     success: '#66BB6A',
     warning: '#FFB74D',
     error: '#EF5350',
     disabled: '#555555',
+    gray400: '#555555',
+    surfaceVariant: '#333333',
 
     healthExcellent: '#2E7D32',
     healthGood: '#4CAF50',
@@ -104,7 +128,10 @@ const darkTheme: Theme = {
     healthCritical: '#B71C1C',
     
     border: '#333333',
+    borderLight: '#2a2a2a',
+    borderFocus: '#66BB6A',
     divider: '#2a2a2a',
+    overlay: 'rgba(0, 0, 0, 0.7)',
     
     modalBackground: 'rgba(0, 0, 0, 0.95)',
     modalOverlay: 'rgba(0, 0, 0, 0.7)',

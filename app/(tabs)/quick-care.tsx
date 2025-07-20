@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -265,7 +265,7 @@ export default function QuickCareScreen() {
               >
                 <Text style={[
                   globalStyles.body,
-                  selectedLocation === item && { color: theme.colors.primary }
+                  { color: selectedLocation === item ? theme.colors.primary : theme.colors.textPrimary }
                 ]}>
                   {item}
                 </Text>
@@ -278,7 +278,7 @@ export default function QuickCareScreen() {
             style={globalStyles.buttonSecondary}
             onPress={() => setShowLocationModal(false)}
           >
-            <Text style={globalStyles.buttonTextSecondary}>Cancel</Text>
+            <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -308,7 +308,7 @@ export default function QuickCareScreen() {
                 onPress={() => handleCareTypeSelect(careType.type)}
               >
                 <IconComponent size={24} color={careType.color} />
-                <Text style={[globalStyles.body, { marginLeft: 12 }]}>{careType.label}</Text>
+                <Text style={[globalStyles.body, { marginLeft: 12, color: theme.colors.textPrimary }]}>{careType.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -317,7 +317,7 @@ export default function QuickCareScreen() {
             style={globalStyles.buttonSecondary}
             onPress={() => setShowCareTypeModal(false)}
           >
-            <Text style={globalStyles.buttonTextSecondary}>Cancel</Text>
+            <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -326,8 +326,8 @@ export default function QuickCareScreen() {
 
   if (loading) {
     return (
-      <View style={globalStyles.container}>
-        <Text style={globalStyles.body}>Loading plants...</Text>
+      <View style={[globalStyles.container, globalStyles.flexCenter]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -341,7 +341,7 @@ export default function QuickCareScreen() {
           onPress={() => setShowLocationModal(true)}
         >
           <Filter size={20} color={theme.colors.textSecondary} />
-          <Text style={[globalStyles.buttonTextSecondary, { marginLeft: 8 }]}>{selectedLocation}</Text>
+          <Text style={[globalStyles.buttonTextSecondary, { marginLeft: 8, color: theme.colors.textPrimary }]}>{selectedLocation}</Text>
         </TouchableOpacity>
         
         {selectedPlants.size > 0 && (
