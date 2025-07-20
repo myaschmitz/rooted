@@ -104,6 +104,7 @@ export default function LogCareScreen() {
     <KeyboardAvoidingView
       style={globalStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
       <ScrollView style={globalStyles.scrollView} keyboardShouldPersistTaps="handled">
         <View style={globalStyles.form}>
@@ -296,6 +297,18 @@ export default function LogCareScreen() {
             </View>
           )}
 
+          {/* Quick Add Buttons */}
+          <View style={globalStyles.flexRow}>
+            <TouchableOpacity
+              style={globalStyles.buttonSmall}
+              onPress={() => {
+                setCareDateTime(new Date());
+              }}
+            >
+              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Notes */}
           <View style={globalStyles.inputGroup}>
             <Text style={globalStyles.label}>Notes</Text>
@@ -308,18 +321,6 @@ export default function LogCareScreen() {
               numberOfLines={4}
               textAlignVertical="top"
             />
-          </View>
-
-          {/* Quick Add Buttons */}
-          <View style={globalStyles.flexRow}>
-            <TouchableOpacity
-              style={globalStyles.buttonSmall}
-              onPress={() => {
-                setCareDateTime(new Date());
-              }}
-            >
-              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Save Button */}
