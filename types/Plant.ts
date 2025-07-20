@@ -8,7 +8,6 @@ export interface Plant {
   thumbnail_photo_id?: string;
   created_at: string;
   updated_at: string;
-  synced: boolean;
 }
 
 export interface CareEvent {
@@ -23,7 +22,6 @@ export interface CareEvent {
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   created_at: string;
   updated_at: string;
-  synced: boolean;
 }
 
 export interface PlantPhoto {
@@ -34,7 +32,6 @@ export interface PlantPhoto {
   taken_at: string;
   created_at: string;
   updated_at: string;
-  synced: boolean;
 }
 
 export interface PlantNote {
@@ -43,5 +40,4 @@ export interface PlantNote {
   content: string;
   created_at: string;
   updated_at: string;
-  synced: boolean;
 }

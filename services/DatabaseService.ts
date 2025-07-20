@@ -1,120 +1,147 @@
-import * as SQLite from 'expo-sqlite';
+import { supabase } from './SupabaseService';
 
+/**
+ * DatabaseService - Utility service for database operations
+ * 
+ * This service now provides utility functions for working with Supabase
+ * instead of managing a local SQLite database.
+ */
 export class DatabaseService {
-  private static instance: SQLite.SQLiteDatabase | null = null;
-
-  static async getDatabase(): Promise<SQLite.SQLiteDatabase> {
-    if (!this.instance) {
-      this.instance = await SQLite.openDatabaseAsync('rooted.db');
-      await this.initializeTables();
-    }
-    return this.instance;
-  }
-
-  private static async initializeTables(): Promise<void> {
-    const db = this.instance!;
-
-    // Plants table
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS plants (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        type TEXT NOT NULL,
-        location TEXT,
-        health_status TEXT DEFAULT 'good',
-        notes TEXT,
-        thumbnail_photo_id TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        synced INTEGER DEFAULT 0
-      );
-    `);
-
-    // Care events table
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS care_events (
-        id TEXT PRIMARY KEY,
-        plant_id TEXT NOT NULL,
-        event_type TEXT NOT NULL,
-        date TEXT NOT NULL,
-        notes TEXT,
-        fertilizer_concentration TEXT,
-        fertilizer_amount TEXT,
-        pest_severity INTEGER,
-        health_status TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        synced INTEGER DEFAULT 0,
-        FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
-      );
-    `);
-
-    // Plant photos table
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS plant_photos (
-        id TEXT PRIMARY KEY,
-        plant_id TEXT NOT NULL,
-        file_path TEXT NOT NULL,
-        caption TEXT,
-        taken_at TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        synced INTEGER DEFAULT 0,
-        FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
-      );
-    `);
-
-    // Plant notes table
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS plant_notes (
-        id TEXT PRIMARY KEY,
-        plant_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        synced INTEGER DEFAULT 0,
-        FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
-      );
-    `);
-
-    // Create indexes for better performance
-    await db.execAsync(`
-      CREATE INDEX IF NOT EXISTS idx_care_events_plant_id ON care_events (plant_id);
-      CREATE INDEX IF NOT EXISTS idx_care_events_date ON care_events (date);
-      CREATE INDEX IF NOT EXISTS idx_plant_photos_plant_id ON plant_photos (plant_id);
-      CREATE INDEX IF NOT EXISTS idx_plant_notes_plant_id ON plant_notes (plant_id);
-    `);
-
-    // Add health_status column to care_events if it doesn't exist (migration)
+  /**
+   * Test the database connection
+   */
+  static async testConnection(): Promise<boolean> {
     try {
-      await db.execAsync(`ALTER TABLE care_events ADD COLUMN health_status TEXT;`);
+      const { error } = await supabase.from('plants').select('count', { count: 'exact', head: true });
+      return !error;
     } catch (error) {
-      // Column might already exist, ignore error
-    }
-
-    // Add thumbnail_photo_id column to plants if it doesn't exist (migration)
-    try {
-      await db.execAsync(`ALTER TABLE plants ADD COLUMN thumbnail_photo_id TEXT;`);
-    } catch (error) {
-      // Column might already exist, ignore error
-    }
-
-    // Add pest_severity column to care_events if it doesn't exist (migration)
-    try {
-      await db.execAsync(`ALTER TABLE care_events ADD COLUMN pest_severity INTEGER;`);
-    } catch (error) {
-      // Column might already exist, ignore error
+      console.error('Database connection test failed:', error);
+      return false;
     }
   }
 
+  /**
+   * Get database health status
+   */
+  static async getHealthStatus(): Promise<{
+    connected: boolean;
+    plantsCount: number;
+    careEventsCount: number;
+    photosCount: number;
+    notesCount: number;
+  }> {
+    try {
+      const [plantsResult, careEventsResult, photosResult, notesResult] = await Promise.all([
+        supabase.from('plants').select('*', { count: 'exact', head: true }),
+        supabase.from('care_events').select('*', { count: 'exact', head: true }),
+        supabase.from('plant_photos').select('*', { count: 'exact', head: true }),
+        supabase.from('plant_notes').select('*', { count: 'exact', head: true })
+      ]);
+
+      return {
+        connected: true,
+        plantsCount: plantsResult.count || 0,
+        careEventsCount: careEventsResult.count || 0,
+        photosCount: photosResult.count || 0,
+        notesCount: notesResult.count || 0,
+      };
+    } catch (error) {
+      console.error('Error getting database health status:', error);
+      return {
+        connected: false,
+        plantsCount: 0,
+        careEventsCount: 0,
+        photosCount: 0,
+        notesCount: 0,
+      };
+    }
+  }
+
+  /**
+   * Clear all data from the database (for development/testing purposes)
+   * WARNING: This will delete ALL data!
+   */
   static async resetDatabase(): Promise<void> {
-    const db = await this.getDatabase();
-    await db.execAsync(`
-      DROP TABLE IF EXISTS plant_notes;
-      DROP TABLE IF EXISTS plant_photos;
-      DROP TABLE IF EXISTS care_events;
-      DROP TABLE IF EXISTS plants;
-    `);
-    await this.initializeTables();
+    try {
+      // Delete in order to respect foreign key constraints
+      await supabase.from('plant_notes').delete().neq('id', '');
+      await supabase.from('plant_photos').delete().neq('id', '');
+      await supabase.from('care_events').delete().neq('id', '');
+      await supabase.from('plants').delete().neq('id', '');
+      
+      console.log('Database reset completed successfully');
+    } catch (error) {
+      console.error('Error resetting database:', error);
+      throw new Error(`Failed to reset database: ${error}`);
+    }
+  }
+
+  /**
+   * Execute a raw SQL query (for advanced use cases)
+   * Use with caution - prefer using the typed service methods when possible
+   */
+  static async executeRawQuery(query: string, params?: any[]): Promise<any> {
+    try {
+      const { data, error } = await supabase.rpc('execute_sql', { 
+        sql_query: query,
+        query_params: params || []
+      });
+      
+      if (error) {
+        console.error('Error executing raw query:', error);
+        throw new Error(`Query execution failed: ${error.message}`);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error executing raw query:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get current user session information
+   */
+  static async getCurrentUser() {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Error getting current user:', error);
+        return null;
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  static async isAuthenticated(): Promise<boolean> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session;
+    } catch (error) {
+      console.error('Error checking authentication status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Listen for authentication state changes
+   */
+  static onAuthStateChange(callback: (event: string, session: any) => void) {
+    return supabase.auth.onAuthStateChange(callback);
+  }
+
+  /**
+   * Get Supabase client for direct access when needed
+   */
+  static getSupabaseClient() {
+    return supabase;
   }
 }

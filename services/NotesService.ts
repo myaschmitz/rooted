@@ -1,98 +1,143 @@
-import uuid from 'react-native-uuid';
 import { PlantNote } from '../types/Plant';
-import { DatabaseService } from './DatabaseService';
+import { supabase } from './SupabaseService';
+import type { Database } from '../types/Database';
+
+type PlantNoteRow = Database['public']['Tables']['plant_notes']['Row'];
+type PlantNoteInsert = Database['public']['Tables']['plant_notes']['Insert'];
+type PlantNoteUpdate = Database['public']['Tables']['plant_notes']['Update'];
 
 export class NotesService {
   static async getNotesByPlantId(plantId: string): Promise<PlantNote[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM plant_notes WHERE plant_id = ? ORDER BY created_at DESC',
-      [plantId]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantNote[];
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .eq('plant_id', plantId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching notes:', error);
+      throw new Error(`Failed to fetch notes: ${error.message}`);
+    }
+
+    return (data || []) as PlantNote[];
   }
 
   static async createNote(plantId: string, content: string): Promise<PlantNote> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    const note: PlantNote = {
-      id: uuid.v4() as string,
+    const noteInsert: PlantNoteInsert = {
       plant_id: plantId,
-      content,
-      created_at: now,
-      updated_at: now,
-      synced: false
+      content
     };
 
-    await db.runAsync(
-      `INSERT INTO plant_notes (id, plant_id, content, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [note.id, note.plant_id, note.content, note.created_at, note.updated_at, note.synced ? 1 : 0]
-    );
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .insert(noteInsert)
+      .select()
+      .single();
 
-    return note;
+    if (error) {
+      console.error('Error creating note:', error);
+      throw new Error(`Failed to create note: ${error.message}`);
+    }
+
+    return data as PlantNote;
   }
 
   static async updateNote(id: string, content: string): Promise<PlantNote | null> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    
-    const currentNote = await this.getNoteById(id);
-    if (!currentNote) return null;
-
-    const updatedNote = {
-      ...currentNote,
+    const noteUpdate: PlantNoteUpdate = {
       content,
-      updated_at: now,
-      synced: false
+      updated_at: new Date().toISOString()
     };
 
-    await db.runAsync(
-      'UPDATE plant_notes SET content = ?, updated_at = ?, synced = ? WHERE id = ?',
-      [content, now, 0, id]
-    );
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .update(noteUpdate)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return updatedNote;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error updating note:', error);
+      throw new Error(`Failed to update note: ${error.message}`);
+    }
+
+    return data as PlantNote;
   }
 
   static async getNoteById(id: string): Promise<PlantNote | null> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getFirstAsync('SELECT * FROM plant_notes WHERE id = ?', [id]);
-    if (!result) return null;
-    return {
-      ...(result as any),
-      synced: Boolean((result as any).synced)
-    } as PlantNote;
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error fetching note:', error);
+      throw new Error(`Failed to fetch note: ${error.message}`);
+    }
+
+    return data as PlantNote;
   }
 
   static async deleteNote(id: string): Promise<boolean> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.runAsync('DELETE FROM plant_notes WHERE id = ?', [id]);
-    return result.changes > 0;
+    const { error } = await supabase
+      .from('plant_notes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting note:', error);
+      throw new Error(`Failed to delete note: ${error.message}`);
+    }
+
+    return true;
   }
 
   static async searchNotes(query: string): Promise<PlantNote[]> {
-    const db = await DatabaseService.getDatabase();
     const searchTerm = `%${query.toLowerCase()}%`;
-    const result = await db.getAllAsync(
-      'SELECT * FROM plant_notes WHERE LOWER(content) LIKE ? ORDER BY created_at DESC',
-      [searchTerm]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantNote[];
+    
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .ilike('content', searchTerm)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error searching notes:', error);
+      throw new Error(`Failed to search notes: ${error.message}`);
+    }
+
+    return (data || []) as PlantNote[];
   }
 
   static async getAllNotes(): Promise<PlantNote[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync('SELECT * FROM plant_notes ORDER BY created_at DESC');
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantNote[];
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all notes:', error);
+      throw new Error(`Failed to fetch all notes: ${error.message}`);
+    }
+
+    return (data || []) as PlantNote[];
+  }
+
+  static async deleteAllNotes(): Promise<void> {
+    const { error } = await supabase
+      .from('plant_notes')
+      .delete()
+      .neq('id', ''); // Delete all rows
+
+    if (error) {
+      console.error('Error deleting all notes:', error);
+      throw new Error(`Failed to delete all notes: ${error.message}`);
+    }
   }
 }

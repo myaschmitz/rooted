@@ -1,118 +1,158 @@
-import uuid from 'react-native-uuid';
 import { Plant } from '../types/Plant';
-import { DatabaseService } from './DatabaseService';
+import { supabase } from './SupabaseService';
+import type { Database } from '../types/Database';
+
+type PlantRow = Database['public']['Tables']['plants']['Row'];
+type PlantInsert = Database['public']['Tables']['plants']['Insert'];
+type PlantUpdate = Database['public']['Tables']['plants']['Update'];
 
 export class PlantService {
   static async getAllPlants(): Promise<Plant[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync('SELECT * FROM plants ORDER BY name ASC');
-    return result.map(row => ({
-      ...row,
-      synced: Boolean(row.synced)
-    })) as Plant[];
+    const { data, error } = await supabase
+      .from('plants')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching plants:', error);
+      throw new Error(`Failed to fetch plants: ${error.message}`);
+    }
+
+    return (data || []) as Plant[];
   }
 
   static async getPlantById(id: string): Promise<Plant | null> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getFirstAsync('SELECT * FROM plants WHERE id = ?', [id]);
-    if (!result) return null;
-    return {
-      ...result,
-      synced: Boolean(result.synced)
-    } as Plant;
+    const { data, error } = await supabase
+      .from('plants')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error fetching plant:', error);
+      throw new Error(`Failed to fetch plant: ${error.message}`);
+    }
+
+    return data as Plant;
   }
 
-  static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at' | 'synced'>): Promise<Plant> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    const plant: Plant = {
-      id: uuid.v4() as string,
+  static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at'>): Promise<Plant> {
+    const plantInsert: PlantInsert = {
       ...plantData,
-      created_at: now,
-      updated_at: now,
-      synced: false
+      health_status: plantData.health_status || 'good'
     };
 
-    await db.runAsync(
-      `INSERT INTO plants (id, name, type, location, health_status, notes, thumbnail_photo_id, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [plant.id, plant.name || null, plant.type, plant.location || null, plant.health_status || 'good', 
-       plant.notes || null, plant.thumbnail_photo_id || null, plant.created_at, plant.updated_at, plant.synced ? 1 : 0]
-    );
+    const { data, error } = await supabase
+      .from('plants')
+      .insert(plantInsert)
+      .select()
+      .single();
 
-    return plant;
+    if (error) {
+      console.error('Error creating plant:', error);
+      throw new Error(`Failed to create plant: ${error.message}`);
+    }
+
+    return data as Plant;
   }
 
   static async updatePlant(id: string, updates: Partial<Omit<Plant, 'id' | 'created_at'>>): Promise<Plant | null> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    
-    const currentPlant = await this.getPlantById(id);
-    if (!currentPlant) return null;
-
-    const updatedPlant = {
-      ...currentPlant,
+    const plantUpdate: PlantUpdate = {
       ...updates,
-      updated_at: now,
-      synced: false
+      updated_at: new Date().toISOString()
     };
 
-    await db.runAsync(
-      `UPDATE plants SET name = ?, type = ?, location = ?, health_status = ?, notes = ?, thumbnail_photo_id = ?, updated_at = ?, synced = ?
-       WHERE id = ?`,
-      [updatedPlant.name || null, updatedPlant.type, updatedPlant.location || null, 
-       updatedPlant.health_status || 'good', updatedPlant.notes || null, 
-       updatedPlant.thumbnail_photo_id || null, updatedPlant.updated_at, updatedPlant.synced ? 1 : 0, id]
-    );
+    const { data, error } = await supabase
+      .from('plants')
+      .update(plantUpdate)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return updatedPlant;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error updating plant:', error);
+      throw new Error(`Failed to update plant: ${error.message}`);
+    }
+
+    return data as Plant;
   }
 
   static async deletePlant(id: string): Promise<boolean> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.runAsync('DELETE FROM plants WHERE id = ?', [id]);
-    return result.changes > 0;
+    const { error } = await supabase
+      .from('plants')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting plant:', error);
+      throw new Error(`Failed to delete plant: ${error.message}`);
+    }
+
+    return true;
   }
 
   static async searchPlants(query: string): Promise<Plant[]> {
-    const db = await DatabaseService.getDatabase();
     const searchTerm = `%${query.toLowerCase()}%`;
-    const result = await db.getAllAsync(
-      'SELECT * FROM plants WHERE LOWER(name) LIKE ? OR LOWER(type) LIKE ? OR LOWER(location) LIKE ? ORDER BY name ASC',
-      [searchTerm, searchTerm, searchTerm]
-    );
-    return result.map(row => ({
-      ...row,
-      synced: Boolean(row.synced)
-    })) as Plant[];
+    
+    const { data, error } = await supabase
+      .from('plants')
+      .select('*')
+      .or(`name.ilike.${searchTerm},type.ilike.${searchTerm},location.ilike.${searchTerm}`)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error searching plants:', error);
+      throw new Error(`Failed to search plants: ${error.message}`);
+    }
+
+    return (data || []) as Plant[];
   }
 
   static async getPlantsByLocation(location: string): Promise<Plant[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM plants WHERE location = ? ORDER BY name ASC',
-      [location]
-    );
-    return result.map(row => ({
-      ...row,
-      synced: Boolean(row.synced)
-    })) as Plant[];
+    const { data, error } = await supabase
+      .from('plants')
+      .select('*')
+      .eq('location', location)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching plants by location:', error);
+      throw new Error(`Failed to fetch plants by location: ${error.message}`);
+    }
+
+    return (data || []) as Plant[];
   }
 
   static async getPlantsByHealthStatus(status: string): Promise<Plant[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM plants WHERE health_status = ? ORDER BY name ASC',
-      [status]
-    );
-    return result.map(row => ({
-      ...row,
-      synced: Boolean(row.synced)
-    })) as Plant[];
+    const { data, error } = await supabase
+      .from('plants')
+      .select('*')
+      .eq('health_status', status)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching plants by health status:', error);
+      throw new Error(`Failed to fetch plants by health status: ${error.message}`);
+    }
+
+    return (data || []) as Plant[];
   }
 
   static async deleteAllPlants(): Promise<void> {
-    const db = await DatabaseService.getDatabase();
-    await db.runAsync('DELETE FROM plants');
+    const { error } = await supabase
+      .from('plants')
+      .delete()
+      .neq('id', ''); // Delete all rows
+
+    if (error) {
+      console.error('Error deleting all plants:', error);
+      throw new Error(`Failed to delete all plants: ${error.message}`);
+    }
   }
 }

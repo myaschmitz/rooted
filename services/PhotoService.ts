@@ -1,11 +1,16 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import uuid from 'react-native-uuid';
 import { PlantPhoto } from '../types/Plant';
-import { DatabaseService } from './DatabaseService';
+import { supabase } from './SupabaseService';
+import type { Database } from '../types/Database';
+
+type PlantPhotoRow = Database['public']['Tables']['plant_photos']['Row'];
+type PlantPhotoInsert = Database['public']['Tables']['plant_photos']['Insert'];
+type PlantPhotoUpdate = Database['public']['Tables']['plant_photos']['Update'];
 
 export class PhotoService {
   private static readonly PHOTOS_DIR = `${FileSystem.documentDirectory}plant_photos/`;
+  private static readonly STORAGE_BUCKET = 'plant-photos';
 
   static async ensurePhotosDirectory(): Promise<void> {
     const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
@@ -15,38 +20,42 @@ export class PhotoService {
   }
 
   static async getPhotosByPlantId(plantId: string): Promise<PlantPhoto[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM plant_photos WHERE plant_id = ? ORDER BY taken_at DESC',
-      [plantId]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantPhoto[];
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .select('*')
+      .eq('plant_id', plantId)
+      .order('taken_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching photos:', error);
+      throw new Error(`Failed to fetch photos: ${error.message}`);
+    }
+
+    return (data || []) as PlantPhoto[];
   }
 
   static async getPhotosByPlantIdOldestFirst(plantId: string): Promise<PlantPhoto[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM plant_photos WHERE plant_id = ? ORDER BY taken_at ASC',
-      [plantId]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantPhoto[];
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .select('*')
+      .eq('plant_id', plantId)
+      .order('taken_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching photos:', error);
+      throw new Error(`Failed to fetch photos: ${error.message}`);
+    }
+
+    return (data || []) as PlantPhoto[];
   }
 
   static async pickAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
     try {
-      // Request permission
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         throw new Error('Permission to access camera roll is required!');
       }
 
-      // Pick image
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: 'images',
         allowsEditing: true,
@@ -67,13 +76,11 @@ export class PhotoService {
 
   static async takeAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
     try {
-      // Request permission
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
         throw new Error('Permission to access camera is required!');
       }
 
-      // Take photo
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: 'images',
         allowsEditing: true,
@@ -96,13 +103,11 @@ export class PhotoService {
 
   static async takePhoto(): Promise<{ uri: string } | null> {
     try {
-      // Request permission
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (!permissionResult.granted) {
         throw new Error('Permission to access camera is required!');
       }
 
-      // Take photo
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -125,13 +130,11 @@ export class PhotoService {
 
   static async pickPhoto(): Promise<{ uri: string } | null> {
     try {
-      // Request permission
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         throw new Error('Permission to access camera roll is required!');
       }
 
-      // Pick image
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -151,85 +154,147 @@ export class PhotoService {
   }
 
   static async savePhoto(plantId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
-    await this.ensurePhotosDirectory();
+    try {
+      await this.ensurePhotosDirectory();
 
-    const photoId = uuid.v4() as string;
-    const fileName = `${photoId}.jpg`;
-    const filePath = `${this.PHOTOS_DIR}${fileName}`;
+      // Generate unique filename
+      const timestamp = new Date().getTime();
+      const fileName = `${plantId}_${timestamp}.jpg`;
+      const localFilePath = `${this.PHOTOS_DIR}${fileName}`;
 
-    // Copy file to app's documents directory
-    await FileSystem.copyAsync({
-      from: sourceUri,
-      to: filePath,
-    });
+      // Copy file to local storage for offline access
+      await FileSystem.copyAsync({
+        from: sourceUri,
+        to: localFilePath,
+      });
 
-    const now = new Date().toISOString();
-    const photo: PlantPhoto = {
-      id: photoId,
-      plant_id: plantId,
-      file_path: filePath,
-      caption: caption,
-      taken_at: now,
-      created_at: now,
-      updated_at: now,
-      synced: false,
-    };
+      // Upload to Supabase Storage (optional - for cloud backup)
+      let cloudFilePath = localFilePath; // Default to local path
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(localFilePath);
+        if (fileInfo.exists) {
+          // Read file as base64
+          const fileContent = await FileSystem.readAsStringAsync(localFilePath, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          
+          // Convert base64 to blob
+          const byteCharacters = atob(fileContent);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
-    // Save to database
-    const db = await DatabaseService.getDatabase();
-    await db.runAsync(
-      `INSERT INTO plant_photos (id, plant_id, file_path, caption, taken_at, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [photo.id, photo.plant_id, photo.file_path, photo.caption || null,
-       photo.taken_at, photo.created_at, photo.updated_at, photo.synced ? 1 : 0]
-    );
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(this.STORAGE_BUCKET)
+            .upload(fileName, blob, {
+              contentType: 'image/jpeg',
+              upsert: false
+            });
 
-    // Check if this plant has no thumbnail yet, and if so, set this as the thumbnail
-    const plantResult = await db.getFirstAsync(
-      'SELECT thumbnail_photo_id FROM plants WHERE id = ?',
-      [plantId]
-    ) as { thumbnail_photo_id: string | null } | null;
-    
-    if (plantResult && !plantResult.thumbnail_photo_id) {
-      await db.runAsync(
-        'UPDATE plants SET thumbnail_photo_id = ?, updated_at = ? WHERE id = ?',
-        [photoId, now, plantId]
-      );
+          if (!uploadError && uploadData) {
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from(this.STORAGE_BUCKET)
+              .getPublicUrl(fileName);
+            
+            if (urlData?.publicUrl) {
+              cloudFilePath = urlData.publicUrl;
+            }
+          }
+        }
+      } catch (storageError) {
+        console.warn('Failed to upload to cloud storage, using local path:', storageError);
+        // Continue with local storage - this is acceptable for offline functionality
+      }
+
+      const now = new Date().toISOString();
+      const photoInsert: PlantPhotoInsert = {
+        plant_id: plantId,
+        file_path: cloudFilePath, // Use cloud path if available, otherwise local
+        caption: caption || undefined,
+        taken_at: now,
+      };
+
+      // Save to Supabase database
+      const { data, error } = await supabase
+        .from('plant_photos')
+        .insert(photoInsert)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving photo to database:', error);
+        throw new Error(`Failed to save photo: ${error.message}`);
+      }
+
+      // Check if this plant has no thumbnail yet, and if so, set this as the thumbnail
+      const { data: plantData, error: plantError } = await supabase
+        .from('plants')
+        .select('thumbnail_photo_id')
+        .eq('id', plantId)
+        .single();
+      
+      if (!plantError && plantData && !plantData.thumbnail_photo_id && data) {
+        await supabase
+          .from('plants')
+          .update({ 
+            thumbnail_photo_id: data.id,
+            updated_at: now 
+          })
+          .eq('id', plantId);
+      }
+
+      return data as PlantPhoto;
+    } catch (error) {
+      console.error('Error saving photo:', error);
+      throw error;
     }
-
-    return photo;
   }
 
   static async updatePhotoCaption(photoId: string, caption: string): Promise<PlantPhoto | null> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-
-    const currentPhoto = await this.getPhotoById(photoId);
-    if (!currentPhoto) return null;
-
-    const updatedPhoto = {
-      ...currentPhoto,
+    const photoUpdate: PlantPhotoUpdate = {
       caption,
-      updated_at: now,
-      synced: false,
+      updated_at: new Date().toISOString()
     };
 
-    await db.runAsync(
-      'UPDATE plant_photos SET caption = ?, updated_at = ?, synced = ? WHERE id = ?',
-      [caption, now, 0, photoId]
-    );
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .update(photoUpdate)
+      .eq('id', photoId)
+      .select()
+      .single();
 
-    return updatedPhoto;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error updating photo caption:', error);
+      throw new Error(`Failed to update photo caption: ${error.message}`);
+    }
+
+    return data as PlantPhoto;
   }
 
   static async getPhotoById(id: string): Promise<PlantPhoto | null> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getFirstAsync('SELECT * FROM plant_photos WHERE id = ?', [id]);
-    if (!result) return null;
-    return {
-      ...(result as any),
-      synced: Boolean((result as any).synced)
-    } as PlantPhoto;
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error fetching photo:', error);
+      throw new Error(`Failed to fetch photo: ${error.message}`);
+    }
+
+    return data as PlantPhoto;
   }
 
   static async deletePhoto(photoId: string): Promise<boolean> {
@@ -237,16 +302,38 @@ export class PhotoService {
       const photo = await this.getPhotoById(photoId);
       if (!photo) return false;
 
-      // Delete file from filesystem
-      const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-      if (fileInfo.exists) {
-        await FileSystem.deleteAsync(photo.file_path);
+      // Delete from Supabase Storage if it's a cloud URL
+      if (photo.file_path.startsWith('http')) {
+        try {
+          const fileName = photo.file_path.split('/').pop();
+          if (fileName) {
+            await supabase.storage
+              .from(this.STORAGE_BUCKET)
+              .remove([fileName]);
+          }
+        } catch (storageError) {
+          console.warn('Failed to delete from cloud storage:', storageError);
+        }
+      } else {
+        // Delete local file
+        const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
+        if (fileInfo.exists) {
+          await FileSystem.deleteAsync(photo.file_path);
+        }
       }
 
       // Delete from database
-      const db = await DatabaseService.getDatabase();
-      const result = await db.runAsync('DELETE FROM plant_photos WHERE id = ?', [photoId]);
-      return result.changes > 0;
+      const { error } = await supabase
+        .from('plant_photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) {
+        console.error('Error deleting photo from database:', error);
+        throw new Error(`Failed to delete photo: ${error.message}`);
+      }
+
+      return true;
     } catch (error) {
       console.error('Error deleting photo:', error);
       return false;
@@ -254,12 +341,17 @@ export class PhotoService {
   }
 
   static async getAllPhotos(): Promise<PlantPhoto[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync('SELECT * FROM plant_photos ORDER BY taken_at DESC');
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantPhoto[];
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .select('*')
+      .order('taken_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all photos:', error);
+      throw new Error(`Failed to fetch all photos: ${error.message}`);
+    }
+
+    return (data || []) as PlantPhoto[];
   }
 
   static async cleanupOrphanedPhotos(): Promise<void> {
@@ -267,20 +359,28 @@ export class PhotoService {
       // Get all photos from database
       const photos = await this.getAllPhotos();
       
-      // Check which files exist and clean up orphaned database records
+      // Check local files and clean up orphaned database records
       for (const photo of photos) {
-        const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-        if (!fileInfo.exists) {
-          const db = await DatabaseService.getDatabase();
-          await db.runAsync('DELETE FROM plant_photos WHERE id = ?', [photo.id]);
+        if (!photo.file_path.startsWith('http')) {
+          const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
+          if (!fileInfo.exists) {
+            await supabase
+              .from('plant_photos')
+              .delete()
+              .eq('id', photo.id);
+          }
         }
       }
 
-      // Clean up orphaned files (files that exist but aren't in database)
+      // Clean up orphaned local files
       const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
       if (dirInfo.exists && dirInfo.isDirectory) {
         const files = await FileSystem.readDirectoryAsync(this.PHOTOS_DIR);
-        const dbPhotoPaths = new Set(photos.map(p => p.file_path.split('/').pop()));
+        const dbPhotoPaths = new Set(
+          photos
+            .filter(p => !p.file_path.startsWith('http'))
+            .map(p => p.file_path.split('/').pop())
+        );
         
         for (const fileName of files) {
           if (!dbPhotoPaths.has(fileName)) {
@@ -295,17 +395,26 @@ export class PhotoService {
 
   static async deleteAllPhotos(): Promise<void> {
     try {
-      const db = await DatabaseService.getDatabase();
-      
       // Get all photos before deleting from database
-      const photos = await this.getAllPhotosForDeletion();
+      const photos = await this.getAllPhotos();
       
-      // Delete all files
+      // Delete all files (both local and cloud)
       for (const photo of photos) {
         try {
-          const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-          if (fileInfo.exists) {
-            await FileSystem.deleteAsync(photo.file_path);
+          if (photo.file_path.startsWith('http')) {
+            // Delete from cloud storage
+            const fileName = photo.file_path.split('/').pop();
+            if (fileName) {
+              await supabase.storage
+                .from(this.STORAGE_BUCKET)
+                .remove([fileName]);
+            }
+          } else {
+            // Delete local file
+            const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
+            if (fileInfo.exists) {
+              await FileSystem.deleteAsync(photo.file_path);
+            }
           }
         } catch (error) {
           console.error(`Error deleting photo file ${photo.file_path}:`, error);
@@ -313,9 +422,17 @@ export class PhotoService {
       }
       
       // Delete all database records
-      await db.runAsync('DELETE FROM plant_photos');
+      const { error } = await supabase
+        .from('plant_photos')
+        .delete()
+        .neq('id', ''); // Delete all rows
+
+      if (error) {
+        console.error('Error deleting all photos from database:', error);
+        throw new Error(`Failed to delete all photos: ${error.message}`);
+      }
       
-      // Clean up photos directory if it exists
+      // Clean up local photos directory
       const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
       if (dirInfo.exists && dirInfo.isDirectory) {
         try {
@@ -330,24 +447,20 @@ export class PhotoService {
     }
   }
 
-  private static async getAllPhotosForDeletion(): Promise<PlantPhoto[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync('SELECT * FROM plant_photos');
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as PlantPhoto[];
-  }
-
   static async setThumbnailPhoto(plantId: string, photoId: string): Promise<void> {
     try {
-      const db = await DatabaseService.getDatabase();
-      const now = new Date().toISOString();
-      
-      await db.runAsync(
-        'UPDATE plants SET thumbnail_photo_id = ?, updated_at = ? WHERE id = ?',
-        [photoId, now, plantId]
-      );
+      const { error } = await supabase
+        .from('plants')
+        .update({ 
+          thumbnail_photo_id: photoId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', plantId);
+
+      if (error) {
+        console.error('Error setting thumbnail photo:', error);
+        throw new Error(`Failed to set thumbnail photo: ${error.message}`);
+      }
     } catch (error) {
       console.error('Error setting thumbnail photo:', error);
       throw error;
@@ -356,13 +469,18 @@ export class PhotoService {
 
   static async clearThumbnailPhoto(plantId: string): Promise<void> {
     try {
-      const db = await DatabaseService.getDatabase();
-      const now = new Date().toISOString();
-      
-      await db.runAsync(
-        'UPDATE plants SET thumbnail_photo_id = NULL, updated_at = ? WHERE id = ?',
-        [now, plantId]
-      );
+      const { error } = await supabase
+        .from('plants')
+        .update({ 
+          thumbnail_photo_id: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', plantId);
+
+      if (error) {
+        console.error('Error clearing thumbnail photo:', error);
+        throw new Error(`Failed to clear thumbnail photo: ${error.message}`);
+      }
     } catch (error) {
       console.error('Error clearing thumbnail photo:', error);
       throw error;
@@ -371,24 +489,30 @@ export class PhotoService {
 
   static async getThumbnailPhoto(plantId: string): Promise<PlantPhoto | null> {
     try {
-      const db = await DatabaseService.getDatabase();
-      const result = await db.getFirstAsync(`
-        SELECT pp.* FROM plant_photos pp
-        JOIN plants p ON p.thumbnail_photo_id = pp.id
-        WHERE p.id = ?
-      `, [plantId]);
-      
-      if (!result) {
-        return null;
+      // Get plant's thumbnail_photo_id and then fetch the photo
+      const { data: plantData, error: plantError } = await supabase
+        .from('plants')
+        .select('thumbnail_photo_id')
+        .eq('id', plantId)
+        .single();
+
+      if (plantError) {
+        if (plantError.code === 'PGRST116') {
+          return null; // Plant not found
+        }
+        console.error('Error fetching plant for thumbnail:', plantError);
+        throw new Error(`Failed to fetch plant for thumbnail: ${plantError.message}`);
       }
-      
-      return {
-        ...(result as any),
-        synced: Boolean((result as any).synced)
-      } as PlantPhoto;
+
+      if (!plantData?.thumbnail_photo_id) {
+        return null; // No thumbnail set
+      }
+
+      // Fetch the actual photo
+      return await this.getPhotoById(plantData.thumbnail_photo_id);
     } catch (error) {
       console.error('Error getting thumbnail photo:', error);
-      throw error;
+      return null;
     }
   }
 }

@@ -1,109 +1,136 @@
-import uuid from 'react-native-uuid';
 import { CareEvent } from '../types/Plant';
-import { DatabaseService } from './DatabaseService';
+import { supabase } from './SupabaseService';
+import type { Database } from '../types/Database';
+
+type CareEventRow = Database['public']['Tables']['care_events']['Row'];
+type CareEventInsert = Database['public']['Tables']['care_events']['Insert'];
+type CareEventUpdate = Database['public']['Tables']['care_events']['Update'];
 
 export class CareEventService {
   static async getCareEventsByPlantId(plantId: string): Promise<CareEvent[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM care_events WHERE plant_id = ? ORDER BY date DESC',
-      [plantId]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as CareEvent[];
+    const { data, error } = await supabase
+      .from('care_events')
+      .select('*')
+      .eq('plant_id', plantId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching care events:', error);
+      throw new Error(`Failed to fetch care events: ${error.message}`);
+    }
+
+    return (data || []) as CareEvent[];
   }
 
-  static async createCareEvent(eventData: Omit<CareEvent, 'id' | 'created_at' | 'updated_at' | 'synced'>): Promise<CareEvent> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    const careEvent: CareEvent = {
-      id: uuid.v4() as string,
-      ...eventData,
-      created_at: now,
-      updated_at: now,
-      synced: false
+  static async createCareEvent(eventData: Omit<CareEvent, 'id' | 'created_at' | 'updated_at'>): Promise<CareEvent> {
+    const careEventInsert: CareEventInsert = {
+      ...eventData
     };
 
-    await db.runAsync(
-      `INSERT INTO care_events (id, plant_id, event_type, date, notes, fertilizer_concentration, fertilizer_amount, pest_severity, health_status, created_at, updated_at, synced)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [careEvent.id, careEvent.plant_id, careEvent.event_type, careEvent.date,
-       careEvent.notes || null, careEvent.fertilizer_concentration || null,
-       careEvent.fertilizer_amount || null, careEvent.pest_severity || null,
-       careEvent.health_status || null, careEvent.created_at, careEvent.updated_at, careEvent.synced ? 1 : 0]
-    );
+    const { data, error } = await supabase
+      .from('care_events')
+      .insert(careEventInsert)
+      .select()
+      .single();
 
-    return careEvent;
+    if (error) {
+      console.error('Error creating care event:', error);
+      throw new Error(`Failed to create care event: ${error.message}`);
+    }
+
+    return data as CareEvent;
   }
 
   static async updateCareEvent(id: string, updates: Partial<Omit<CareEvent, 'id' | 'created_at'>>): Promise<CareEvent | null> {
-    const db = await DatabaseService.getDatabase();
-    const now = new Date().toISOString();
-    
-    const currentEvent = await this.getCareEventById(id);
-    if (!currentEvent) return null;
-
-    const updatedEvent = {
-      ...currentEvent,
+    const careEventUpdate: CareEventUpdate = {
       ...updates,
-      updated_at: now,
-      synced: false
+      updated_at: new Date().toISOString()
     };
 
-    await db.runAsync(
-      `UPDATE care_events SET plant_id = ?, event_type = ?, date = ?, notes = ?, 
-       fertilizer_concentration = ?, fertilizer_amount = ?, pest_severity = ?, health_status = ?, updated_at = ?, synced = ?
-       WHERE id = ?`,
-      [updatedEvent.plant_id, updatedEvent.event_type, updatedEvent.date,
-       updatedEvent.notes || null, updatedEvent.fertilizer_concentration || null,
-       updatedEvent.fertilizer_amount || null, updatedEvent.pest_severity || null,
-       updatedEvent.health_status || null, updatedEvent.updated_at, updatedEvent.synced ? 1 : 0, id]
-    );
+    const { data, error } = await supabase
+      .from('care_events')
+      .update(careEventUpdate)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return updatedEvent;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error updating care event:', error);
+      throw new Error(`Failed to update care event: ${error.message}`);
+    }
+
+    return data as CareEvent;
   }
 
   static async getCareEventById(id: string): Promise<CareEvent | null> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getFirstAsync('SELECT * FROM care_events WHERE id = ?', [id]);
-    if (!result) return null;
-    return {
-      ...(result as any),
-      synced: Boolean((result as any).synced)
-    } as CareEvent;
+    const { data, error } = await supabase
+      .from('care_events')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error fetching care event:', error);
+      throw new Error(`Failed to fetch care event: ${error.message}`);
+    }
+
+    return data as CareEvent;
   }
 
   static async deleteCareEvent(id: string): Promise<boolean> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.runAsync('DELETE FROM care_events WHERE id = ?', [id]);
-    return result.changes > 0;
+    const { error } = await supabase
+      .from('care_events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting care event:', error);
+      throw new Error(`Failed to delete care event: ${error.message}`);
+    }
+
+    return true;
   }
 
   static async getRecentCareEvents(limit: number = 10): Promise<CareEvent[]> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getAllAsync(
-      'SELECT * FROM care_events ORDER BY date DESC LIMIT ?',
-      [limit]
-    );
-    return result.map(row => ({
-      ...(row as any),
-      synced: Boolean((row as any).synced)
-    })) as CareEvent[];
+    const { data, error } = await supabase
+      .from('care_events')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent care events:', error);
+      throw new Error(`Failed to fetch recent care events: ${error.message}`);
+    }
+
+    return (data || []) as CareEvent[];
   }
 
   static async getLastCareEventByType(plantId: string, eventType: string): Promise<CareEvent | null> {
-    const db = await DatabaseService.getDatabase();
-    const result = await db.getFirstAsync(
-      'SELECT * FROM care_events WHERE plant_id = ? AND event_type = ? ORDER BY date DESC LIMIT 1',
-      [plantId, eventType]
-    );
-    if (!result) return null;
-    return {
-      ...(result as any),
-      synced: Boolean((result as any).synced)
-    } as CareEvent;
+    const { data, error } = await supabase
+      .from('care_events')
+      .select('*')
+      .eq('plant_id', plantId)
+      .eq('event_type', eventType)
+      .order('date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No rows found
+      }
+      console.error('Error fetching last care event by type:', error);
+      throw new Error(`Failed to fetch last care event by type: ${error.message}`);
+    }
+
+    return data as CareEvent;
   }
 
   static async getCareEventStats(plantId: string): Promise<{
@@ -112,30 +139,46 @@ export class CareEventService {
     lastFertilized?: string;
     lastRepotted?: string;
   }> {
-    const db = await DatabaseService.getDatabase();
-    
-    // Get total events count
-    const totalResult = await db.getFirstAsync(
-      'SELECT COUNT(*) as count FROM care_events WHERE plant_id = ?',
-      [plantId]
-    );
-    const totalEvents = (totalResult as any)?.count || 0;
+    try {
+      // Get total events count
+      const { count, error: countError } = await supabase
+        .from('care_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('plant_id', plantId);
 
-    // Get last events by type
-    const lastWatered = await this.getLastCareEventByType(plantId, 'water');
-    const lastFertilized = await this.getLastCareEventByType(plantId, 'fertilize');
-    const lastRepotted = await this.getLastCareEventByType(plantId, 'repot');
+      if (countError) {
+        console.error('Error getting care events count:', countError);
+        throw new Error(`Failed to get care events count: ${countError.message}`);
+      }
 
-    return {
-      totalEvents,
-      lastWatered: lastWatered?.date,
-      lastFertilized: lastFertilized?.date,
-      lastRepotted: lastRepotted?.date,
-    };
+      const totalEvents = count || 0;
+
+      // Get last events by type
+      const lastWatered = await this.getLastCareEventByType(plantId, 'water');
+      const lastFertilized = await this.getLastCareEventByType(plantId, 'fertilize');
+      const lastRepotted = await this.getLastCareEventByType(plantId, 'repot');
+
+      return {
+        totalEvents,
+        lastWatered: lastWatered?.date,
+        lastFertilized: lastFertilized?.date,
+        lastRepotted: lastRepotted?.date,
+      };
+    } catch (error) {
+      console.error('Error getting care event stats:', error);
+      throw error;
+    }
   }
 
   static async deleteAllCareEvents(): Promise<void> {
-    const db = await DatabaseService.getDatabase();
-    await db.runAsync('DELETE FROM care_events');
+    const { error } = await supabase
+      .from('care_events')
+      .delete()
+      .neq('id', ''); // Delete all rows
+
+    if (error) {
+      console.error('Error deleting all care events:', error);
+      throw new Error(`Failed to delete all care events: ${error.message}`);
+    }
   }
 }
