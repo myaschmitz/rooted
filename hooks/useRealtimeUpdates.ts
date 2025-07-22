@@ -13,11 +13,17 @@ export const useRealtimeUpdates = ({
   onPhotosUpdate 
 }: UseRealtimeUpdatesProps) => {
   const channelRef = useRef<any>(null);
+  const callbacksRef = useRef({ onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate });
+
+  // Update callbacks ref without triggering useEffect
+  callbacksRef.current = { onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate };
 
   useEffect(() => {
-    // Create a channel for real-time updates
+    // Create a channel for real-time updates with unique name
+    const channelName = `schema-db-changes-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    console.log('Creating real-time subscription:', channelName);
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -27,7 +33,7 @@ export const useRealtimeUpdates = ({
         },
         (payload) => {
           console.log('Plants table changed:', payload);
-          onPlantsUpdate?.();
+          callbacksRef.current.onPlantsUpdate?.();
         }
       )
       .on(
@@ -39,7 +45,7 @@ export const useRealtimeUpdates = ({
         },
         (payload) => {
           console.log('Care events table changed:', payload);
-          onCareEventsUpdate?.();
+          callbacksRef.current.onCareEventsUpdate?.();
         }
       )
       .on(
@@ -51,16 +57,19 @@ export const useRealtimeUpdates = ({
         },
         (payload) => {
           console.log('Plant photos table changed:', payload);
-          onPhotosUpdate?.();
+          callbacksRef.current.onPhotosUpdate?.();
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
+        console.log('Subscription status:', status);
         if (status === 'SUBSCRIBED') {
           console.log('Real-time subscriptions active');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Real-time subscription error');
+          console.error('Real-time subscription error:', err);
         } else if (status === 'TIMED_OUT') {
           console.warn('Real-time subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('Real-time subscription closed');
         }
       });
 
@@ -74,7 +83,7 @@ export const useRealtimeUpdates = ({
         channelRef.current = null;
       }
     };
-  }, [onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate]);
+  }, []); // No dependencies - callbacks are handled via ref
 
   return {
     isConnected: channelRef.current?.state === 'joined',
