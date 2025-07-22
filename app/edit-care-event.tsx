@@ -15,9 +15,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { CareEventService } from '../services/CareEventService';
 import { CareEvent } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCareStyles } from '../styles/CareStyles';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
+  const careStyles = useCareStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
@@ -218,23 +220,23 @@ export default function EditCareEventScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Pest Severity (1-10 scale)</Text>
               <Text style={styles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
-              <View style={styles.severityContainer}>
+              <View style={careStyles.severityContainer}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
                   <TouchableOpacity
                     key={severity}
                     style={[
-                      styles.severityButton,
-                      pestSeverity === severity && styles.severityButtonSelected,
-                      severity <= 3 && styles.severityLow,
-                      severity >= 4 && severity <= 6 && styles.severityMedium,
-                      severity >= 7 && styles.severityHigh,
+                      careStyles.severityButton,
+                      pestSeverity === severity && careStyles.severityButtonSelected,
+                      severity <= 3 && careStyles.severityLow,
+                      severity >= 4 && severity <= 6 && careStyles.severityMedium,
+                      severity >= 7 && careStyles.severityHigh,
                     ]}
                     onPress={() => setPestSeverity(severity)}
                   >
                     <Text
                       style={[
-                        styles.severityText,
-                        pestSeverity === severity && styles.severityTextSelected,
+                        careStyles.severityText,
+                        pestSeverity === severity && careStyles.severityTextSelected,
                       ]}
                     >
                       {severity}
@@ -399,45 +401,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: 10,
     fontStyle: 'italic',
-  },
-  severityContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  severityButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  severityButtonSelected: {
-    borderColor: '#4CAF50',
-    backgroundColor: theme.colors.primary,
-  },
-  severityLow: {
-    borderColor: '#4CAF50',
-    backgroundColor: '#f1f8e9',
-  },
-  severityMedium: {
-    borderColor: '#FF9800',
-    backgroundColor: '#fff3e0',
-  },
-  severityHigh: {
-    borderColor: '#F44336',
-    backgroundColor: '#ffebee',
-  },
-  severityText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-  },
-  severityTextSelected: {
-    color: theme.colors.textOnPrimary,
   },
   loadingContainer: {
     flex: 1,

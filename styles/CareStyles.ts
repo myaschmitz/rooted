@@ -104,11 +104,21 @@ export const useCareStyles = () => {
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 1,
+      // borderWidth: 1,
+      // borderColor: colors.border,
     },
+    severityLow: { backgroundColor: '#4CAF50' },
+    severityMedium: { backgroundColor: '#FFC107' },
+    severityHigh: { backgroundColor: '#F44336' },
     severityButtonSelected: {
       borderWidth: 2,
-      borderColor: '#FFFFFF',
+      borderColor: colors.border,
+      transform: [{ scale: 1.15 }],
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 6,
     },
     severityText: {
       fontSize: 14,
@@ -116,9 +126,7 @@ export const useCareStyles = () => {
     },
     severityTextSelected: {
       fontWeight: 'bold',
-    },
-    severityLow: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
-    severityMedium: { backgroundColor: '#FFC107', borderColor: '#FFC107' },
-    severityHigh: { backgroundColor: '#F44336', borderColor: '#F44336' },
+      fontSize: 16,
+    }
   });
 };
