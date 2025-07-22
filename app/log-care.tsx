@@ -171,6 +171,18 @@ export default function LogCareScreen() {
              />
           </View>
 
+          {/* Set to Now Button */}
+          <View style={[globalStyles.flexRow, { marginBottom: 20 }]}>
+            <TouchableOpacity
+              style={globalStyles.buttonSmall}
+              onPress={() => {
+                setCareDateTime(new Date());
+              }}
+            >
+              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Fertilizer Options (only show for fertilize) */}
           {showFertilizerOptions && (
             <>
@@ -227,18 +239,6 @@ export default function LogCareScreen() {
               </View>
             </View>
           )}
-
-          {/* Quick Add Buttons */}
-          <View style={globalStyles.flexRow}>
-            <TouchableOpacity
-              style={globalStyles.buttonSmall}
-              onPress={() => {
-                setCareDateTime(new Date());
-              }}
-            >
-              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Notes */}
           <View style={globalStyles.inputGroup}>
