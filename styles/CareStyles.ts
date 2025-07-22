@@ -26,7 +26,6 @@ export const useCareStyles = () => {
     },
     careTypeOption: {
       width: '30%',
-      aspectRatio: 1,
       borderRadius: 12,
       backgroundColor: colors.surface,
       borderWidth: 2,

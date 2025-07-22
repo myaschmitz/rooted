@@ -297,7 +297,6 @@ const createStyles = (theme) => StyleSheet.create({
   },
   careTypeOption: {
     width: '30%',
-    aspectRatio: 1,
     borderRadius: 12,
     backgroundColor: theme.colors.surface,
     borderWidth: 2,

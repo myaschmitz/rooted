@@ -57,10 +57,10 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ['images'],
+        allowsEditing: false,
         quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
       if (result.canceled) {
@@ -82,9 +82,8 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ['images'],
+        allowsEditing: false,
         quality: 0.8,
         cameraType: ImagePicker.CameraType.back,
         allowsMultipleSelection: false,
@@ -109,9 +108,8 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ['images'],
+        allowsEditing: false,
         quality: 0.8,
         cameraType: ImagePicker.CameraType.back,
         allowsMultipleSelection: false,
@@ -136,10 +134,10 @@ export class PhotoService {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ['images'],
+        allowsEditing: false,
         quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
       if (result.canceled) {
