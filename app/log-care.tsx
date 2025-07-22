@@ -222,9 +222,13 @@ export default function LogCareScreen() {
                     style={[
                       careStyles.severityButton,
                       pestSeverity === severity && careStyles.severityButtonSelected,
-                      severity <= 3 && careStyles.severityLow,
-                      severity >= 4 && severity <= 6 && careStyles.severityMedium,
-                      severity >= 7 && careStyles.severityHigh,
+                      pestSeverity === severity 
+                        ? (severity <= 3 && careStyles.severityLowSelected) ||
+                          (severity >= 4 && severity <= 6 && careStyles.severityMediumSelected) ||
+                          (severity >= 7 && careStyles.severityHighSelected)
+                        : (severity <= 3 && careStyles.severityLow) ||
+                          (severity >= 4 && severity <= 6 && careStyles.severityMedium) ||
+                          (severity >= 7 && careStyles.severityHigh),
                     ]}
                     onPress={() => setPestSeverity(severity)}
                   >
