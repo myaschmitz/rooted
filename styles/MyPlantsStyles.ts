@@ -22,11 +22,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'flex-start',
   },
   plantThumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
     marginRight: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
   },
   plantInfo: {
     flex: 1,

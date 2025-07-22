@@ -10,6 +10,7 @@ import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
+import { PlantThumbnail } from '../../components/PlantThumbnail';
 
 
 export default function QuickCareScreen() {
@@ -210,13 +211,9 @@ export default function QuickCareScreen() {
             {isSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
           </View>
           
-          {thumbnail && (
-            <Image 
-              source={{ uri: thumbnail }} 
-              style={{ width: 50, height: 50, borderRadius: 8, marginRight: 12 }}
-              resizeMode="cover"
-            />
-          )}
+          <View style={{ marginRight: 12 }}>
+            <PlantThumbnail imageUri={thumbnail} size={50} />
+          </View>
           
           <View style={styles.plantDetails}>
             <Text style={styles.plantCardName}>{item.name || `${item.type}`}</Text>

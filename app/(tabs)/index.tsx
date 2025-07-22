@@ -9,6 +9,7 @@ import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
+import { PlantThumbnail } from '../../components/PlantThumbnail';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -117,13 +118,9 @@ export default function HomeScreen() {
         onPress={() => router.push(`/plant/${item.id}`)}
       >
         <View style={styles.plantCardContent}>
-          {thumbnail && (
-            <Image 
-              source={{ uri: thumbnail }} 
-              style={styles.plantThumbnail}
-              resizeMode="cover"
-            />
-          )}
+          <View style={styles.plantThumbnail}>
+            <PlantThumbnail imageUri={thumbnail} size={60} />
+          </View>
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
