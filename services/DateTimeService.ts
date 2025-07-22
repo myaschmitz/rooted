@@ -47,9 +47,49 @@ export class DateTimeService {
     }
   }
 
+  static formatDateSync(date: Date | string, format: string = 'YYYY-MM-DD'): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const year = dateObj.getFullYear().toString();
+
+    switch (format) {
+      case 'DD/MM/YYYY':
+        return `${day}/${month}/${year}`;
+      case 'DD-MM-YYYY':
+        return `${day}-${month}-${year}`;
+      case 'MM-DD-YYYY':
+        return `${month}-${day}-${year}`;
+      case 'YYYY-MM-DD':
+        return `${year}-${month}-${day}`;
+      case 'MM/DD/YYYY':
+      default:
+        return `${month}/${day}/${year}`;
+    }
+  }
+
   static async formatTime(date: Date | string): Promise<string> {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const format = await this.getTimeFormat();
+
+    if (format === '24') {
+      const hours = dateObj.getHours().toString().padStart(2, '0');
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } else {
+      // 12-hour format
+      let hours = dateObj.getHours();
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours || 12; // 0 should be 12
+      return `${hours}:${minutes} ${ampm}`;
+    }
+  }
+
+  static formatTimeSync(date: Date | string, format: string = '24'): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
 
     if (format === '24') {
       const hours = dateObj.getHours().toString().padStart(2, '0');

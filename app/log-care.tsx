@@ -29,7 +29,6 @@ export default function LogCareScreen() {
   const [careDateTime, setCareDateTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [tempDateTime, setTempDateTime] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
@@ -145,99 +144,31 @@ export default function LogCareScreen() {
 
           {/* Date and Time */}
           <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>Date & Time</Text>
-            
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => {
-                setShowTimePicker(false);
-                setTempDateTime(new Date(careDateTime));
-                setShowDatePicker(true);
-              }}
-            >
-              <Text style={styles.dateTimeText}>
-                Date: {DateTimeService.formatDate(careDateTime)}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => {
-                setShowDatePicker(false);
-                setTempDateTime(new Date(careDateTime));
-                setShowTimePicker(true);
-              }}
-            >
-              <Text style={styles.dateTimeText}>
-                Time: {DateTimeService.formatTime(careDateTime)}
-              </Text>
-            </TouchableOpacity>
+             <Text style={globalStyles.label}>Date</Text>
+             <DateTimePicker
+               value={careDateTime}
+               mode="date"
+               display="default"
+               onChange={(event, selectedDate) => {
+                 if (selectedDate) {
+                   setCareDateTime(selectedDate);
+                 }
+               }}
+             />
+           </View>
 
-            {showDatePicker && (
-              <View style={styles.pickerContainer}>
-                <View style={styles.pickerHeader}>
-                  <TouchableOpacity
-                    style={styles.pickerButton}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={styles.pickerButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.pickerTitle}>Select Date</Text>
-                  <TouchableOpacity
-                    style={[styles.pickerButton, styles.pickerButtonDone]}
-                    onPress={() => {
-                      setCareDateTime(tempDateTime);
-                      setShowDatePicker(false);
-                    }}
-                  >
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={tempDateTime}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, selectedDate) => {
-                    if (selectedDate) {
-                      setTempDateTime(selectedDate);
-                    }
-                  }}
-                />
-              </View>
-            )}
-
-            {showTimePicker && (
-              <View style={styles.pickerContainer}>
-                <View style={styles.pickerHeader}>
-                  <TouchableOpacity
-                    style={styles.pickerButton}
-                    onPress={() => setShowTimePicker(false)}
-                  >
-                    <Text style={styles.pickerButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.pickerTitle}>Select Time</Text>
-                  <TouchableOpacity
-                    style={[styles.pickerButton, styles.pickerButtonDone]}
-                    onPress={() => {
-                      setCareDateTime(tempDateTime);
-                      setShowTimePicker(false);
-                    }}
-                  >
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextDone]}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <DateTimePicker
-                  value={tempDateTime}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, selectedTime) => {
-                    if (selectedTime) {
-                      setTempDateTime(selectedTime);
-                    }
-                  }}
-                />
-              </View>
-            )}
+          <View style={globalStyles.inputGroup}>
+            <Text style={globalStyles.label}>Time</Text>
+              <DateTimePicker
+                value={careDateTime}
+                mode="time"
+                display="default"
+                onChange={(event, selectedTime) => {
+                  if (selectedTime) {
+                    setCareDateTime(selectedTime);
+                 }
+               }}
+             />
           </View>
 
           {/* Fertilizer Options (only show for fertilize) */}
@@ -392,38 +323,10 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: 16,
     borderRadius: 8,
-    marginBottom: 12,
+    marginTop: 8,
   },
   dateTimeText: {
     fontSize: 16,
-    color: theme.colors.text,
-  },
-  pickerContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
-  },
-  pickerButton: {
-    padding: 8,
-  },
-  pickerButtonDone: {},
-  pickerButtonText: {
-    fontSize: 16,
-    color: theme.colors.primary,
-  },
-  pickerButtonTextDone: {
-    fontWeight: 'bold',
-  },
-  pickerTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
     color: theme.colors.textPrimary,
   },
   severityContainer: {
