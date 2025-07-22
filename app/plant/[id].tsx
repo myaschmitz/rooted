@@ -210,7 +210,7 @@ export default function PlantDetailScreen() {
 
     Alert.alert(
       'Delete Plant',
-      `Are you sure you want to delete "${plant.name || `Unnamed ${plant.type}`}"? This will also delete all care events and photos associated with this plant. This action cannot be undone.`,
+      `Are you sure you want to delete "${plant.name || `${plant.type}`}"? This will also delete all care events and photos associated with this plant. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -363,7 +363,7 @@ export default function PlantDetailScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerContent}>
-              <Text style={styles.plantName}>{plant.name || `Unnamed ${plant.type}`}</Text>
+              <Text style={styles.plantName}>{plant.name || `${plant.type}`}</Text>
               <Text style={styles.plantType}>{plant.type}</Text>
               {plant.location && (
                 <Text style={styles.location}>📍 {plant.location}</Text>

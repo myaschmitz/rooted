@@ -159,7 +159,7 @@ export default function QuickCareScreen() {
       const plantNames = selectedPlantsList
         .map(plantId => {
           const plant = plants.find(p => p.id === plantId);
-          return plant?.name || `Unnamed ${plant?.type}`;
+          return plant?.name || `${plant?.type}`;
         })
         .join(', ');
 
@@ -219,7 +219,7 @@ export default function QuickCareScreen() {
           )}
           
           <View style={styles.plantDetails}>
-            <Text style={styles.plantCardName}>{item.name || `Unnamed ${item.type}`}</Text>
+            <Text style={styles.plantCardName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantCardType}>{item.type}</Text>
           </View>
         </View>

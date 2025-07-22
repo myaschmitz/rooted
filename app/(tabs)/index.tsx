@@ -125,7 +125,7 @@ export default function HomeScreen() {
             />
           )}
           <View style={styles.plantInfo}>
-            <Text style={styles.plantName}>{item.name || `Unnamed ${item.type}`}</Text>
+            <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
             <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
               Health: {healthDisplay.text}
