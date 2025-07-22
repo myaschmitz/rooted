@@ -18,6 +18,7 @@ import { PhotoService } from '../services/PhotoService';
 import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { Camera } from 'lucide-react-native';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
@@ -171,12 +172,12 @@ export default function EditPlantScreen() {
                 <View style={styles.photoWrapper}>
                   <Image source={{ uri: plantPhoto }} style={styles.plantImage} />
                   <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
-                    <Text style={styles.changePhotoText}>📷</Text>
+                    <Camera size={20} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Text style={styles.photoPlaceholderText}>📷</Text>
+                  <Camera size={48} color={theme.colors.textSecondary} />
                   <Text style={styles.photoPlaceholderSubtext}>Tap to add photo</Text>
                 </View>
               )}
@@ -349,7 +350,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   photoPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
