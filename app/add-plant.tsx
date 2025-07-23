@@ -101,6 +101,10 @@ export default function AddPlantScreen() {
     }
   };
 
+  const handleRemovePhoto = () => {
+    setPlantPhoto(null);
+  };
+
   const healthOptions = [
     { value: 'excellent', label: 'Excellent', color: '#2E7D32', emoji: '🌟' },
     { value: 'good', label: 'Good', color: '#4CAF50', emoji: '😊' },
@@ -123,9 +127,14 @@ export default function AddPlantScreen() {
               {plantPhoto ? (
                 <View style={styles.photoWrapper}>
                   <Image source={{ uri: plantPhoto }} style={styles.plantImage} />
-                  <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
-                    <Camera size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
+                  <View style={styles.photoButtonsContainer}>
+                    <TouchableOpacity style={styles.removePhotoButton} onPress={handleRemovePhoto}>
+                      <Text style={styles.removePhotoButtonText}>×</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
+                      <Camera size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
                 <View style={styles.photoPlaceholder}>
@@ -265,24 +274,27 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   photoContainer: {
     width: '100%',
-    height: 200,
     borderRadius: 8,
     overflow: 'hidden',
   },
   photoWrapper: {
     position: 'relative',
     width: '100%',
-    height: '100%',
   },
   plantImage: {
     width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    aspectRatio: 1,
+    resizeMode: 'contain',
   },
-  changePhotoButton: {
+  photoButtonsContainer: {
     position: 'absolute',
     top: 8,
+    left: 8,
     right: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  changePhotoButton: {
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 20,
     width: 36,
@@ -290,12 +302,26 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  removePhotoButton: {
+    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    borderRadius: 20,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removePhotoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    lineHeight: 20,
+  },
   changePhotoText: {
     fontSize: 18,
   },
   photoPlaceholder: {
     width: '100%',
-    height: '100%',
+    height: 200,
     backgroundColor: theme.colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',

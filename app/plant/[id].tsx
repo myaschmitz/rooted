@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import { SquarePen, Trash2 } from 'lucide-react-native';
+import { SquarePen, Trash2, X } from 'lucide-react-native';
 import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
@@ -435,7 +435,7 @@ export default function PlantDetailScreen() {
                     style={styles.deletePhotoButton}
                     onPress={() => handleDeletePhoto(photo.id)}
                   >
-                    <Text style={styles.deletePhotoText}>×</Text>
+                    <X size={14} color={theme.colors.textOnPrimary} />
                   </TouchableOpacity>
                   <Text style={styles.photoDate}>{formattedDates[photo.id] || 'Loading...'}</Text>
                 </TouchableOpacity>
@@ -544,7 +544,7 @@ export default function PlantDetailScreen() {
                 style={styles.modalCloseButton}
                 onPress={() => setFullScreenPhoto(null)}
               >
-                <Text style={styles.modalCloseText}>✕</Text>
+                <X size={24} color={theme.colors.textOnPrimary} />
               </TouchableOpacity>
               
               <View style={styles.photoInfo}>
@@ -660,7 +660,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(255, 0, 0, 0.8)',
+    backgroundColor: 'rgba(205, 1, 1, 1)',
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -671,6 +671,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textOnPrimary,
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   photoDate: {
     fontSize: 12,
@@ -752,12 +753,13 @@ const createStyles = (theme: any) => StyleSheet.create({
     position: 'absolute',
     top: 50,
     right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: theme.colors.surface,
     borderRadius: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    textAlign: 'center',
   },
   modalCloseText: {
     fontSize: 24,
@@ -812,7 +814,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     bottom: 120,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: theme.colors.surface,
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
