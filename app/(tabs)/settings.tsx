@@ -7,13 +7,33 @@ import {
   Alert,
   ScrollView,
   Modal,
+  TextInput,
+  Share,
+  Clipboard,
 } from 'react-native';
-import { router } from 'expo-router';
-import { ChevronDown, Palette, Sun, Moon, Monitor } from 'lucide-react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { 
+  ChevronDown, 
+  Palette, 
+  Sun, 
+  Moon, 
+  Monitor, 
+  Home, 
+  Users, 
+  Share2, 
+  Copy, 
+  LogOut, 
+  Settings as SettingsIcon,
+  Crown,
+  UserMinus,
+  RefreshCw 
+} from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../../services/PlantService';
 import { CareEventService } from '../../services/CareEventService';
 import { PhotoService } from '../../services/PhotoService';
+import { HouseholdService } from '../../services/HouseholdService';
+import { HouseholdContext, HouseholdMember } from '../../types/Household';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useColorScheme } from 'react-native';
 
@@ -36,6 +56,16 @@ export default function SettingsScreen() {
   const [timeFormat, setTimeFormat] = useState('12');
   const [loading, setLoading] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  
+  // Household state
+  const [householdContext, setHouseholdContext] = useState<HouseholdContext>({
+    household: null,
+    currentMember: null,
+    members: [],
+    isAdmin: false,
+  });
+  const [editHouseholdNameVisible, setEditHouseholdNameVisible] = useState(false);
+  const [newHouseholdName, setNewHouseholdName] = useState('');
 
   // Load saved preferences
   useEffect(() => {
@@ -57,6 +87,177 @@ export default function SettingsScreen() {
 
     loadPreferences();
   }, []);
+
+  // Load household information when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadHouseholdInfo();
+    }, [])
+  );
+
+  const loadHouseholdInfo = async () => {
+    try {
+      const context = await HouseholdService.getUserHouseholdContext();
+      setHouseholdContext(context);
+      if (context.household) {
+        setNewHouseholdName(context.household.name);
+      }
+    } catch (error) {
+      console.error('Error loading household info:', error);
+    }
+  };
+
+  // Household management functions
+  const handleShareHouseholdCode = async () => {
+    if (!householdContext.household) return;
+    
+    try {
+      await Share.share({
+        message: `Join my household "${householdContext.household.name}" in Rooted!\n\nUse code: ${householdContext.household.id}\n\nDownload Rooted to track your plants together!`,
+        title: 'Join My Household in Rooted',
+      });
+    } catch (error) {
+      console.error('Error sharing household code:', error);
+    }
+  };
+
+  const handleCopyHouseholdCode = async () => {
+    if (!householdContext.household) return;
+    
+    await Clipboard.setString(householdContext.household.id);
+    Alert.alert('Copied!', 'Household code copied to clipboard');
+  };
+
+  const handleEditHouseholdName = async () => {
+    if (!newHouseholdName.trim()) {
+      Alert.alert('Error', 'Please enter a household name');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await HouseholdService.updateHouseholdName(newHouseholdName.trim());
+      await loadHouseholdInfo();
+      setEditHouseholdNameVisible(false);
+      Alert.alert('Success', 'Household name updated successfully');
+    } catch (error) {
+      console.error('Error updating household name:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update household name');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegenerateCode = () => {
+    Alert.alert(
+      'Regenerate Household Code',
+      'This will create a new code and invalidate the old one. Anyone with the old code will no longer be able to join. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Regenerate',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const newCode = await HouseholdService.regenerateHouseholdCode();
+              await loadHouseholdInfo();
+              Alert.alert(
+                'Code Regenerated',
+                `Your new household code is: ${newCode}\n\nMake sure to share the new code with your household members.`
+              );
+            } catch (error) {
+              console.error('Error regenerating code:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to regenerate code');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveMember = (member: HouseholdMember) => {
+    Alert.alert(
+      'Remove Member',
+      `Are you sure you want to remove ${member.user_name} from this household?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await HouseholdService.removeMember(member.id);
+              await loadHouseholdInfo();
+              Alert.alert('Success', `${member.user_name} has been removed from the household`);
+            } catch (error) {
+              console.error('Error removing member:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove member');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleToggleMemberRole = (member: HouseholdMember) => {
+    const newRole = member.role === 'admin' ? 'member' : 'admin';
+    const action = newRole === 'admin' ? 'promote' : 'demote';
+    
+    Alert.alert(
+      `${action === 'promote' ? 'Promote' : 'Demote'} Member`,
+      `${action === 'promote' ? 'Give admin privileges to' : 'Remove admin privileges from'} ${member.user_name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: action === 'promote' ? 'Promote' : 'Demote',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await HouseholdService.updateMemberRole(member.id, newRole);
+              await loadHouseholdInfo();
+              Alert.alert('Success', `${member.user_name} has been ${action}d`);
+            } catch (error) {
+              console.error('Error updating member role:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update member role');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleLeaveHousehold = () => {
+    Alert.alert(
+      'Leave Household',
+      'Are you sure you want to leave this household? You will need a new invitation code to rejoin.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await HouseholdService.leaveHousehold();
+              router.replace('/welcome');
+            } catch (error) {
+              console.error('Error leaving household:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to leave household');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   // Save date format preference
   const handleDateFormatChange = async (format: string) => {
@@ -149,6 +350,133 @@ export default function SettingsScreen() {
   return (
     <>
       <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Household Information Section */}
+        {householdContext.household && (
+          <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Household</Text>
+            
+            {/* Household Name */}
+            <View style={[styles.settingRow, { borderColor: theme.colors.border }]}>
+              <View style={styles.settingInfo}>
+                <Home size={20} color={theme.colors.primary} />
+                <View>
+                  <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+                    {householdContext.household.name}
+                  </Text>
+                  <Text style={[styles.settingSubtext, { color: theme.colors.textSecondary }]}>
+                    {householdContext.members.length} member{householdContext.members.length !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+              {householdContext.isAdmin && (
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: theme.colors.background }]}
+                  onPress={() => setEditHouseholdNameVisible(true)}
+                >
+                  <SettingsIcon size={16} color={theme.colors.text} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Household Code */}
+            <View style={[styles.settingRow, { borderColor: theme.colors.border }]}>
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingLabel, { color: theme.colors.text, marginBottom: 0 }]}>Household Code:</Text>
+                <Text style={[styles.householdCode, { color: theme.colors.primary, marginTop: 0 }]}>
+                  {householdContext.household.id}
+                </Text>
+              </View>
+              <View style={[styles.householdCodeActions, { marginLeft: 16 }]}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: theme.colors.background }]}
+                  onPress={handleCopyHouseholdCode}
+                >
+                  <Copy size={16} color={theme.colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: theme.colors.background }]}
+                  onPress={handleShareHouseholdCode}
+                >
+                  <Share2 size={16} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Admin Actions */}
+            {householdContext.isAdmin && (
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: theme.colors.primary }]}
+                onPress={handleRegenerateCode}
+                disabled={loading}
+              >
+                <RefreshCw size={16} color={theme.colors.textOnPrimary} />
+                <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
+                  Regenerate Code
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Members List */}
+            <Text style={[styles.subsectionTitle, { color: theme.colors.text }]}>Members</Text>
+            {householdContext.members.map((member) => (
+              <View key={member.id} style={[styles.memberRow, { borderColor: theme.colors.border }]}>
+                <View style={styles.memberInfo}>
+                  <Users size={18} color={theme.colors.primary} />
+                  <View>
+                    <Text style={[styles.memberName, { color: theme.colors.text }]}>
+                      {member.user_name}
+                      {member.id === householdContext.currentMember?.id && ' (You)'}
+                    </Text>
+                    <View style={styles.memberRoleContainer}>
+                      {member.role === 'admin' && (
+                        <Crown size={12} color={theme.colors.primary} />
+                      )}
+                      <Text style={[styles.memberRole, { color: theme.colors.textSecondary }]}>
+                        {member.role === 'admin' ? 'Admin' : 'Member'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Admin can manage other members */}
+                {householdContext.isAdmin && member.id !== householdContext.currentMember?.id && (
+                  <View style={styles.memberActions}>
+                    <TouchableOpacity
+                      style={[styles.iconButton, { backgroundColor: theme.colors.background }]}
+                      onPress={() => handleToggleMemberRole(member)}
+                      disabled={loading}
+                    >
+                      <Crown 
+                        size={14} 
+                        color={member.role === 'admin' ? theme.colors.warning : theme.colors.primary} 
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.iconButton, { backgroundColor: theme.colors.background }]}
+                      onPress={() => handleRemoveMember(member)}
+                      disabled={loading}
+                    >
+                      <UserMinus size={14} color={theme.colors.error || '#ff4444'} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))}
+
+            {/* Leave Household */}
+            <TouchableOpacity
+              style={[styles.button, styles.dangerButton, { backgroundColor: theme.colors.error || '#ff4444' }]}
+              onPress={handleLeaveHousehold}
+              disabled={loading}
+            >
+              <LogOut size={16} color={theme.colors.textOnPrimary} />
+              <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
+                Leave Household
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Theme Settings Section */}
       <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Appearance</Text>
@@ -284,6 +612,52 @@ export default function SettingsScreen() {
         </Text>
       </View>
     </ScrollView>
+
+    {/* Edit Household Name Modal */}
+    <Modal
+      visible={editHouseholdNameVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setEditHouseholdNameVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.editModal, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Edit Household Name</Text>
+          
+          <TextInput
+            style={[styles.modalInput, { 
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.border,
+              color: theme.colors.text 
+            }]}
+            value={newHouseholdName}
+            onChangeText={setNewHouseholdName}
+            placeholder="Enter household name"
+            placeholderTextColor={theme.colors.textSecondary}
+            autoCapitalize="words"
+          />
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
+              onPress={() => setEditHouseholdNameVisible(false)}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleEditHouseholdName}
+              disabled={loading}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.textOnPrimary }]}>
+                {loading ? 'Saving...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 }
@@ -338,12 +712,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 6,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   buttonText: {
     color: theme.textOnPrimary,
     fontSize: 16,
     fontWeight: '500',
-    textAlign: 'center',
   },
   dangerButton: {
     backgroundColor: theme.danger,
@@ -479,6 +856,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  settingSubtext: {
+    fontSize: 14,
+    marginTop: 2,
+  },
   themeSelector: {
     flexDirection: 'row',
     borderRadius: 8,
@@ -497,5 +878,104 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   themeIconCompact: {
     fontSize: 16,
+  },
+  // Household-specific styles
+  subsectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  householdCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  householdCodeActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderBottomWidth: 1,
+    marginBottom: 8,
+  },
+  memberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  memberRoleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  memberRole: {
+    fontSize: 14,
+  },
+  memberActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  // Modal styles
+  editModal: {
+    borderRadius: 12,
+    padding: 24,
+    minWidth: 300,
+    maxWidth: 400,
+    shadowColor: theme.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

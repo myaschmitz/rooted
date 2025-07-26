@@ -1,5 +1,7 @@
 import { CareEvent } from '../types/Plant';
 import { supabase } from './SupabaseService';
+import { HouseholdService } from './HouseholdService';
+import { PlantService } from './PlantService';
 import type { Database } from '../types/Database';
 
 type CareEventRow = Database['public']['Tables']['care_events']['Row'];
@@ -23,8 +25,15 @@ export class CareEventService {
   }
 
   static async createCareEvent(eventData: Omit<CareEvent, 'id' | 'created_at' | 'updated_at'>): Promise<CareEvent> {
+    // Get current household session
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const careEventInsert: CareEventInsert = {
-      ...eventData
+      ...eventData,
+      household_id: session.household_id,
     };
 
     const { data, error } = await supabase
@@ -38,7 +47,34 @@ export class CareEventService {
       throw new Error(`Failed to create care event: ${error.message}`);
     }
 
-    return data as CareEvent;
+    const careEvent = data as CareEvent;
+
+    // Get plant info for activity logging
+    const plant = await PlantService.getPlantById(careEvent.plant_id);
+    const plantName = plant?.name || plant?.type || 'Unknown Plant';
+
+    // Map event types to activity names
+    const activityMap: { [key: string]: string } = {
+      'water': 'watered',
+      'fertilize': 'fertilized', 
+      'repot': 'repotted',
+      'prune': 'pruned',
+      'pest_spotted': 'pest spotted',
+      'insecticide_spray': 'insecticide spray',
+      'other': 'other care'
+    };
+
+    const activityName = activityMap[careEvent.event_type] || careEvent.event_type;
+
+    // Log activity
+    await HouseholdService.logActivity(activityName as any, {
+      plant_id: careEvent.plant_id,
+      event_type: careEvent.event_type,
+      notes: careEvent.notes,
+      health_status: careEvent.health_status,
+    }, plantName);
+
+    return careEvent;
   }
 
   static async updateCareEvent(id: string, updates: Partial<Omit<CareEvent, 'id' | 'created_at'>>): Promise<CareEvent | null> {

@@ -6,6 +6,7 @@ export interface Plant {
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   notes?: string;
   thumbnail_photo_id?: string;
+  household_id?: string;
   pinned?: boolean;
   created_at: string;
   updated_at: string;
@@ -21,6 +22,7 @@ export interface CareEvent {
   fertilizer_amount?: string;
   pest_severity?: number; // 1-10 scale for pest events
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
+  household_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +33,7 @@ export interface PlantPhoto {
   file_path: string;
   caption?: string;
   taken_at: string;
+  household_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +42,7 @@ export interface PlantNote {
   id: string;
   plant_id: string;
   content: string;
+  household_id?: string;
   created_at: string;
   updated_at: string;
 }

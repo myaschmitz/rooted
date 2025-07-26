@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { AuthGuard } from '../components/AuthGuard';
 
 function ThemedStack() {
   const { theme } = useTheme();
@@ -20,6 +21,13 @@ function ThemedStack() {
           },
         }}
       >
+        <Stack.Screen 
+          name="welcome" 
+          options={{ 
+            headerShown: false,
+            title: 'Welcome'
+          }} 
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 
           name="plant/[id]" 

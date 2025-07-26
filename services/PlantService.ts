@@ -1,5 +1,6 @@
 import { Plant } from '../types/Plant';
 import { supabase } from './SupabaseService';
+import { HouseholdService } from './HouseholdService';
 import type { Database } from '../types/Database';
 
 type PlantRow = Database['public']['Tables']['plants']['Row'];
@@ -40,9 +41,16 @@ export class PlantService {
   }
 
   static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at'>): Promise<Plant> {
+    // Get current household session
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const plantInsert: PlantInsert = {
       ...plantData,
-      health_status: plantData.health_status || 'good'
+      health_status: plantData.health_status || 'good',
+      household_id: session.household_id,
     };
 
     const { data, error } = await supabase
@@ -56,7 +64,16 @@ export class PlantService {
       throw new Error(`Failed to create plant: ${error.message}`);
     }
 
-    return data as Plant;
+    const plant = data as Plant;
+
+    // Log activity
+    await HouseholdService.logActivity('added plant', {
+      plant_id: plant.id,
+      plant_type: plant.type,
+      location: plant.location,
+    }, plant.name || plant.type);
+
+    return plant;
   }
 
   static async updatePlant(id: string, updates: Partial<Omit<Plant, 'id' | 'created_at'>>): Promise<Plant | null> {
@@ -80,10 +97,23 @@ export class PlantService {
       throw new Error(`Failed to update plant: ${error.message}`);
     }
 
-    return data as Plant;
+    const plant = data as Plant;
+
+    // Log activity for updates (but not for pin/unpin operations)
+    if (!('pinned' in updates) || Object.keys(updates).length > 1) {
+      await HouseholdService.logActivity('updated plant', {
+        plant_id: plant.id,
+        updated_fields: Object.keys(updates),
+      }, plant.name || plant.type);
+    }
+
+    return plant;
   }
 
   static async deletePlant(id: string): Promise<boolean> {
+    // Get plant info before deleting for activity log
+    const plant = await this.getPlantById(id);
+    
     const { error } = await supabase
       .from('plants')
       .delete()
@@ -92,6 +122,15 @@ export class PlantService {
     if (error) {
       console.error('Error deleting plant:', error);
       throw new Error(`Failed to delete plant: ${error.message}`);
+    }
+
+    // Log activity
+    if (plant) {
+      await HouseholdService.logActivity('deleted plant', {
+        plant_id: plant.id,
+        plant_type: plant.type,
+        location: plant.location,
+      }, plant.name || plant.type);
     }
 
     return true;
