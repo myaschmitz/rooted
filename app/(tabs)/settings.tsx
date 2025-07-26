@@ -358,7 +358,7 @@ export default function SettingsScreen() {
             {/* Household Name */}
             <View style={[styles.settingRow, { borderColor: theme.colors.border }]}>
               <View style={styles.settingInfo}>
-                <Home size={20} color={theme.colors.primary} />
+                <Home size={24} color={theme.colors.primary} />
                 <View>
                   <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
                     {householdContext.household.name}
@@ -731,7 +731,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   settingLabel: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 10,
     color: theme.text,
   },
   formatOption: {
