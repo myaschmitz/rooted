@@ -49,7 +49,7 @@
 - [ ] Implement plant deletion with confirmation
 - [ ] Add photo viewing/gallery screen
 - [ ] Implement note editing and deletion
-- [ ] Add search functionality for plants
+- [ ] Add search functionality for plants? (Unsure)
 - [ ] Create care event editing/deletion
 
 ### UI/UX Improvements
@@ -141,29 +141,6 @@
 - [ ] Photo picker permissions handling
 - [ ] Form validation messaging improvements
 
-## 🎯 Current Sprint Goals
-
-### Sprint 1 (Week 1)
-**Goal**: Get basic app running and testable
-- [ ] Fix all TypeScript compilation errors
-- [ ] Install dependencies and resolve any conflicts
-- [ ] Test basic navigation between screens
-- [ ] Verify database initialization works
-
-### Sprint 2 (Week 2)
-**Goal**: Core functionality working
-- [ ] Test plant creation and listing
-- [ ] Verify care event logging works
-- [ ] Test photo capture and storage
-- [ ] Add basic error handling
-
-### Sprint 3 (Week 3)
-**Goal**: Polish and refinement
-- [ ] Improve UI/UX based on testing
-- [ ] Add missing features (editing, deletion)
-- [ ] Implement search and filtering
-- [ ] Add proper loading states
-
 ## 📝 Notes
 
 ### Development Priorities
@@ -188,4 +165,4 @@
 
 ---
 
-*Last Updated: January 2025*
+*Last Updated: July 2025*
