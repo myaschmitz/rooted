@@ -9,9 +9,16 @@ type PlantUpdate = Database['public']['Tables']['plants']['Update'];
 
 export class PlantService {
   static async getAllPlants(): Promise<Plant[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .select('*')
+      .eq('household_id', session.household_id)
       .order('name', { ascending: true });
 
     if (error) {
@@ -23,10 +30,17 @@ export class PlantService {
   }
 
   static async getPlantById(id: string): Promise<Plant | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .select('*')
       .eq('id', id)
+      .eq('household_id', session.household_id)
       .single();
 
     if (error) {
@@ -137,11 +151,18 @@ export class PlantService {
   }
 
   static async searchPlants(query: string): Promise<Plant[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const searchTerm = `%${query.toLowerCase()}%`;
     
     const { data, error } = await supabase
       .from('plants')
       .select('*')
+      .eq('household_id', session.household_id)
       .or(`name.ilike.${searchTerm},type.ilike.${searchTerm},location.ilike.${searchTerm}`)
       .order('name', { ascending: true });
 
@@ -154,9 +175,16 @@ export class PlantService {
   }
 
   static async getPlantsByLocation(location: string): Promise<Plant[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .select('*')
+      .eq('household_id', session.household_id)
       .eq('location', location)
       .order('name', { ascending: true });
 
@@ -169,9 +197,16 @@ export class PlantService {
   }
 
   static async getPlantsByHealthStatus(status: string): Promise<Plant[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .select('*')
+      .eq('household_id', session.household_id)
       .eq('health_status', status)
       .order('name', { ascending: true });
 

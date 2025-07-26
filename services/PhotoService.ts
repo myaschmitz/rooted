@@ -2,6 +2,8 @@ import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { PlantPhoto } from '../types/Plant';
 import { supabase } from './SupabaseService';
+import { HouseholdService } from './HouseholdService';
+import { PlantService } from './PlantService';
 import type { Database } from '../types/Database';
 
 type PlantPhotoRow = Database['public']['Tables']['plant_photos']['Row'];
@@ -20,10 +22,23 @@ export class PhotoService {
   }
 
   static async getPhotosByPlantId(plantId: string): Promise<PlantPhoto[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    // Verify plant belongs to current household
+    const plant = await PlantService.getPlantById(plantId);
+    if (!plant) {
+      throw new Error('Plant not found or not accessible');
+    }
+
     const { data, error } = await supabase
       .from('plant_photos')
       .select('*')
       .eq('plant_id', plantId)
+      .eq('household_id', session.household_id)
       .order('taken_at', { ascending: false });
 
     if (error) {
@@ -35,10 +50,23 @@ export class PhotoService {
   }
 
   static async getPhotosByPlantIdOldestFirst(plantId: string): Promise<PlantPhoto[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    // Verify plant belongs to current household
+    const plant = await PlantService.getPlantById(plantId);
+    if (!plant) {
+      throw new Error('Plant not found or not accessible');
+    }
+
     const { data, error } = await supabase
       .from('plant_photos')
       .select('*')
       .eq('plant_id', plantId)
+      .eq('household_id', session.household_id)
       .order('taken_at', { ascending: true });
 
     if (error) {
@@ -238,12 +266,25 @@ export class PhotoService {
         throw new Error('Failed to upload photo to cloud storage. Please check your internet connection and try again.');
       }
 
+      // Get current household session and verify plant access
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      // Verify plant belongs to current household
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        throw new Error('Plant not found or not accessible');
+      }
+
       const now = new Date().toISOString();
       const photoInsert: PlantPhotoInsert = {
         plant_id: plantId,
         file_path: cloudFilePath, // Use cloud path if available, otherwise local
         caption: caption || undefined,
         taken_at: now,
+        household_id: session.household_id,
       };
 
       // Save to Supabase database
@@ -283,6 +324,12 @@ export class PhotoService {
   }
 
   static async updatePhotoCaption(photoId: string, caption: string): Promise<PlantPhoto | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const photoUpdate: PlantPhotoUpdate = {
       caption,
       updated_at: new Date().toISOString()
@@ -292,6 +339,7 @@ export class PhotoService {
       .from('plant_photos')
       .update(photoUpdate)
       .eq('id', photoId)
+      .eq('household_id', session.household_id)
       .select()
       .single();
 
@@ -307,10 +355,17 @@ export class PhotoService {
   }
 
   static async getPhotoById(id: string): Promise<PlantPhoto | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plant_photos')
       .select('*')
       .eq('id', id)
+      .eq('household_id', session.household_id)
       .single();
 
     if (error) {
@@ -368,9 +423,16 @@ export class PhotoService {
   }
 
   static async getAllPhotos(): Promise<PlantPhoto[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('plant_photos')
       .select('*')
+      .eq('household_id', session.household_id)
       .order('taken_at', { ascending: false });
 
     if (error) {
@@ -476,13 +538,32 @@ export class PhotoService {
 
   static async setThumbnailPhoto(plantId: string, photoId: string): Promise<void> {
     try {
+      // Get current household session
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      // Verify plant belongs to current household
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        throw new Error('Plant not found or not accessible');
+      }
+
+      // Verify photo belongs to current household
+      const photo = await this.getPhotoById(photoId);
+      if (!photo) {
+        throw new Error('Photo not found or not accessible');
+      }
+
       const { error } = await supabase
         .from('plants')
         .update({ 
           thumbnail_photo_id: photoId,
           updated_at: new Date().toISOString()
         })
-        .eq('id', plantId);
+        .eq('id', plantId)
+        .eq('household_id', session.household_id);
 
       if (error) {
         console.error('Error setting thumbnail photo:', error);
@@ -496,13 +577,26 @@ export class PhotoService {
 
   static async clearThumbnailPhoto(plantId: string): Promise<void> {
     try {
+      // Get current household session
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      // Verify plant belongs to current household
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        throw new Error('Plant not found or not accessible');
+      }
+
       const { error } = await supabase
         .from('plants')
         .update({ 
           thumbnail_photo_id: null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', plantId);
+        .eq('id', plantId)
+        .eq('household_id', session.household_id);
 
       if (error) {
         console.error('Error clearing thumbnail photo:', error);
@@ -571,27 +665,24 @@ export class PhotoService {
 
   static async getThumbnailPhoto(plantId: string): Promise<PlantPhoto | null> {
     try {
-      // Get plant's thumbnail_photo_id and then fetch the photo
-      const { data: plantData, error: plantError } = await supabase
-        .from('plants')
-        .select('thumbnail_photo_id')
-        .eq('id', plantId)
-        .single();
-
-      if (plantError) {
-        if (plantError.code === 'PGRST116') {
-          return null; // Plant not found
-        }
-        console.error('Error fetching plant for thumbnail:', plantError);
-        throw new Error(`Failed to fetch plant for thumbnail: ${plantError.message}`);
+      // Get current household session
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
       }
 
-      if (!plantData?.thumbnail_photo_id) {
+      // Verify plant belongs to current household first
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        return null; // Plant not found or not accessible
+      }
+
+      if (!plant.thumbnail_photo_id) {
         return null; // No thumbnail set
       }
 
-      // Fetch the actual photo
-      return await this.getPhotoById(plantData.thumbnail_photo_id);
+      // Fetch the actual photo (this will also verify household access)
+      return await this.getPhotoById(plant.thumbnail_photo_id);
     } catch (error) {
       console.error('Error getting thumbnail photo:', error);
       return null;

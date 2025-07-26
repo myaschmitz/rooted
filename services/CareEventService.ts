@@ -10,10 +10,23 @@ type CareEventUpdate = Database['public']['Tables']['care_events']['Update'];
 
 export class CareEventService {
   static async getCareEventsByPlantId(plantId: string): Promise<CareEvent[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    // Verify plant belongs to current household
+    const plant = await PlantService.getPlantById(plantId);
+    if (!plant) {
+      throw new Error('Plant not found or not accessible');
+    }
+
     const { data, error } = await supabase
       .from('care_events')
       .select('*')
       .eq('plant_id', plantId)
+      .eq('household_id', session.household_id)
       .order('date', { ascending: false });
 
     if (error) {
@@ -78,6 +91,12 @@ export class CareEventService {
   }
 
   static async updateCareEvent(id: string, updates: Partial<Omit<CareEvent, 'id' | 'created_at'>>): Promise<CareEvent | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const careEventUpdate: CareEventUpdate = {
       ...updates,
       updated_at: new Date().toISOString()
@@ -87,6 +106,7 @@ export class CareEventService {
       .from('care_events')
       .update(careEventUpdate)
       .eq('id', id)
+      .eq('household_id', session.household_id)
       .select()
       .single();
 
@@ -102,10 +122,17 @@ export class CareEventService {
   }
 
   static async getCareEventById(id: string): Promise<CareEvent | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('care_events')
       .select('*')
       .eq('id', id)
+      .eq('household_id', session.household_id)
       .single();
 
     if (error) {
@@ -120,10 +147,17 @@ export class CareEventService {
   }
 
   static async deleteCareEvent(id: string): Promise<boolean> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { error } = await supabase
       .from('care_events')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('household_id', session.household_id);
 
     if (error) {
       console.error('Error deleting care event:', error);
@@ -134,9 +168,16 @@ export class CareEventService {
   }
 
   static async getRecentCareEvents(limit: number = 10): Promise<CareEvent[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
     const { data, error } = await supabase
       .from('care_events')
       .select('*')
+      .eq('household_id', session.household_id)
       .order('date', { ascending: false })
       .limit(limit);
 
@@ -149,11 +190,24 @@ export class CareEventService {
   }
 
   static async getLastCareEventByType(plantId: string, eventType: string): Promise<CareEvent | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    // Verify plant belongs to current household
+    const plant = await PlantService.getPlantById(plantId);
+    if (!plant) {
+      throw new Error('Plant not found or not accessible');
+    }
+
     const { data, error } = await supabase
       .from('care_events')
       .select('*')
       .eq('plant_id', plantId)
       .eq('event_type', eventType)
+      .eq('household_id', session.household_id)
       .order('date', { ascending: false })
       .limit(1)
       .single();
@@ -176,11 +230,24 @@ export class CareEventService {
     lastRepotted?: string;
   }> {
     try {
+      // Get current household session for filtering
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      // Verify plant belongs to current household
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        throw new Error('Plant not found or not accessible');
+      }
+
       // Get total events count
       const { count, error: countError } = await supabase
         .from('care_events')
         .select('*', { count: 'exact', head: true })
-        .eq('plant_id', plantId);
+        .eq('plant_id', plantId)
+        .eq('household_id', session.household_id);
 
       if (countError) {
         console.error('Error getting care events count:', countError);
