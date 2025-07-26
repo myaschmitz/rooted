@@ -392,7 +392,10 @@ export default function QuickCareScreen() {
       {/* Header with location filter */}
       <View style={globalStyles.flexRowBetween}>
         <TouchableOpacity 
-          style={[globalStyles.flexRowCenter, globalStyles.buttonSecondary]}
+          style={[
+            globalStyles.flexRowCenter,
+            { margin: 16 }
+          ]}
           onPress={() => setShowLocationModal(true)}
         >
           <Filter size={20} color={theme.colors.textSecondary} />
