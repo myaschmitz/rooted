@@ -53,46 +53,86 @@ export default function QuickCareScreen() {
       )].sort();
       setLocations(['All', ...uniqueLocations]);
       
-      // Load thumbnails for each plant
+      // Load thumbnails for each plant in parallel
       const thumbnails: {[plantId: string]: string} = {};
-      for (const plant of allPlants) {
+      const thumbnailPromises = allPlants.map(async (plant) => {
         try {
           if (plant.thumbnail_photo_id) {
             const thumbnailPhoto = await PhotoService.getThumbnailPhoto(plant.id);
             if (thumbnailPhoto) {
-              thumbnails[plant.id] = thumbnailPhoto.file_path;
+              return { plantId: plant.id, path: thumbnailPhoto.file_path };
             }
           } else {
             const photos = await PhotoService.getPhotosByPlantId(plant.id);
             if (photos.length > 0) {
-              thumbnails[plant.id] = photos[0].file_path;
+              return { plantId: plant.id, path: photos[0].file_path };
             }
           }
         } catch (error) {
           console.error(`Failed to load photos for plant ${plant.id}:`, error);
         }
-      }
+        return null;
+      });
+
+      const thumbnailResults = await Promise.allSettled(thumbnailPromises);
+      thumbnailResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          thumbnails[result.value.plantId] = result.value.path;
+        }
+      });
       setPlantThumbnails(thumbnails);
 
-      // Filter and group plants
+      // Filter plants by location first
       const filteredPlants = selectedLocation === 'All' 
         ? allPlants 
         : allPlants.filter(plant => plant.location === selectedLocation);
 
-      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
-      const sections = Object.entries(groupedPlants)
-        .filter(([location]) => selectedLocation === 'All' || location === selectedLocation)
-        .map(([location, plants]) => ({
-          title: location,
-          data: plants as Plant[]
-        }));
+      // Separate pinned and non-pinned plants from filtered plants
+      const pinnedPlants = filteredPlants.filter(plant => plant.pinned);
+      const unpinnedPlants = filteredPlants.filter(plant => !plant.pinned);
       
-      // Sort sections: "No Location" last, others alphabetically
-      sections.sort((a, b) => {
+      // Create sections array
+      const sections: {title: string, data: Plant[]}[] = [];
+      
+      // Add Pinned Plants section if there are any pinned plants
+      if (pinnedPlants.length > 0) {
+        const sortedPinnedPlants = pinnedPlants.sort((a, b) => 
+          (a.name || a.type).localeCompare(b.name || b.type)
+        );
+        sections.push({
+          title: 'Pinned Plants',
+          data: sortedPinnedPlants
+        });
+      }
+
+      // Group unpinned plants by location
+      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
+      const locationSections = Object.entries(groupedPlants)
+        .filter(([location]) => selectedLocation === 'All' || location === selectedLocation)
+        .map(([location, plants]) => {
+          // Filter out pinned plants from location sections and keep only unpinned
+          const unpinnedLocationPlants = (plants as Plant[]).filter(plant => !plant.pinned);
+          
+          // Sort unpinned plants by name
+          const sortedPlants = unpinnedLocationPlants.sort((a, b) => 
+            (a.name || a.type).localeCompare(b.name || b.type)
+          );
+          
+          return {
+            title: location,
+            data: sortedPlants
+          };
+        }).filter(section => section.data.length > 0); // Only include sections with plants
+      
+      // Sort location sections: "No Location" last, others alphabetically
+      locationSections.sort((a, b) => {
         if (a.title === 'No Location') return 1;
         if (b.title === 'No Location') return -1;
         return a.title.localeCompare(b.title);
       });
+      
+      // Add location sections after pinned section
+      sections.push(...locationSections);
       
       setPlantsGrouped(sections);
     } catch (error) {
@@ -212,7 +252,7 @@ export default function QuickCareScreen() {
           </View>
           
           <View style={{ marginRight: 12 }}>
-            <PlantThumbnail imageUri={thumbnail} size={50} />
+            <PlantThumbnail imageUri={thumbnail} size={40} />
           </View>
           
           <View style={styles.plantDetails}>

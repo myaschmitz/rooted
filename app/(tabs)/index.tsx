@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image, SectionList, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { Settings } from 'lucide-react-native';
+import { Settings, Pin, PinOff } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
@@ -25,42 +25,81 @@ export default function HomeScreen() {
       const allPlants = await PlantService.getAllPlants();
       setPlants(allPlants);
       
-      // Load thumbnails for each plant
+      // Load thumbnails for each plant in parallel
       const thumbnails: {[plantId: string]: string} = {};
-      for (const plant of allPlants) {
+      const thumbnailPromises = allPlants.map(async (plant) => {
         try {
           if (plant.thumbnail_photo_id) {
             // Use the designated thumbnail photo
             const thumbnailPhoto = await PhotoService.getThumbnailPhoto(plant.id);
             if (thumbnailPhoto) {
-              thumbnails[plant.id] = thumbnailPhoto.file_path;
+              return { plantId: plant.id, path: thumbnailPhoto.file_path };
             }
           } else {
             // Fall back to first photo if no thumbnail is set
             const photos = await PhotoService.getPhotosByPlantId(plant.id);
             if (photos.length > 0) {
-              thumbnails[plant.id] = photos[0].file_path;
+              return { plantId: plant.id, path: photos[0].file_path };
             }
           }
         } catch (error) {
           console.error(`Failed to load photos for plant ${plant.id}:`, error);
         }
-      }
+        return null;
+      });
+
+      const thumbnailResults = await Promise.allSettled(thumbnailPromises);
+      thumbnailResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          thumbnails[result.value.plantId] = result.value.path;
+        }
+      });
       setPlantThumbnails(thumbnails);
 
-      // Group plants by location
-      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
-      const sections = Object.entries(groupedPlants).map(([location, plants]) => ({
-        title: location,
-        data: plants as Plant[]
-      }));
+      // Separate pinned and non-pinned plants
+      const pinnedPlants = allPlants.filter(plant => plant.pinned);
+      const unpinnedPlants = allPlants.filter(plant => !plant.pinned);
       
-      // Sort sections: "No Location" last, others alphabetically
-      sections.sort((a, b) => {
+      // Create sections array
+      const sections: {title: string, data: Plant[]}[] = [];
+      
+      // Add Pinned Plants section if there are any pinned plants
+      if (pinnedPlants.length > 0) {
+        const sortedPinnedPlants = pinnedPlants.sort((a, b) => 
+          (a.name || a.type).localeCompare(b.name || b.type)
+        );
+        sections.push({
+          title: 'Pinned Plants',
+          data: sortedPinnedPlants
+        });
+      }
+      
+      // Group unpinned plants by location
+      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
+      const locationSections = Object.entries(groupedPlants).map(([location, plants]) => {
+        // Filter out pinned plants from location sections
+        const unpinnedLocationPlants = (plants as Plant[]).filter(plant => !plant.pinned);
+        
+        // Sort unpinned plants by name
+        const sortedPlants = unpinnedLocationPlants.sort((a, b) => 
+          (a.name || a.type).localeCompare(b.name || b.type)
+        );
+        
+        return {
+          title: location,
+          data: sortedPlants
+        };
+      }).filter(section => section.data.length > 0); // Only include sections with plants
+      
+      // Sort location sections: "No Location" last, others alphabetically
+      locationSections.sort((a, b) => {
         if (a.title === 'No Location') return 1;
         if (b.title === 'No Location') return -1;
         return a.title.localeCompare(b.title);
       });
+      
+      // Add location sections after pinned section
+      sections.push(...locationSections);
       
       setPlantsGrouped(sections);
     } catch (error) {
@@ -108,6 +147,17 @@ export default function HomeScreen() {
     }
   };
 
+  const handleTogglePin = useCallback(async (plantId: string, event: any) => {
+    event.stopPropagation();
+    try {
+      await PlantService.togglePinPlant(plantId);
+      await loadPlants();
+    } catch (error) {
+      console.error('Failed to toggle pin:', error);
+      Alert.alert('Error', 'Failed to update pin status');
+    }
+  }, [loadPlants]);
+
   const renderPlantItem = ({ item }: { item: Plant }) => {
     const healthDisplay = getHealthStatusDisplay(item.health_status);
     const thumbnail = plantThumbnails[item.id];
@@ -119,7 +169,7 @@ export default function HomeScreen() {
       >
         <View style={styles.plantCardContent}>
           <View style={styles.plantThumbnail}>
-            <PlantThumbnail imageUri={thumbnail} size={60} />
+            <PlantThumbnail imageUri={thumbnail} size={50} />
           </View>
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
@@ -128,6 +178,16 @@ export default function HomeScreen() {
               Health: {healthDisplay.text}
             </Text>
           </View>
+          <TouchableOpacity
+            style={styles.pinButton}
+            onPress={(event) => handleTogglePin(item.id, event)}
+          >
+            {item.pinned ? (
+              <PinOff size={16} color={theme.colors.primary} />
+            ) : (
+              <Pin size={16} color={theme.colors.textSecondary} />
+            )}
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );

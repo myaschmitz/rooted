@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { Flower2 } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -13,6 +13,8 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
   size = 60 
 }) => {
   const { theme } = useTheme();
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   
   const styles = StyleSheet.create({
     container: {
@@ -33,15 +35,40 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
     },
+    loadingOverlay: {
+      position: 'absolute',
+      width: size,
+      height: size,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.surfaceSecondary,
+      borderRadius: 8,
+    },
   });
 
-  if (imageUri) {
+  if (imageUri && !hasError) {
     return (
-      <Image 
-        source={{ uri: imageUri }} 
-        style={styles.image}
-        resizeMode="cover"
-      />
+      <View style={styles.container}>
+        <Image 
+          source={{ uri: imageUri }} 
+          style={styles.image}
+          resizeMode="cover"
+          fadeDuration={200}
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+        />
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator 
+              size="small" 
+              color={theme.colors.primary} 
+            />
+          </View>
+        )}
+      </View>
     );
   }
 

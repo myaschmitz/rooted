@@ -155,4 +155,19 @@ export class PlantService {
       throw new Error(`Failed to delete all plants: ${error.message}`);
     }
   }
+
+  static async pinPlant(id: string): Promise<Plant | null> {
+    return this.updatePlant(id, { pinned: true });
+  }
+
+  static async unpinPlant(id: string): Promise<Plant | null> {
+    return this.updatePlant(id, { pinned: false });
+  }
+
+  static async togglePinPlant(id: string): Promise<Plant | null> {
+    const plant = await this.getPlantById(id);
+    if (!plant) return null;
+    
+    return this.updatePlant(id, { pinned: !plant.pinned });
+  }
 }

@@ -6,6 +6,7 @@ export interface Plant {
   health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   notes?: string;
   thumbnail_photo_id?: string;
+  pinned?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -27,6 +27,10 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
   plantInfo: {
     flex: 1,
   },
+  pinButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
   plantName: {
     fontSize: 18,
     fontWeight: 'bold',
