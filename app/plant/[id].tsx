@@ -647,12 +647,12 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   photoItem: {
     marginRight: 15,
-    width: 120,
+    width: 80,
     alignItems: 'center',
   },
   photoImage: {
-    width: 100,
-    height: 100,
+    width: 60,
+    height: 60,
     borderRadius: 8,
     marginBottom: 5,
   },
