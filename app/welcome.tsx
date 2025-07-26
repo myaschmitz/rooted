@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { HouseholdService } from '../services/HouseholdService';
 import {
@@ -22,6 +23,7 @@ import { useTheme } from '../contexts/ThemeContext';
 
 export default function WelcomeScreen() {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [state, setState] = useState<WelcomeFlowState>({
     step: 'name',
   });
@@ -140,7 +142,7 @@ export default function WelcomeScreen() {
                       {
                         text: 'Continue',
                         onPress: () => {
-                          setState(prev => ({ ...prev, step: 'complete' }));
+                          setState(prev => ({ ...prev, step: 'complete', householdName: response.household_name || undefined }));
                           setTimeout(() => router.replace('/(tabs)'), 1000);
                         },
                       },
@@ -238,9 +240,14 @@ export default function WelcomeScreen() {
     },
     backButton: {
       position: 'absolute',
-      top: 60,
+      top: insets.top + 10,
       left: 20,
-      padding: 10,
+      padding: 12,
+      zIndex: 10,
+      minWidth: 44,
+      minHeight: 44,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     backButtonText: {
       color: theme.colors.primary,
@@ -308,7 +315,7 @@ export default function WelcomeScreen() {
   if (state.step === 'complete') {
     return (
       <View style={styles.completeContainer}>
-        <Text style={styles.completeText}>Welcome to your household! 🌱</Text>
+        <Text style={styles.completeText}>Welcome to {state.householdName}! 🌱</Text>
       </View>
     );
   }
@@ -324,7 +331,10 @@ export default function WelcomeScreen() {
         </TouchableOpacity>
       )}
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps='handled'
+      >
         {state.step === 'name' && (
           <>
             <Text style={styles.title}>Welcome to Rooted</Text>
