@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -25,8 +25,17 @@ export default function QuickCareScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showCareTypeModal, setShowCareTypeModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('All');
   const [locations, setLocations] = useState<string[]>([]);
+  const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray' | null>(null);
+  const [careDetails, setCareDetails] = useState({
+    notes: '',
+    fertilizerConcentration: '',
+    fertilizerAmount: '',
+    pestSeverity: 1,
+    healthStatus: undefined as 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical' | undefined
+  });
 
   const careTypes: Array<{
     type: 'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray';
@@ -189,52 +198,76 @@ export default function QuickCareScreen() {
     setSelectedPlants(newSelected);
   };
 
-  const handleCareTypeSelect = async (careType: 'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray') => {
+  const handleCareTypeSelect = (careType: 'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray') => {
     if (selectedPlants.size === 0) {
       Alert.alert('No Plants Selected', 'Please select at least one plant first.');
       return;
     }
 
+    setSelectedCareType(careType);
+    setShowCareTypeModal(false);
+    setShowDetailModal(true);
+  };
+
+  const handleDetailConfirm = async () => {
+    if (!selectedCareType || selectedPlants.size === 0) {
+      return;
+    }
+
     try {
       const selectedPlantsList = Array.from(selectedPlants);
-      const plantNames = selectedPlantsList
-        .map(plantId => {
-          const plant = plants.find(p => p.id === plantId);
-          return plant?.name || `${plant?.type}`;
-        })
-        .join(', ');
+      const careTypeLabel = careTypes.find(ct => ct.type === selectedCareType)?.label || selectedCareType;
 
-      const careTypeLabel = careTypes.find(ct => ct.type === careType)?.label || careType;
+      // Add care events for all selected plants
+      for (const plantId of selectedPlantsList) {
+        const careEventData: any = {
+          plant_id: plantId,
+          event_type: selectedCareType,
+          date: new Date().toISOString(),
+          notes: careDetails.notes.trim() || `Batch care: ${careTypeLabel}`,
+        };
 
-      Alert.alert(
-        'Confirm Care Event',
-        `Add "${careTypeLabel}" for ${selectedPlantsList.length} plant(s):\n${plantNames}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Confirm',
-            onPress: async () => {
-              // Add care events for all selected plants
-              for (const plantId of selectedPlantsList) {
-                await CareEventService.createCareEvent({
-                  plant_id: plantId,
-                  event_type: careType,
-                  date: new Date().toISOString(),
-                  notes: `Batch care: ${careTypeLabel}`,
-                });
-              }
-              
-              setSelectedPlants(new Set());
-              setShowCareTypeModal(false);
-              Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
-            }
+        // Add type-specific details
+        if (selectedCareType === 'fertilize') {
+          if (careDetails.fertilizerConcentration.trim()) {
+            careEventData.fertilizer_concentration = careDetails.fertilizerConcentration.trim();
           }
-        ]
-      );
+          if (careDetails.fertilizerAmount.trim()) {
+            careEventData.fertilizer_amount = careDetails.fertilizerAmount.trim();
+          }
+        } else if (selectedCareType === 'pest_spotted') {
+          careEventData.pest_severity = careDetails.pestSeverity;
+        }
+
+        if (careDetails.healthStatus) {
+          careEventData.health_status = careDetails.healthStatus;
+        }
+
+        await CareEventService.createCareEvent(careEventData);
+      }
+      
+      // Reset form and close modals
+      setSelectedPlants(new Set());
+      setShowDetailModal(false);
+      setSelectedCareType(null);
+      setCareDetails({
+        notes: '',
+        fertilizerConcentration: '',
+        fertilizerAmount: '',
+        pestSeverity: 1,
+        healthStatus: undefined
+      });
+      Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
       console.error('Failed to add care events:', error);
       Alert.alert('Error', 'Failed to add care events');
     }
+  };
+
+  const handleDetailBack = () => {
+    setShowDetailModal(false);
+    setSelectedCareType(null);
+    setShowCareTypeModal(true);
   };
 
   const renderPlantItem = ({ item }: { item: Plant }) => {
@@ -344,7 +377,7 @@ export default function QuickCareScreen() {
     <Modal
       visible={showCareTypeModal}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={() => setShowCareTypeModal(false)}
     >
       <View style={globalStyles.modalOverlay}>
@@ -378,6 +411,157 @@ export default function QuickCareScreen() {
       </View>
     </Modal>
   );
+
+  const renderDetailModal = () => {
+    if (!selectedCareType) return null;
+
+    const careTypeInfo = careTypes.find(ct => ct.type === selectedCareType);
+    const IconComponent = careTypeInfo?.icon;
+    const showFertilizerOptions = selectedCareType === 'fertilize';
+    const showPestSeverity = selectedCareType === 'pest_spotted';
+
+    return (
+      <Modal
+        visible={showDetailModal}
+        transparent
+        animationType="none"
+        onRequestClose={handleDetailBack}
+      >
+        <View style={globalStyles.modalOverlay}>
+          <View style={[globalStyles.modalContent, { maxHeight: '90%' }]}>
+            <View style={globalStyles.modalHeader}>
+              <View style={globalStyles.flexRowCenter}>
+                {IconComponent && <IconComponent size={24} color={careTypeInfo.color} />}
+                <Text style={[globalStyles.modalTitle, { marginLeft: 8 }]}>{careTypeInfo?.label} Details</Text>
+              </View>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 400 }} keyboardShouldPersistTaps="handled">
+              <Text style={[globalStyles.bodySmall, { marginBottom: 16 }]}>
+                {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
+              </Text>
+
+              {/* Fertilizer Options (only show for fertilize) */}
+              {showFertilizerOptions && (
+                <>
+                  <View style={globalStyles.inputGroup}>
+                    <Text style={globalStyles.label}>Fertilizer Concentration</Text>
+                    <TextInput
+                      style={globalStyles.input}
+                      value={careDetails.fertilizerConcentration}
+                      onChangeText={(text) => setCareDetails(prev => ({ ...prev, fertilizerConcentration: text }))}
+                      placeholder="e.g., 1/4 strength, 20-20-20"
+                    />
+                  </View>
+
+                  <View style={globalStyles.inputGroup}>
+                    <Text style={globalStyles.label}>Amount Used</Text>
+                    <TextInput
+                      style={globalStyles.input}
+                      value={careDetails.fertilizerAmount}
+                      onChangeText={(text) => setCareDetails(prev => ({ ...prev, fertilizerAmount: text }))}
+                      placeholder="e.g., 1 cup, 500ml"
+                    />
+                  </View>
+                </>
+              )}
+
+              {/* Pest Severity (only show for pest_spotted) */}
+              {showPestSeverity && (
+                <View style={globalStyles.inputGroup}>
+                  <Text style={globalStyles.label}>Pest Severity (1-10 scale)</Text>
+                  <Text style={globalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+                  <View style={styles.severityContainer}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
+                      <TouchableOpacity
+                        key={severity}
+                        style={[
+                          styles.severityButton,
+                          careDetails.pestSeverity === severity && styles.severityButtonSelected,
+                          careDetails.pestSeverity === severity 
+                            ? (severity <= 3 && styles.severityLowSelected) ||
+                              (severity >= 4 && severity <= 6 && styles.severityMediumSelected) ||
+                              (severity >= 7 && styles.severityHighSelected)
+                            : (severity <= 3 && styles.severityLow) ||
+                              (severity >= 4 && severity <= 6 && styles.severityMedium) ||
+                              (severity >= 7 && styles.severityHigh),
+                        ]}
+                        onPress={() => setCareDetails(prev => ({ ...prev, pestSeverity: severity }))}
+                      >
+                        <Text
+                          style={[
+                            styles.severityText,
+                            careDetails.pestSeverity === severity && styles.severityTextSelected,
+                          ]}
+                        >
+                          {severity}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Notes */}
+              <View style={globalStyles.inputGroup}>
+                <Text style={globalStyles.label}>Notes</Text>
+                <TextInput
+                  style={globalStyles.inputTextArea}
+                  value={careDetails.notes}
+                  onChangeText={(text) => setCareDetails(prev => ({ ...prev, notes: text }))}
+                  placeholder="Additional notes about this care event..."
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Health Status */}
+              <View style={globalStyles.inputGroup}>
+                <Text style={globalStyles.label}>Plant Health Status (Optional)</Text>
+                <View style={styles.healthStatusContainer}>
+                  {([{value: undefined, label: 'No Change'}, {value: 'excellent' as const, label: 'Excellent'}, {value: 'good' as const, label: 'Good'}, {value: 'okay' as const, label: 'Okay'}, {value: 'poor' as const, label: 'Poor'}, {value: 'concerning' as const, label: 'Concerning'}, {value: 'critical' as const, label: 'Critical'}] as const).map((status) => (
+                    <TouchableOpacity
+                      key={status.label}
+                      style={[
+                        styles.healthStatusOption,
+                        careDetails.healthStatus === status.value && styles.healthStatusOptionSelected,
+                      ]}
+                      onPress={() => setCareDetails(prev => ({ ...prev, healthStatus: status.value }))}
+                    >
+                      <Text
+                        style={[
+                          styles.healthStatusText,
+                          careDetails.healthStatus === status.value && styles.healthStatusTextSelected,
+                        ]}
+                      >
+                        {status.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+            
+            <View style={[globalStyles.flexRow, { marginTop: 16 }]}>
+              <TouchableOpacity
+                style={[globalStyles.buttonSecondary, { flex: 1, marginRight: 8 }]}
+                onPress={handleDetailBack}
+              >
+                <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[globalStyles.button, { flex: 1, marginLeft: 8 }]}
+                onPress={handleDetailConfirm}
+              >
+                <Text style={globalStyles.buttonText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   if (loading) {
     return (
@@ -449,6 +633,7 @@ export default function QuickCareScreen() {
       
       {renderLocationModal()}
       {renderCareTypeModal()}
+      {renderDetailModal()}
     </View>
   );
 }
@@ -519,5 +704,69 @@ const createStyles = (theme) => StyleSheet.create({
   checkboxText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
+  },
+  severityContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  severityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  severityLow: { backgroundColor: '#4CAF50' },
+  severityMedium: { backgroundColor: '#ffcb2eff' },
+  severityHigh: { backgroundColor: '#F44336' },
+  severityButtonSelected: {
+    transform: [{ scale: 1.1 }],
+    shadowColor: theme.colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 6,
+  },
+  severityLowSelected: { backgroundColor: '#2E7D32' },
+  severityMediumSelected: { backgroundColor: '#e6ad00ff' },
+  severityHighSelected: { backgroundColor: '#C62828' },
+  severityText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  severityTextSelected: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  healthStatusContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  healthStatusOption: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    minWidth: '30%',
+    alignItems: 'center',
+  },
+  healthStatusOptionSelected: {
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+  },
+  healthStatusText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  healthStatusTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
   },
 });
