@@ -216,67 +216,48 @@ export default function QuickCareScreen() {
 
     try {
       const selectedPlantsList = Array.from(selectedPlants);
-      const plantNames = selectedPlantsList
-        .map(plantId => {
-          const plant = plants.find(p => p.id === plantId);
-          return plant?.name || `${plant?.type}`;
-        })
-        .join(', ');
-
       const careTypeLabel = careTypes.find(ct => ct.type === selectedCareType)?.label || selectedCareType;
 
-      Alert.alert(
-        'Confirm Care Event',
-        `Add "${careTypeLabel}" for ${selectedPlantsList.length} plant(s):\n${plantNames}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Confirm',
-            onPress: async () => {
-              // Add care events for all selected plants
-              for (const plantId of selectedPlantsList) {
-                const careEventData: any = {
-                  plant_id: plantId,
-                  event_type: selectedCareType,
-                  date: new Date().toISOString(),
-                  notes: careDetails.notes.trim() || `Batch care: ${careTypeLabel}`,
-                };
+      // Add care events for all selected plants
+      for (const plantId of selectedPlantsList) {
+        const careEventData: any = {
+          plant_id: plantId,
+          event_type: selectedCareType,
+          date: new Date().toISOString(),
+          notes: careDetails.notes.trim() || `Batch care: ${careTypeLabel}`,
+        };
 
-                // Add type-specific details
-                if (selectedCareType === 'fertilize') {
-                  if (careDetails.fertilizerConcentration.trim()) {
-                    careEventData.fertilizer_concentration = careDetails.fertilizerConcentration.trim();
-                  }
-                  if (careDetails.fertilizerAmount.trim()) {
-                    careEventData.fertilizer_amount = careDetails.fertilizerAmount.trim();
-                  }
-                } else if (selectedCareType === 'pest_spotted') {
-                  careEventData.pest_severity = careDetails.pestSeverity;
-                }
-
-                if (careDetails.healthStatus) {
-                  careEventData.health_status = careDetails.healthStatus;
-                }
-
-                await CareEventService.createCareEvent(careEventData);
-              }
-              
-              // Reset form and close modals
-              setSelectedPlants(new Set());
-              setShowDetailModal(false);
-              setSelectedCareType(null);
-              setCareDetails({
-                notes: '',
-                fertilizerConcentration: '',
-                fertilizerAmount: '',
-                pestSeverity: 1,
-                healthStatus: undefined
-              });
-              Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
-            }
+        // Add type-specific details
+        if (selectedCareType === 'fertilize') {
+          if (careDetails.fertilizerConcentration.trim()) {
+            careEventData.fertilizer_concentration = careDetails.fertilizerConcentration.trim();
           }
-        ]
-      );
+          if (careDetails.fertilizerAmount.trim()) {
+            careEventData.fertilizer_amount = careDetails.fertilizerAmount.trim();
+          }
+        } else if (selectedCareType === 'pest_spotted') {
+          careEventData.pest_severity = careDetails.pestSeverity;
+        }
+
+        if (careDetails.healthStatus) {
+          careEventData.health_status = careDetails.healthStatus;
+        }
+
+        await CareEventService.createCareEvent(careEventData);
+      }
+      
+      // Reset form and close modals
+      setSelectedPlants(new Set());
+      setShowDetailModal(false);
+      setSelectedCareType(null);
+      setCareDetails({
+        notes: '',
+        fertilizerConcentration: '',
+        fertilizerAmount: '',
+        pestSeverity: 1,
+        healthStatus: undefined
+      });
+      Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
       console.error('Failed to add care events:', error);
       Alert.alert('Error', 'Failed to add care events');
@@ -573,7 +554,7 @@ export default function QuickCareScreen() {
                 style={[globalStyles.button, { flex: 1, marginLeft: 8 }]}
                 onPress={handleDetailConfirm}
               >
-                <Text style={globalStyles.buttonText}>Continue</Text>
+                <Text style={globalStyles.buttonText}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
