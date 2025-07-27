@@ -23,6 +23,13 @@
         }
       ]
     ],
-    "scheme": "rooted"
+    "scheme": "rooted",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b3703897-6483-4647-8b9b-d163c4cca1e2"
+      }
+    },
+    "owner": "sagewlivingstone"
   }
 }
