@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isDevelopment, config } from '../utils/environment';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = config.supabaseUrl;
+const supabaseAnonKey = config.supabaseAnonKey;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -12,3 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+if (isDevelopment) {
+  console.log('🔗 Connected to Supabase (DEV):', config.supabaseUrl);
+}

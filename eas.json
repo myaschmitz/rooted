@@ -1,0 +1,6 @@
+{
+  "build": {
+    "development": { "developmentClient": true },
+    "production": { "env": { "EXPO_PUBLIC_ENVIRONMENT": "production" } }
+  }
+}
