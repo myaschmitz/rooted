@@ -18,6 +18,7 @@ web-build/
 
 # All Env files
 .env
+.env.*
 .env.local
 .env.*.local
 
