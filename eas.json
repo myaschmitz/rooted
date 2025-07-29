@@ -1,6 +1,13 @@
 {
   "build": {
-    "development": { "developmentClient": true },
+    "development": {
+      "developmentClient": true,
+      "env": { "EXPO_PUBLIC_ENVIRONMENT": "development" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_ENVIRONMENT": "preview" }
+    },
     "production": { "env": { "EXPO_PUBLIC_ENVIRONMENT": "production" } }
   }
 }
