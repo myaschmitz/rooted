@@ -18,7 +18,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.myaschmitz.rooted",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos of your plants.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos of your plants."
       }
     },
     "android": {},
