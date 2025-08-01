@@ -1,2 +1,0 @@
-# rooted
-Plant project.

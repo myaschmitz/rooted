@@ -2,14 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, Image, SectionList, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Settings, Pin, PinOff } from 'lucide-react-native';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
+import { CareEventService } from '../../services/CareEventService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { PlantThumbnail } from '../../components/PlantThumbnail';
+
+dayjs.extend(relativeTime);
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -19,6 +24,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
+  const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
 
   const loadPlants = useCallback(async () => {
     try {
@@ -55,6 +61,26 @@ export default function HomeScreen() {
         }
       });
       setPlantThumbnails(thumbnails);
+
+      // Load last watering data for each plant in parallel
+      const wateringData: {[plantId: string]: string | null} = {};
+      const wateringPromises = allPlants.map(async (plant) => {
+        try {
+          const lastWatering = await CareEventService.getLastCareEventByType(plant.id, 'water');
+          return { plantId: plant.id, lastWatered: lastWatering?.date || null };
+        } catch (error) {
+          console.error(`Failed to load watering data for plant ${plant.id}:`, error);
+          return { plantId: plant.id, lastWatered: null };
+        }
+      });
+
+      const wateringResults = await Promise.allSettled(wateringPromises);
+      wateringResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          wateringData[result.value.plantId] = result.value.lastWatered;
+        }
+      });
+      setPlantWateringData(wateringData);
 
       // Separate pinned and non-pinned plants
       const pinnedPlants = allPlants.filter(plant => plant.pinned);
@@ -147,6 +173,38 @@ export default function HomeScreen() {
     }
   };
 
+  const formatTimeSinceWatering = (lastWateredDate?: string | null) => {
+    if (!lastWateredDate) {
+      return { timeAgo: 'Never watered', date: null };
+    }
+
+    const wateredDate = dayjs(lastWateredDate);
+    const timeAgo = wateredDate.fromNow();
+    const formattedDate = wateredDate.format('MMM D, YYYY');
+    
+    return { timeAgo, date: formattedDate };
+  };
+
+  const getWateringStatusColor = (lastWateredDate?: string | null) => {
+    if (!lastWateredDate) {
+      return theme.colors.textSecondary; // Grey for never watered
+    }
+
+    const now = dayjs();
+    const wateredDate = dayjs(lastWateredDate);
+    const daysSince = now.diff(wateredDate, 'day');
+
+    if (daysSince <= 3) {
+      return '#4CAF50'; // Green - recently watered
+    } else if (daysSince <= 7) {
+      return '#FFC107'; // Yellow - should water soon
+    } else if (daysSince <= 14) {
+      return '#FF9800'; // Orange - getting concerning
+    } else {
+      return '#F44336'; // Red - urgent watering needed
+    }
+  };
+
   const handleTogglePin = useCallback(async (plantId: string, event: any) => {
     event.stopPropagation();
     try {
@@ -159,8 +217,10 @@ export default function HomeScreen() {
   }, [loadPlants]);
 
   const renderPlantItem = ({ item }: { item: Plant }) => {
-    const healthDisplay = getHealthStatusDisplay(item.health_status);
     const thumbnail = plantThumbnails[item.id];
+    const lastWatered = plantWateringData[item.id];
+    const wateringDisplay = formatTimeSinceWatering(lastWatered);
+    const wateringColor = getWateringStatusColor(lastWatered);
     
     return (
       <TouchableOpacity
@@ -174,9 +234,20 @@ export default function HomeScreen() {
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
-            <Text style={[styles.healthStatus, { color: healthDisplay.color }]}>
-              Health: {healthDisplay.text}
-            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
+              <Text style={[styles.healthStatus, { color: wateringColor }]}>
+                Last watered: {wateringDisplay.timeAgo}
+              </Text>
+              {wateringDisplay.date && (
+                <Text style={[styles.healthStatus, { 
+                  color: wateringColor, 
+                  fontSize: 12, 
+                  marginLeft: 4 
+                }]}>
+                  ({wateringDisplay.date})
+                </Text>
+              )}
+            </View>
           </View>
           <TouchableOpacity
             style={styles.pinButton}

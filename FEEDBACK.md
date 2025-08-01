@@ -3,10 +3,10 @@
 ## Sage's Thoughts
 
 ### UI/UX Improvements
-- Make thumbnails a bit bigger
-- More helpful display for plant cards: show last watering instead of health
-- Add thumbnail to plant details page
-- Compress date and time in care events (show date and "X days ago")
+- [x] Make thumbnails a bit bigger
+- [x] More helpful display for plant cards: show last watering instead of health
+- [x] Add thumbnail to plant details page
+- Compress date and time in add care events page (show date and "X days ago")
 
 ### Event Management
 - Separate care events vs events
@@ -32,4 +32,4 @@
 ### UX Improvements
 - When keyboard opens, snap the input field above the keyboard
 - Add ability to download photos
-- Add ability to zoom into full screen photos
+- [x] Add ability to zoom into full screen photos
