@@ -31,6 +31,7 @@ export default function PlantDetailScreen() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [careEvents, setCareEvents] = useState<CareEvent[]>([]);
   const [photos, setPhotos] = useState<PlantPhoto[]>([]);
+  const [thumbnailPhoto, setThumbnailPhoto] = useState<PlantPhoto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fullScreenPhoto, setFullScreenPhoto] = useState<PlantPhoto | null>(null);
@@ -45,6 +46,17 @@ export default function PlantDetailScreen() {
         CareEventService.getCareEventsByPlantId(id),
         PhotoService.getPhotosByPlantId(id),
       ]);
+
+      // Load thumbnail photo
+      let thumbnailData = null;
+      if (plantData?.thumbnail_photo_id) {
+        try {
+          thumbnailData = await PhotoService.getThumbnailPhoto(id);
+        } catch (error) {
+          console.error('Failed to load thumbnail photo:', error);
+        }
+      }
+      setThumbnailPhoto(thumbnailData);
 
       // If there are photos but no thumbnail is set, auto-set the oldest photo as thumbnail
       if (photosData.length > 0 && !plantData?.thumbnail_photo_id) {
@@ -362,16 +374,25 @@ export default function PlantDetailScreen() {
         {/* Plant Info Header */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View style={styles.headerContent}>
-              <Text style={styles.plantName}>{plant.name || `${plant.type}`}</Text>
-              <Text style={styles.plantType}>{plant.type}</Text>
-              {plant.location && (
-                <Text style={styles.location}>📍 {plant.location}</Text>
+            <View style={styles.headerLeft}>
+              {thumbnailPhoto && (
+                <Image 
+                  source={{ uri: thumbnailPhoto.file_path }} 
+                  style={styles.thumbnailImage}
+                  resizeMode="cover"
+                />
               )}
-              <View style={styles.healthStatus}>
-                <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
-                  Health: {plant.health_status ? plant.health_status.charAt(0).toUpperCase() + plant.health_status.slice(1) : 'Good'}
-                </Text>
+              <View style={[styles.headerContent, thumbnailPhoto && styles.headerContentWithThumbnail]}>
+                <Text style={styles.plantName}>{plant.name || `${plant.type}`}</Text>
+                <Text style={styles.plantType}>{plant.type}</Text>
+                {plant.location && (
+                  <Text style={styles.location}>📍 {plant.location}</Text>
+                )}
+                <View style={styles.healthStatus}>
+                  <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
+                    Health: {plant.health_status ? plant.health_status.charAt(0).toUpperCase() + plant.health_status.slice(1) : 'Good'}
+                  </Text>
+                </View>
               </View>
             </View>
             <View style={styles.headerButtons}>
@@ -836,8 +857,22 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   headerContent: {
     flex: 1,
+  },
+  headerContentWithThumbnail: {
+    marginLeft: 15,
+  },
+  thumbnailImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
   },
   headerButtons: {
     flexDirection: 'row',
