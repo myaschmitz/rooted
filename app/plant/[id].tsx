@@ -8,11 +8,10 @@ import {
   Alert,
   RefreshControl,
   Image,
-  Modal,
   Dimensions,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
+import ImageViewing from 'react-native-image-viewing';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen, Trash2, X } from 'lucide-react-native';
 import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
@@ -34,7 +33,7 @@ export default function PlantDetailScreen() {
   const [thumbnailPhoto, setThumbnailPhoto] = useState<PlantPhoto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [fullScreenPhoto, setFullScreenPhoto] = useState<PlantPhoto | null>(null);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const loadPlantData = useCallback(async () => {
@@ -156,7 +155,7 @@ export default function PlantDetailScreen() {
   const handlePhotoPress = (photo: PlantPhoto) => {
     const photoIndex = photos.findIndex(p => p.id === photo.id);
     setCurrentPhotoIndex(photoIndex);
-    setFullScreenPhoto(photo);
+    setImageViewerVisible(true);
   };
 
   const handleDeletePhoto = async (photoId: string) => {
@@ -524,57 +523,22 @@ export default function PlantDetailScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        visible={!!fullScreenPhoto}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setFullScreenPhoto(null)}
-      >
-        <View style={styles.modalContainer}>
-          {fullScreenPhoto && photos.length > 0 && (
-            <>
-              <FlatList
-                data={photos}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                initialScrollIndex={currentPhotoIndex}
-                getItemLayout={(data, index) => ({
-                  length: screenWidth,
-                  offset: screenWidth * index,
-                  index,
-                })}
-                onMomentumScrollEnd={(event) => {
-                  const newIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
-                  setCurrentPhotoIndex(newIndex);
-                  setFullScreenPhoto(photos[newIndex]);
-                }}
-                renderItem={({ item }) => (
-                  <View style={styles.photoSlide}>
-                    <Image
-                      source={{ uri: item.file_path }}
-                      style={styles.fullScreenImage}
-                      resizeMode="contain"
-                    />
-                  </View>
-                )}
-                keyExtractor={(item) => item.id}
-              />
-              
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setFullScreenPhoto(null)}
-              >
-                <X size={24} color={theme.colors.textOnPrimary} />
-              </TouchableOpacity>
-              
+      <ImageViewing
+        images={photos.map(photo => ({ uri: photo.file_path }))}
+        imageIndex={currentPhotoIndex}
+        visible={imageViewerVisible}
+        onRequestClose={() => setImageViewerVisible(false)}
+        FooterComponent={({ imageIndex }) => {
+          const currentPhoto = photos[imageIndex];
+          return (
+            <View style={styles.imageViewerFooter}>
               <View style={styles.photoInfo}>
                 <Text style={styles.photoInfoText}>
-                  {formattedDates[fullScreenPhoto.id] || 'Loading...'}
+                  {formattedDates[currentPhoto?.id] || 'Loading...'}
                 </Text>
                 {photos.length > 1 && (
                   <Text style={styles.photoCounter}>
-                    {currentPhotoIndex + 1} of {photos.length}
+                    {imageIndex + 1} of {photos.length}
                   </Text>
                 )}
               </View>
@@ -582,18 +546,18 @@ export default function PlantDetailScreen() {
               <TouchableOpacity
                 style={styles.thumbnailButton}
                 onPress={() => {
-                  handleSetThumbnail(fullScreenPhoto.id);
-                  setFullScreenPhoto(null);
+                  handleSetThumbnail(currentPhoto.id);
+                  setImageViewerVisible(false);
                 }}
               >
                 <Text style={styles.thumbnailButtonText}>
-                  {plant?.thumbnail_photo_id === fullScreenPhoto.id ? '★ Thumbnail' : 'Set as Thumbnail'}
+                  {plant?.thumbnail_photo_id === currentPhoto.id ? '★ Thumbnail' : 'Set as Thumbnail'}
                 </Text>
               </TouchableOpacity>
-            </>
-          )}
-        </View>
-      </Modal>
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }
@@ -748,53 +712,15 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: '500',
     fontStyle: 'italic',
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.modalBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBackdrop: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: screenWidth,
-    height: screenHeight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: screenWidth - 40,
-    height: screenHeight - 200,
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-  },
-  modalCloseText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.text,
+  imageViewerFooter: {
+    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
   photoInfo: {
-    position: 'absolute',
-    bottom: 50,
-    left: 20,
-    right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 15,
     borderRadius: 8,
+    marginBottom: 10,
   },
   photoInfoText: {
     color: theme.colors.textOnPrimary,
@@ -807,12 +733,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     textAlign: 'center',
     marginTop: 5,
     opacity: 0.8,
-  },
-  photoSlide: {
-    width: screenWidth,
-    height: screenHeight,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   thumbnailBadge: {
     position: 'absolute',
@@ -831,10 +751,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: 'bold',
   },
   thumbnailButton: {
-    position: 'absolute',
-    bottom: 120,
-    left: 20,
-    right: 20,
     backgroundColor: theme.colors.surface,
     padding: 15,
     borderRadius: 8,
