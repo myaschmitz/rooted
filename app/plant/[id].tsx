@@ -35,6 +35,7 @@ export default function PlantDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [currentThumbnailId, setCurrentThumbnailId] = useState<string | null>(null);
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -71,12 +72,14 @@ export default function PlantDetailScreen() {
         // Update the plant data to reflect the new thumbnail
         const updatedPlant = await PlantService.getPlantById(id);
         setPlant(updatedPlant);
+        setCurrentThumbnailId(oldestPhoto.id);
       } else {
         setPlant(plantData);
       }
 
       setCareEvents(eventsData);
       setPhotos(photosData);
+      setCurrentThumbnailId(plantData?.thumbnail_photo_id || null);
     } catch (error) {
       console.error('Failed to load plant data:', error);
       Alert.alert('Error', 'Failed to load plant details');
@@ -207,12 +210,15 @@ export default function PlantDetailScreen() {
 
   const handleSetThumbnail = async (photoId: string) => {
     try {
+      setCurrentThumbnailId(photoId); // Update immediately for UI feedback
       await PhotoService.setThumbnailPhoto(id!, photoId);
       loadPlantData(); // Refresh to update thumbnail
       Alert.alert('Success', 'Thumbnail photo updated');
     } catch (error) {
       console.error('Failed to set thumbnail:', error);
       Alert.alert('Error', 'Failed to set thumbnail photo');
+      // Revert the local state on error
+      setCurrentThumbnailId(plant?.thumbnail_photo_id || null);
     }
   };
 
@@ -528,6 +534,7 @@ export default function PlantDetailScreen() {
         imageIndex={currentPhotoIndex}
         visible={imageViewerVisible}
         onRequestClose={() => setImageViewerVisible(false)}
+        swipeToCloseEnabled={false}
         FooterComponent={({ imageIndex }) => {
           const currentPhoto = photos[imageIndex];
           return (
@@ -547,11 +554,10 @@ export default function PlantDetailScreen() {
                 style={styles.thumbnailButton}
                 onPress={() => {
                   handleSetThumbnail(currentPhoto.id);
-                  setImageViewerVisible(false);
                 }}
               >
                 <Text style={styles.thumbnailButtonText}>
-                  {plant?.thumbnail_photo_id === currentPhoto.id ? '★ Thumbnail' : 'Set as Thumbnail'}
+                  {currentThumbnailId === currentPhoto.id ? '★ Thumbnail' : 'Set as Thumbnail'}
                 </Text>
               </TouchableOpacity>
             </View>
