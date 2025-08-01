@@ -169,7 +169,7 @@ export default function HomeScreen() {
       >
         <View style={styles.plantCardContent}>
           <View style={styles.plantThumbnail}>
-            <PlantThumbnail imageUri={thumbnail} size={50} />
+            <PlantThumbnail imageUri={thumbnail} size={65} />
           </View>
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
