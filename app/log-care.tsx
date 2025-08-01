@@ -27,7 +27,7 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [careDateTime, setCareDateTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -91,6 +91,7 @@ export default function LogCareScreen() {
   const careTypes = [
     { value: 'water', label: 'Water', icon: '💧' },
     { value: 'fertilize', label: 'Fertilize', icon: '🌱' },
+    { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
     { value: 'repot', label: 'Repot', icon: '🪴' },
     { value: 'prune', label: 'Prune', icon: '✂️' },
     { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
@@ -98,7 +99,7 @@ export default function LogCareScreen() {
     { value: 'other', label: 'Other', icon: '📝' },
   ] as const;
 
-  const showFertilizerOptions = eventType === 'fertilize';
+  const showFertilizerOptions = eventType === 'fertilize' || eventType === 'fertigate';
   const showPestSeverity = eventType === 'pest_spotted';
 
   return (

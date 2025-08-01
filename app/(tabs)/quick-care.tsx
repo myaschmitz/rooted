@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout } from 'lucide-react-native';
+import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout, MoreHorizontal } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
@@ -28,7 +28,7 @@ export default function QuickCareScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('All');
   const [locations, setLocations] = useState<string[]>([]);
-  const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray' | null>(null);
+  const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other' | null>(null);
   const [careDetails, setCareDetails] = useState({
     notes: '',
     fertilizerConcentration: '',
@@ -38,16 +38,18 @@ export default function QuickCareScreen() {
   });
 
   const careTypes: Array<{
-    type: 'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray';
+    type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
     label: string;
     icon: any;
     color: string;
   }> = [
     { type: 'water', label: 'Watered', icon: Droplets, color: '#2196F3' },
     { type: 'fertilize', label: 'Fertilized', icon: Calendar, color: '#4CAF50' },
+    { type: 'fertigate', label: 'Fertigated', icon: Droplets, color: '#00BCD4' },
     { type: 'prune', label: 'Pruned', icon: Scissors, color: '#FF9800' },
     { type: 'pest_spotted', label: 'Pest Spotted', icon: Bug, color: '#F44336' },
     { type: 'insecticide_spray', label: 'Insecticide Spray', icon: Sprout, color: '#9C27B0' },
+    { type: 'other', label: 'Other', icon: MoreHorizontal, color: '#607D8B' },
   ];
 
   const loadPlants = useCallback(async () => {
@@ -198,7 +200,7 @@ export default function QuickCareScreen() {
     setSelectedPlants(newSelected);
   };
 
-  const handleCareTypeSelect = (careType: 'water' | 'fertilize' | 'prune' | 'pest_spotted' | 'insecticide_spray') => {
+  const handleCareTypeSelect = (careType: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other') => {
     if (selectedPlants.size === 0) {
       Alert.alert('No Plants Selected', 'Please select at least one plant first.');
       return;
@@ -228,7 +230,7 @@ export default function QuickCareScreen() {
         };
 
         // Add type-specific details
-        if (selectedCareType === 'fertilize') {
+        if (selectedCareType === 'fertilize' || selectedCareType === 'fertigate') {
           if (careDetails.fertilizerConcentration.trim()) {
             careEventData.fertilizer_concentration = careDetails.fertilizerConcentration.trim();
           }
@@ -417,7 +419,7 @@ export default function QuickCareScreen() {
 
     const careTypeInfo = careTypes.find(ct => ct.type === selectedCareType);
     const IconComponent = careTypeInfo?.icon;
-    const showFertilizerOptions = selectedCareType === 'fertilize';
+    const showFertilizerOptions = selectedCareType === 'fertilize' || selectedCareType === 'fertigate';
     const showPestSeverity = selectedCareType === 'pest_spotted';
 
     return (

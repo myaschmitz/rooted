@@ -69,7 +69,8 @@ export class CareEventService {
     // Map event types to activity names
     const activityMap: { [key: string]: string } = {
       'water': 'watered',
-      'fertilize': 'fertilized', 
+      'fertilize': 'fertilized',
+      'fertigate': 'fertigated',
       'repot': 'repotted',
       'prune': 'pruned',
       'pest_spotted': 'pest spotted',

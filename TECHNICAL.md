@@ -58,7 +58,7 @@ CREATE TABLE plants (
 CREATE TABLE care_events (
   id TEXT PRIMARY KEY,           -- UUID
   plant_id TEXT NOT NULL,        -- Foreign key to plants
-  event_type TEXT NOT NULL,      -- 'water', 'fertilize', 'repot', etc.
+  event_type TEXT NOT NULL,      -- 'water', 'fertilize', 'fertigate', 'repot', etc.
   date TEXT NOT NULL,            -- ISO 8601 datetime
   notes TEXT,
   fertilizer_concentration TEXT,

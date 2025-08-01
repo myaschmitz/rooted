@@ -22,7 +22,7 @@ export default function EditCareEventScreen() {
   const careStyles = useCareStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical'>('good');
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
@@ -85,6 +85,7 @@ export default function EditCareEventScreen() {
   const careTypeOptions = [
     { value: 'water', label: 'Watering', emoji: '💧' },
     { value: 'fertilize', label: 'Fertilizing', emoji: '🌱' },
+    { value: 'fertigate', label: 'Fertigation', emoji: '💧🌱' },
     { value: 'prune', label: 'Pruning', emoji: '✂️' },
     { value: 'repot', label: 'Repotting', emoji: '🪴' },
     { value: 'pest_spotted', label: 'Pest Spotted', emoji: '🐛' },
@@ -189,7 +190,7 @@ export default function EditCareEventScreen() {
           </View>
 
           {/* Fertilizer Details (only show if fertilizing) */}
-          {eventType === 'fertilize' && (
+          {(eventType === 'fertilize' || eventType === 'fertigate') && (
             <>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Fertilizer Concentration</Text>

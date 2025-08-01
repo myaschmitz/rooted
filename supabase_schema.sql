@@ -15,7 +15,7 @@ CREATE TABLE plants (
 CREATE TABLE care_events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
-    event_type TEXT NOT NULL CHECK (event_type IN ('water', 'fertilize', 'repot', 'prune', 'pest_spotted', 'insecticide_spray', 'other')),
+    event_type TEXT NOT NULL CHECK (event_type IN ('water', 'fertilize', 'fertigate', 'repot', 'prune', 'pest_spotted', 'insecticide_spray', 'other')),
     date TIMESTAMPTZ NOT NULL,
     notes TEXT,
     fertilizer_concentration TEXT,
