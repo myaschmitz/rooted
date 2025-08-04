@@ -62,12 +62,29 @@ export default function HomeScreen() {
       });
       setPlantThumbnails(thumbnails);
 
-      // Load last watering data for each plant in parallel
+      // Load last watering data for each plant in parallel (includes both water and fertigate)
       const wateringData: {[plantId: string]: string | null} = {};
       const wateringPromises = allPlants.map(async (plant) => {
         try {
-          const lastWatering = await CareEventService.getLastCareEventByType(plant.id, 'water');
-          return { plantId: plant.id, lastWatered: lastWatering?.date || null };
+          // Get both water and fertigate events (fertigate is water + fertilizer)
+          const [lastWatering, lastFertigate] = await Promise.all([
+            CareEventService.getLastCareEventByType(plant.id, 'water'),
+            CareEventService.getLastCareEventByType(plant.id, 'fertigate')
+          ]);
+
+          // Find the most recent between water and fertigate
+          let mostRecentWatering = null;
+          if (lastWatering && lastFertigate) {
+            mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date)) 
+              ? lastWatering 
+              : lastFertigate;
+          } else if (lastWatering) {
+            mostRecentWatering = lastWatering;
+          } else if (lastFertigate) {
+            mostRecentWatering = lastFertigate;
+          }
+
+          return { plantId: plant.id, lastWatered: mostRecentWatering?.date || null };
         } catch (error) {
           console.error(`Failed to load watering data for plant ${plant.id}:`, error);
           return { plantId: plant.id, lastWatered: null };
@@ -194,11 +211,11 @@ export default function HomeScreen() {
     const wateredDate = dayjs(lastWateredDate);
     const daysSince = now.diff(wateredDate, 'day');
 
-    if (daysSince <= 3) {
+    if (daysSince <= 7) {
       return '#4CAF50'; // Green - recently watered
-    } else if (daysSince <= 7) {
-      return '#FFC107'; // Yellow - should water soon
     } else if (daysSince <= 14) {
+      return '#FFC107'; // Yellow - should water soon
+    } else if (daysSince <= 17) {
       return '#FF9800'; // Orange - getting concerning
     } else {
       return '#F44336'; // Red - urgent watering needed
@@ -238,15 +255,6 @@ export default function HomeScreen() {
               <Text style={[styles.healthStatus, { color: wateringColor }]}>
                 Last watered: {wateringDisplay.timeAgo}
               </Text>
-              {wateringDisplay.date && (
-                <Text style={[styles.healthStatus, { 
-                  color: wateringColor, 
-                  fontSize: 12, 
-                  marginLeft: 4 
-                }]}>
-                  ({wateringDisplay.date})
-                </Text>
-              )}
             </View>
           </View>
           <TouchableOpacity
