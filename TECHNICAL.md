@@ -53,9 +53,9 @@ CREATE TABLE plants (
 );
 ```
 
-#### Care Events Table
+#### Events Table
 ```sql
-CREATE TABLE care_events (
+CREATE TABLE events (
   id TEXT PRIMARY KEY,           -- UUID
   plant_id TEXT NOT NULL,        -- Foreign key to plants
   event_type TEXT NOT NULL,      -- 'water', 'fertilize', 'fertigate', 'repot', etc.
@@ -118,10 +118,10 @@ CREATE TABLE plant_notes (
 - **Key Methods**: `getAllPlants()`, `createPlant()`, `updatePlant()`, `deletePlant()`
 - **Features**: Search, filtering by location/health status
 
-#### CareEventService
-- **Purpose**: Care event management
-- **Key Methods**: `createCareEvent()`, `getCareEventsByPlantId()`, `getCareEventStats()`
-- **Features**: Event history, statistics, last care event tracking
+#### EventService
+- **Purpose**: Event management
+- **Key Methods**: `createEvent()`, `getEventsByPlantId()`, `getEventStats()`
+- **Features**: Event history, statistics, last event tracking
 
 #### PhotoService
 - **Purpose**: Photo capture and storage management
@@ -177,7 +177,7 @@ DocumentDirectory/
 
 ### Database
 - **Indexes**: Strategic indexes on frequently queried columns
-- **Pagination**: Implemented for large datasets (photos, care events)
+- **Pagination**: Implemented for large datasets (photos, events)
 - **Connection Pooling**: Single database connection with proper cleanup
 
 ### UI/UX

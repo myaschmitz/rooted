@@ -53,14 +53,14 @@ function ThemedStack() {
         <Stack.Screen 
           name="log-care" 
           options={{ 
-            title: 'Log Care Event',
+            title: 'Log Event',
             headerBackTitle: 'Back'
           }} 
         />
         <Stack.Screen 
           name="edit-care-event" 
           options={{ 
-            title: 'Edit Care Event',
+            title: 'Edit Event',
             headerBackTitle: 'Back'
           }} 
         />

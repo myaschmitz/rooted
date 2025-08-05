@@ -76,8 +76,8 @@ export default function LogCareScreen() {
       // Navigate back directly to refresh the plant detail screen
       router.back();
     } catch (error) {
-      console.error('Failed to log care event:', error);
-      Alert.alert('Error', 'Failed to log care event');
+      console.error('Failed to log event:', error);
+      Alert.alert('Error', 'Failed to log event');
     } finally {
       setSaving(false);
     }
@@ -121,9 +121,9 @@ export default function LogCareScreen() {
             </View>
           )}
 
-          {/* Care Type Selection */}
+          {/* Event Type Selection */}
           <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>Care Type</Text>
+            <Text style={globalStyles.label}>Event Type</Text>
             
             {/* Tabs */}
             <View style={styles.tabContainer}>
@@ -301,7 +301,7 @@ export default function LogCareScreen() {
               style={globalStyles.inputTextArea}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Additional notes about this care event..."
+              placeholder="Additional notes about this event..."
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -315,7 +315,7 @@ export default function LogCareScreen() {
             disabled={saving}
           >
             <Text style={globalStyles.buttonText}>
-              {saving ? 'Logging Event...' : 'Log Care Event'}
+              {saving ? 'Logging Event...' : 'Log Event'}
             </Text>
           </TouchableOpacity>
         </View>

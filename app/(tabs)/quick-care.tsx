@@ -173,7 +173,7 @@ export default function QuickCareScreen() {
   // Set up real-time subscriptions for automatic updates
   useRealtimeUpdates({
     onPlantsUpdate: loadPlants,
-    onCareEventsUpdate: loadPlants, // Care events don't directly affect this page, but keeping for consistency
+    onCareEventsUpdate: loadPlants, // Events don't directly affect this page, but keeping for consistency
     onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
   });
 
@@ -222,7 +222,7 @@ export default function QuickCareScreen() {
       const selectedPlantsList = Array.from(selectedPlants);
       const careTypeLabel = careTypes.find(ct => ct.type === selectedCareType)?.label || selectedCareType;
 
-      // Add care events for all selected plants
+      // Add events for all selected plants
       for (const plantId of selectedPlantsList) {
         const careEventData: any = {
           plant_id: plantId,
@@ -259,8 +259,8 @@ export default function QuickCareScreen() {
       });
       Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
-      console.error('Failed to add care events:', error);
-      Alert.alert('Error', 'Failed to add care events');
+      console.error('Failed to add events:', error);
+      Alert.alert('Error', 'Failed to add events');
     } finally {
       setSubmitting(false);
     }
@@ -384,7 +384,7 @@ export default function QuickCareScreen() {
     >
       <View style={globalStyles.modalOverlay}>
         <View style={globalStyles.modalContent}>
-          <Text style={globalStyles.modalTitle}>Select Care Type</Text>
+          <Text style={globalStyles.modalTitle}>Select Event Type</Text>
           <Text style={globalStyles.bodySmall}>
             {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
           </Text>
@@ -511,7 +511,7 @@ export default function QuickCareScreen() {
                   style={globalStyles.inputTextArea}
                   value={careDetails.notes}
                   onChangeText={(text) => setCareDetails(prev => ({ ...prev, notes: text }))}
-                  placeholder="Additional notes about this care event..."
+                  placeholder="Additional notes about this event..."
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
@@ -581,7 +581,7 @@ export default function QuickCareScreen() {
       {plants.length === 0 ? (
         <View style={globalStyles.emptyState}>
           <Text style={globalStyles.emptyStateText}>No plants yet!</Text>
-          <Text style={[globalStyles.bodySmall, globalStyles.textCenter]}>Add some plants first to use Quick Care</Text>
+          <Text style={[globalStyles.bodySmall, globalStyles.textCenter]}>Add some plants first to use Quick Events</Text>
         </View>
       ) : (
         <>
@@ -609,7 +609,7 @@ export default function QuickCareScreen() {
               onPress={() => setShowCareTypeModal(true)}
             >
               <Text style={[globalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
-                Add Care Event ({selectedPlants.size})
+                Add Event ({selectedPlants.size})
               </Text>
             </TouchableOpacity>
           )}

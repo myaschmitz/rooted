@@ -14,7 +14,7 @@
 - [x] Design SQLite database schema with sync-ready structure
 - [x] Implement DatabaseService for connection management
 - [x] Create PlantService for plant CRUD operations
-- [x] Implement CareEventService for care tracking
+- [x] Implement EventService for event tracking
 - [x] Build PhotoService for image management
 - [x] Create NotesService for plant notes
 - [x] Add UUID-based primary keys for future cloud sync
@@ -24,12 +24,12 @@
 - [x] Home screen with plant list and empty state
 - [x] Add Plant screen with form validation
 - [x] Plant detail screen with care history
-- [x] Log Care Event screen with backdating support
+- [x] Log Event screen with backdating support
 - [x] Navigation setup between all screens
 - [x] Updated UI to handle optional plant names
 
 ### TypeScript Integration
-- [x] Define core data types (Plant, CareEvent, PlantPhoto, PlantNote)
+- [x] Define core data types (Plant, Event, PlantPhoto, PlantNote)
 - [x] Type all service methods and responses
 - [x] Implement proper error handling throughout
 - [x] Updated Plant interface to make name optional
@@ -50,7 +50,7 @@
 - [ ] Add photo viewing/gallery screen
 - [ ] Implement note editing and deletion
 - [ ] Add search functionality for plants? (Unsure)
-- [ ] Create care event editing/deletion
+- [ ] Create event editing/deletion
 
 ### UI/UX Improvements
 - [ ] Add plant icons or default images
@@ -67,10 +67,10 @@
 - [ ] Add photo cropping/editing options
 - [ ] Implement photo sharing functionality
 
-### Care Event Enhancements
-- [ ] Add care event editing capability
-- [ ] Implement care event deletion
-- [ ] Create care history filtering (by type, date range)
+### Event Enhancements
+- [ ] Add event editing capability
+- [ ] Implement event deletion
+- [ ] Create event history filtering (by type, date range)
 - [ ] Add care statistics and insights
 - [ ] Implement care streaks and patterns
 
@@ -157,7 +157,7 @@
 - Validate on physical devices before considering complete
 
 ### Success Criteria
-- User can successfully add plants and track care events
+- User can successfully add plants and track events
 - Photos can be captured and associated with plants
 - Data persists between app sessions
 - Navigation is intuitive and responsive

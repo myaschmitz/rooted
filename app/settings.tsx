@@ -77,7 +77,7 @@ export default function Settings() {
   const handleDeleteAllData = () => {
     Alert.alert(
       'Delete All Data',
-      'This will permanently delete all plants, care events, photos, and settings. This action cannot be undone.',
+      'This will permanently delete all plants, events, photos, and settings. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -110,7 +110,7 @@ export default function Settings() {
       // Delete all photos first
       await PhotoService.deleteAllPhotos();
       
-      // Delete all care events
+      // Delete all events
       await CareEventService.deleteAllCareEvents();
       
       // Delete all plants
@@ -222,7 +222,7 @@ export default function Settings() {
         </TouchableOpacity>
         
         <Text style={styles.warningText}>
-          This will permanently delete all plants, care history, photos, and settings.
+          This will permanently delete all plants, event history, photos, and settings.
         </Text>
       </View>
 

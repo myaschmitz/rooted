@@ -2,7 +2,7 @@
 
 ## Summary
 
-Added comprehensive editing functionality to the Rooted plant care app, including the ability to edit plant information and care history events.
+Added comprehensive editing functionality to the Rooted plant care app, including the ability to edit plant information and event history.
 
 ## New Features Added
 
@@ -17,9 +17,9 @@ Added comprehensive editing functionality to the Rooted plant care app, includin
   - Notes
   - Plant photo
 
-### 2. Care Event Editing
-- **New Screen**: `edit-care-event.tsx` - Allows editing care history entries
-- **Edit Buttons**: Added "✏️" button to each care event in the history
+### 2. Event Editing
+- **New Screen**: `edit-care-event.tsx` - Allows editing event history entries
+- **Edit Buttons**: Added "✏️" button to each event in the history
 - **Editable Fields**:
   - Event type (water/fertilize/prune/repot/other)
   - Health status after care
@@ -32,14 +32,14 @@ Added comprehensive editing functionality to the Rooted plant care app, includin
 
 ### 4. UI Enhancements
 - **Header Layout**: Restructured plant detail header to accommodate edit button
-- **Care Event Layout**: Modified care event display to include edit functionality
+- **Event Layout**: Modified event display to include edit functionality
 - **Consistent Styling**: Added consistent edit button styling throughout the app
 
 ## Technical Changes
 
 ### Files Added
 1. `app/edit-plant.tsx` - Plant editing screen
-2. `app/edit-care-event.tsx` - Care event editing screen
+2. `app/edit-care-event.tsx` - Event editing screen
 
 ### Files Modified
 1. `app/add-plant.tsx` - Fixed navigation method
@@ -49,21 +49,21 @@ Added comprehensive editing functionality to the Rooted plant care app, includin
 
 ### Services Used
 - `PlantService.updatePlant()` - Already existed
-- `CareEventService.updateCareEvent()` - Already existed
-- `CareEventService.getCareEventById()` - Already existed
+- `EventService.updateEvent()` - Already existed
+- `EventService.getEventById()` - Already existed
 
 ## User Experience Improvements
 
-1. **Seamless Editing**: Users can now edit any plant or care event data
+1. **Seamless Editing**: Users can now edit any plant or event data
 2. **Better Navigation**: Fixed breadcrumb confusion when adding plants
 3. **Intuitive UI**: Edit buttons are clearly visible and consistently placed
 4. **Form Pre-population**: Edit forms load with existing data for easy modification
-5. **Comprehensive Editing**: All plant and care event fields are editable
+5. **Comprehensive Editing**: All plant and event fields are editable
 
 ## Testing Recommendations
 
 1. Test plant editing from detail screen
-2. Test care event editing from history
+2. Test event editing from history
 3. Verify navigation flows work correctly
 4. Test form validation and error handling
 5. Confirm data persistence after edits

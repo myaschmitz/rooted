@@ -88,10 +88,10 @@ CREATE POLICY "Users can insert plants" ON plants FOR INSERT WITH CHECK (auth.ro
 CREATE POLICY "Users can update plants" ON plants FOR UPDATE USING (auth.role() = 'authenticated');
 CREATE POLICY "Users can delete plants" ON plants FOR DELETE USING (auth.role() = 'authenticated');
 
-CREATE POLICY "Users can view all care events" ON care_events FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can insert care events" ON care_events FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Users can update care events" ON care_events FOR UPDATE USING (auth.role() = 'authenticated');
-CREATE POLICY "Users can delete care events" ON care_events FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can view all events" ON care_events FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can insert events" ON care_events FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Users can update events" ON care_events FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Users can delete events" ON care_events FOR DELETE USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Users can view all plant photos" ON plant_photos FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Users can insert plant photos" ON plant_photos FOR INSERT WITH CHECK (auth.role() = 'authenticated');

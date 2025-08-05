@@ -311,7 +311,7 @@ export default function SettingsScreen() {
   const handleDeleteAllData = () => {
     Alert.alert(
       'Delete All Data',
-      'This will permanently delete all plants, care events, photos, and settings. This action cannot be undone.',
+      'This will permanently delete all plants, events, photos, and settings. This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -344,7 +344,7 @@ export default function SettingsScreen() {
       // Delete all photos first
       await PhotoService.deleteAllPhotos();
       
-      // Delete all care events
+      // Delete all events
       await CareEventService.deleteAllCareEvents();
       
       // Delete all plants
@@ -640,7 +640,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         
         <Text style={styles.warningText}>
-          This will permanently delete all plants, care history, photos, and settings.
+          This will permanently delete all plants, event history, photos, and settings.
         </Text>
       </View>
 
@@ -648,7 +648,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>About</Text>
         <Text style={styles.aboutText}>
           Rooted - Plant Care Tracker{'\n'}
-          Track your plants, log care events, and keep your green friends healthy!
+          Track your plants, log events, and keep your green friends healthy!
         </Text>
         <Text style={styles.versionText}>
           Version 1.0.0

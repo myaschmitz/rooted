@@ -227,7 +227,7 @@ export default function PlantDetailScreen() {
 
     Alert.alert(
       'Delete Plant',
-      `Are you sure you want to delete "${plant.name || `${plant.type}`}"? This will also delete all care events and photos associated with this plant. This action cannot be undone.`,
+      `Are you sure you want to delete "${plant.name || `${plant.type}`}"? This will also delete all events and photos associated with this plant. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -235,7 +235,7 @@ export default function PlantDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete the plant (this should also cascade delete care events and photos via foreign key constraints)
+              // Delete the plant (this should also cascade delete events and photos via foreign key constraints)
               const success = await PlantService.deletePlant(id);
               
               if (success) {
@@ -263,7 +263,7 @@ export default function PlantDetailScreen() {
 
   const handleDeleteCareEvent = async (eventId: string, eventType: string) => {
     Alert.alert(
-      'Delete Care Event',
+      'Delete Event',
       `Are you sure you want to delete this ${eventType} event? This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
@@ -275,14 +275,14 @@ export default function PlantDetailScreen() {
               const success = await CareEventService.deleteCareEvent(eventId);
               
               if (success) {
-                loadPlantData(); // Refresh to remove deleted care event
-                Alert.alert('Success', 'Care event deleted successfully');
+                loadPlantData(); // Refresh to remove deleted event
+                Alert.alert('Success', 'Event deleted successfully');
               } else {
-                Alert.alert('Error', 'Failed to delete care event');
+                Alert.alert('Error', 'Failed to delete event');
               }
             } catch (error) {
-              console.error('Failed to delete care event:', error);
-              Alert.alert('Error', 'Failed to delete care event');
+              console.error('Failed to delete event:', error);
+              Alert.alert('Error', 'Failed to delete event');
             }
           },
         },
@@ -311,7 +311,7 @@ export default function PlantDetailScreen() {
   const updateFormattedDates = useCallback(async () => {
     const dateMap: {[key: string]: string} = {};
     
-    // Format care event dates
+    // Format event dates
     for (const event of careEvents) {
       dateMap[event.id] = await DateTimeService.formatDate(event.date);
     }
@@ -411,7 +411,7 @@ export default function PlantDetailScreen() {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLogCare}>
-            <Text style={styles.actionButtonText}>Log Care Event</Text>
+            <Text style={styles.actionButtonText}>Log Event</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton} onPress={handleAddPhoto}>
             <Text style={styles.actionButtonText}>📷 Add Photo</Text>
@@ -465,7 +465,7 @@ export default function PlantDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Care History ({careEvents.length})</Text>
           {careEvents.length === 0 ? (
-            <Text style={styles.emptyCareText}>No care events recorded yet</Text>
+            <Text style={styles.emptyCareText}>No events recorded yet</Text>
           ) : (
             careEvents.slice(0, 10).map((event) => (
               <React.Fragment key={event.id}>

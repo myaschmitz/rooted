@@ -30,8 +30,8 @@ export class CareEventService {
       .order('date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching care events:', error);
-      throw new Error(`Failed to fetch care events: ${error.message}`);
+      console.error('Error fetching events:', error);
+      throw new Error(`Failed to fetch events: ${error.message}`);
     }
 
     return (data || []) as CareEvent[];
@@ -56,8 +56,8 @@ export class CareEventService {
       .single();
 
     if (error) {
-      console.error('Error creating care event:', error);
-      throw new Error(`Failed to create care event: ${error.message}`);
+      console.error('Error creating event:', error);
+      throw new Error(`Failed to create event: ${error.message}`);
     }
 
     const careEvent = data as CareEvent;
@@ -115,8 +115,8 @@ export class CareEventService {
       if (error.code === 'PGRST116') {
         return null; // No rows found
       }
-      console.error('Error updating care event:', error);
-      throw new Error(`Failed to update care event: ${error.message}`);
+      console.error('Error updating event:', error);
+      throw new Error(`Failed to update event: ${error.message}`);
     }
 
     return data as CareEvent;
@@ -140,8 +140,8 @@ export class CareEventService {
       if (error.code === 'PGRST116') {
         return null; // No rows found
       }
-      console.error('Error fetching care event:', error);
-      throw new Error(`Failed to fetch care event: ${error.message}`);
+      console.error('Error fetching event:', error);
+      throw new Error(`Failed to fetch event: ${error.message}`);
     }
 
     return data as CareEvent;
@@ -161,8 +161,8 @@ export class CareEventService {
       .eq('household_id', session.household_id);
 
     if (error) {
-      console.error('Error deleting care event:', error);
-      throw new Error(`Failed to delete care event: ${error.message}`);
+      console.error('Error deleting event:', error);
+      throw new Error(`Failed to delete event: ${error.message}`);
     }
 
     return true;
@@ -183,8 +183,8 @@ export class CareEventService {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching recent care events:', error);
-      throw new Error(`Failed to fetch recent care events: ${error.message}`);
+      console.error('Error fetching recent events:', error);
+      throw new Error(`Failed to fetch recent events: ${error.message}`);
     }
 
     return (data || []) as CareEvent[];
@@ -217,8 +217,8 @@ export class CareEventService {
       if (error.code === 'PGRST116') {
         return null; // No rows found
       }
-      console.error('Error fetching last care event by type:', error);
-      throw new Error(`Failed to fetch last care event by type: ${error.message}`);
+      console.error('Error fetching last event by type:', error);
+      throw new Error(`Failed to fetch last event by type: ${error.message}`);
     }
 
     return data as CareEvent;
@@ -251,8 +251,8 @@ export class CareEventService {
         .eq('household_id', session.household_id);
 
       if (countError) {
-        console.error('Error getting care events count:', countError);
-        throw new Error(`Failed to get care events count: ${countError.message}`);
+        console.error('Error getting events count:', countError);
+        throw new Error(`Failed to get events count: ${countError.message}`);
       }
 
       const totalEvents = count || 0;
@@ -269,7 +269,7 @@ export class CareEventService {
         lastRepotted: lastRepotted?.date,
       };
     } catch (error) {
-      console.error('Error getting care event stats:', error);
+      console.error('Error getting event stats:', error);
       throw error;
     }
   }
@@ -281,8 +281,8 @@ export class CareEventService {
       .neq('id', ''); // Delete all rows
 
     if (error) {
-      console.error('Error deleting all care events:', error);
-      throw new Error(`Failed to delete all care events: ${error.message}`);
+      console.error('Error deleting all events:', error);
+      throw new Error(`Failed to delete all events: ${error.message}`);
     }
   }
 }

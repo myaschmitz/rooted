@@ -77,7 +77,7 @@ class RealtimeSubscriptionManager {
           table: 'care_events'
         },
         (payload) => {
-          console.log('Care events table changed:', payload.eventType);
+          console.log('Events table changed:', payload.eventType);
           this.notifySubscribers('onCareEventsUpdate');
         }
       )

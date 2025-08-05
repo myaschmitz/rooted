@@ -6,8 +6,8 @@ A personal plant care tracking app for iPhone built with React Native and Expo. 
 
 ### Core Functionality
 - **Plant Management**: Add, edit, and organize your plant collection
-- **Care Event Logging**: Track watering, fertilizing, repotting, and pruning with easy backdating
-- **Care Event Editing**: Modify care history entries, including notes and fertilizer details
+- **Event Logging**: Track watering, fertilizing, repotting, and pruning with easy backdating
+- **Event Editing**: Modify event history entries, including notes and fertilizer details
 - **Photo Documentation**: Take and store photos to document plant progress with full-screen viewing
 - **Plant Data Editing**: Update plant names, types, locations, health status, and notes
 - **Health Status Tracking**: Monitor plant health (excellent/good/okay/poor/concerning/critical)
@@ -19,7 +19,7 @@ A personal plant care tracking app for iPhone built with React Native and Expo. 
 - **Simplified Photo Management**: Delete photos with a single tap (red X button)
 - **Auto-Refresh**: Plant lists update automatically when adding new plants or photos
 - **Flexible Reminders**: Gentle nudges based on your actual care patterns (not rigid scheduling)
-- **Care History**: Visual timeline of all care events with edit functionality
+- **Event History**: Visual timeline of all events with edit functionality
 - **Quick Logging**: Default to current date/time with easy backdating options
 - **Local Storage**: All data stored locally with SQLite for offline access
 
@@ -82,14 +82,14 @@ rooted/
 │   ├── index.tsx          # Home screen (plant list)
 │   ├── add-plant.tsx      # Add new plant screen
 │   ├── edit-plant.tsx     # Edit plant information screen
-│   ├── log-care.tsx       # Log care event screen
-│   ├── edit-care-event.tsx# Edit care event screen
+│   ├── log-care.tsx       # Log event screen
+│   ├── edit-care-event.tsx# Edit event screen
 │   └── plant/
 │       └── [id].tsx       # Plant detail screen
 ├── services/              # Data layer services
 │   ├── DatabaseService.ts # SQLite database setup
 │   ├── PlantService.ts    # Plant CRUD operations
-│   ├── CareEventService.ts# Care event management
+│   ├── CareEventService.ts# Event management
 │   ├── PhotoService.ts    # Photo management
 │   └── NotesService.ts    # Notes management
 ├── types/                 # TypeScript type definitions
@@ -102,7 +102,7 @@ rooted/
 The app uses SQLite with tables designed for future cloud sync:
 
 - **plants**: Core plant information
-- **care_events**: All care activities (water, fertilize, etc.)
+- **events**: All care activities (water, fertilize, etc.)
 - **plant_photos**: Photo metadata and file paths
 - **plant_notes**: Free-form notes for each plant
 
@@ -124,17 +124,17 @@ All tables include UUID primary keys and sync tracking columns.
 4. Update plant photo if desired
 5. Save changes
 
-### Logging Care Events
+### Logging Events
 1. Open a plant's detail page
-2. Tap "Log Care Event"
-3. Select care type (water, fertilize, repot, etc.)
+2. Tap "Log Event"
+3. Select event type (water, fertilize, repot, etc.)
 4. Adjust date/time if backdating
 5. Add notes and fertilizer details if applicable
 6. Save the event
 
-### Editing Care Events
-1. From a plant's detail page, find the care event in the history
-2. Tap the "✏️" button next to the care event
+### Editing Events
+1. From a plant's detail page, find the event in the history
+2. Tap the "✏️" button next to the event
 3. Modify care type, health status, notes, or fertilizer details
 4. Save changes
 

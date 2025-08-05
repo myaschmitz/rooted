@@ -40,9 +40,9 @@ export default function TabLayout() {
         <Tabs.Screen
           name="quick-care"
           options={{
-            title: 'Quick Care',
+            title: 'Quick Events',
             tabBarIcon: ({ color, size }) => <Droplets size={size} color={color} />,
-            headerTitle: 'Quick Care',
+            headerTitle: 'Quick Events',
           }}
         />
         <Tabs.Screen

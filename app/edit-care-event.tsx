@@ -50,8 +50,8 @@ export default function EditCareEventScreen() {
         setPestSeverity(eventData.pest_severity || 1);
       }
     } catch (error) {
-      console.error('Failed to load care event:', error);
-      Alert.alert('Error', 'Failed to load care event data');
+      console.error('Failed to load event:', error);
+      Alert.alert('Error', 'Failed to load event data');
     } finally {
       setLoading(false);
     }
@@ -72,8 +72,8 @@ export default function EditCareEventScreen() {
 
       router.back();
     } catch (error) {
-      console.error('Failed to update care event:', error);
-      Alert.alert('Error', 'Failed to update care event');
+      console.error('Failed to update event:', error);
+      Alert.alert('Error', 'Failed to update event');
     } finally {
       setSaving(false);
     }
@@ -102,7 +102,7 @@ export default function EditCareEventScreen() {
   if (!careEvent) {
     return (
       <View style={styles.container}>
-        <Text>Care event not found</Text>
+        <Text>Event not found</Text>
       </View>
     );
   }
@@ -213,7 +213,7 @@ export default function EditCareEventScreen() {
               style={[styles.input, styles.notesInput]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Any additional notes about this care event..."
+              placeholder="Any additional notes about this event..."
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -227,7 +227,7 @@ export default function EditCareEventScreen() {
             disabled={saving}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? 'Updating...' : 'Update Care Event'}
+              {saving ? 'Updating...' : 'Update Event'}
             </Text>
           </TouchableOpacity>
         </View>
