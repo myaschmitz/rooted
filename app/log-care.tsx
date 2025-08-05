@@ -415,7 +415,7 @@ const createStyles = (theme) => StyleSheet.create({
   dateTimeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   dateTimeSection: {
     flex: 1,
@@ -431,7 +431,7 @@ const createStyles = (theme) => StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 4,
-    paddingTop: 20,
+    paddingTop: 26,
   },
   nowButton: {
     backgroundColor: theme.colors.primary,
