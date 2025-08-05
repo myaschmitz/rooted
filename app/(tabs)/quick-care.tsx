@@ -28,7 +28,7 @@ export default function QuickCareScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('All');
   const [locations, setLocations] = useState<string[]>([]);
-  const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other' | null>(null);
+  const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repotted' | 'other' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [careDetails, setCareDetails] = useState({
     notes: '',
@@ -38,7 +38,7 @@ export default function QuickCareScreen() {
   });
 
   const careTypes: Array<{
-    type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
+    type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repotted' | 'other';
     label: string;
     icon: any;
     color: string;
@@ -49,6 +49,7 @@ export default function QuickCareScreen() {
     { type: 'prune', label: 'Pruned', icon: Scissors, color: '#FF9800' },
     { type: 'pest_spotted', label: 'Pest Spotted', icon: Bug, color: '#F44336' },
     { type: 'insecticide_spray', label: 'Insecticide Spray', icon: Sprout, color: '#9C27B0' },
+    { type: 'repotted', label: 'Repotted', icon: Sprout, color: '#795548' },
     { type: 'other', label: 'Other', icon: MoreHorizontal, color: '#607D8B' },
   ];
 
@@ -200,7 +201,7 @@ export default function QuickCareScreen() {
     setSelectedPlants(newSelected);
   };
 
-  const handleCareTypeSelect = (careType: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other') => {
+  const handleCareTypeSelect = (careType: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repotted' | 'other') => {
     if (selectedPlants.size === 0) {
       Alert.alert('No Plants Selected', 'Please select at least one plant first.');
       return;
