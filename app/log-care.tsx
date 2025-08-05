@@ -193,43 +193,44 @@ export default function LogCareScreen() {
 
           {/* Date and Time */}
           <View style={globalStyles.inputGroup}>
-             <Text style={globalStyles.label}>Date</Text>
-             <DateTimePicker
-               value={careDateTime}
-               mode="date"
-               display="default"
-               onChange={(event, selectedDate) => {
-                 if (selectedDate) {
-                   setCareDateTime(selectedDate);
-                 }
-               }}
-             />
-           </View>
-
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>Time</Text>
-              <DateTimePicker
-                value={careDateTime}
-                mode="time"
-                display="default"
-                onChange={(event, selectedTime) => {
-                  if (selectedTime) {
-                    setCareDateTime(selectedTime);
-                 }
-               }}
-             />
-          </View>
-
-          {/* Set to Now Button */}
-          <View style={[globalStyles.flexRow, { marginBottom: 20 }]}>
-            <TouchableOpacity
-              style={globalStyles.buttonSmall}
-              onPress={() => {
-                setCareDateTime(new Date());
-              }}
-            >
-              <Text style={globalStyles.buttonTextSmall}>Set to Now</Text>
-            </TouchableOpacity>
+            <View style={styles.dateTimeRow}>
+              <View style={styles.dateTimeSection}>
+                <Text style={globalStyles.label}>Date</Text>
+                <DateTimePicker
+                  value={careDateTime}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setCareDateTime(selectedDate);
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.dateTimeSection}>
+                <Text style={globalStyles.label}>Time</Text>
+                <DateTimePicker
+                  value={careDateTime}
+                  mode="time"
+                  display="default"
+                  onChange={(event, selectedTime) => {
+                    if (selectedTime) {
+                      setCareDateTime(selectedTime);
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.buttonSection}>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => {
+                    setCareDateTime(new Date());
+                  }}
+                >
+                  <Text style={styles.nowButtonText}>Set to Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
           {/* Fertilizer Options (only show for fertilize) */}
@@ -410,6 +411,38 @@ const createStyles = (theme) => StyleSheet.create({
   tabTextActive: {
     color: theme.colors.background,
     fontWeight: 'bold',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  dateTimeSection: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  dateTimeLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  buttonSection: {
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingTop: 20,
+  },
+  nowButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  nowButtonText: {
+    color: theme.colors.background,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
 
