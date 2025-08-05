@@ -29,6 +29,7 @@ export default function QuickCareScreen() {
   const [selectedLocation, setSelectedLocation] = useState<string>('All');
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedCareType, setSelectedCareType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other' | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [careDetails, setCareDetails] = useState({
     notes: '',
     fertilizerConcentration: '',
@@ -212,10 +213,11 @@ export default function QuickCareScreen() {
   };
 
   const handleDetailConfirm = async () => {
-    if (!selectedCareType || selectedPlants.size === 0) {
+    if (!selectedCareType || selectedPlants.size === 0 || submitting) {
       return;
     }
 
+    setSubmitting(true);
     try {
       const selectedPlantsList = Array.from(selectedPlants);
       const careTypeLabel = careTypes.find(ct => ct.type === selectedCareType)?.label || selectedCareType;
@@ -263,6 +265,8 @@ export default function QuickCareScreen() {
     } catch (error) {
       console.error('Failed to add care events:', error);
       Alert.alert('Error', 'Failed to add care events');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -553,10 +557,18 @@ export default function QuickCareScreen() {
                 <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>Back</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[globalStyles.button, { flex: 1, marginLeft: 8 }]}
+                style={[globalStyles.button, { flex: 1, marginLeft: 8, opacity: submitting ? 0.6 : 1 }]}
                 onPress={handleDetailConfirm}
+                disabled={submitting}
               >
-                <Text style={globalStyles.buttonText}>Confirm</Text>
+                {submitting ? (
+                  <View style={globalStyles.flexRowCenter}>
+                    <ActivityIndicator size="small" color={theme.colors.textOnPrimary} style={{ marginRight: 8 }} />
+                    <Text style={globalStyles.buttonText}>Submitting...</Text>
+                  </View>
+                ) : (
+                  <Text style={globalStyles.buttonText}>Confirm</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
