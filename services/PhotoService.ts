@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { PlantPhoto } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
@@ -13,11 +14,100 @@ type PlantPhotoUpdate = Database['public']['Tables']['plant_photos']['Update'];
 export class PhotoService {
   private static readonly PHOTOS_DIR = `${FileSystem.documentDirectory}plant_photos/`;
   private static readonly STORAGE_BUCKET = 'plant-photos';
+  private static readonly THUMBNAIL_SIZE = 300;
 
   static async ensurePhotosDirectory(): Promise<void> {
     const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
     if (!dirInfo.exists) {
       await FileSystem.makeDirectoryAsync(this.PHOTOS_DIR, { intermediates: true });
+    }
+  }
+
+  static async createThumbnail(sourceUri: string): Promise<string> {
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        sourceUri,
+        [{ resize: { width: this.THUMBNAIL_SIZE } }],
+        {
+          compress: 0.7,
+          format: ImageManipulator.SaveFormat.JPEG,
+        }
+      );
+      return result.uri;
+    } catch (error) {
+      console.error('Error creating thumbnail:', error);
+      throw new Error('Failed to create thumbnail');
+    }
+  }
+
+  static getImageUrl(photo: PlantPhoto, useThumbnail: boolean = false): string {
+    // Return thumbnail if requested and available, otherwise fall back to full-size
+    if (useThumbnail && photo.thumbnail_path) {
+      return photo.thumbnail_path;
+    }
+    return photo.file_path;
+  }
+
+  static async uploadFileToStorage(filePath: string, fileName: string): Promise<string | null> {
+    try {
+      console.log('Starting cloud upload for file:', fileName);
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      if (!fileInfo.exists) {
+        console.error('Local file does not exist:', filePath);
+        return null;
+      }
+
+      console.log('Local file exists, size:', fileInfo.size);
+      
+      // Read file as base64
+      const fileContent = await FileSystem.readAsStringAsync(filePath, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      console.log('File read as base64, length:', fileContent.length);
+      
+      // Convert base64 to Uint8Array for React Native
+      const binaryString = atob(fileContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      console.log('Converted to Uint8Array, size:', bytes.length);
+
+      // Upload to Supabase Storage
+      console.log('Uploading to bucket:', this.STORAGE_BUCKET);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(this.STORAGE_BUCKET)
+        .upload(fileName, bytes, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Supabase storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      if (uploadData) {
+        console.log('Upload successful:', uploadData);
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from(this.STORAGE_BUCKET)
+          .getPublicUrl(fileName);
+        
+        if (urlData?.publicUrl) {
+          console.log('Public URL obtained:', urlData.publicUrl);
+          return urlData.publicUrl;
+        } else {
+          console.error('Failed to get public URL for uploaded file');
+          return null;
+        }
+      } else {
+        console.error('Upload succeeded but no data returned');
+        return null;
+      }
+    } catch (error) {
+      console.error('Failed to upload to cloud storage:', error);
+      return null;
     }
   }
 
@@ -183,87 +273,53 @@ export class PhotoService {
     try {
       await this.ensurePhotosDirectory();
 
-      // Generate unique filename
+      // Generate unique filenames
       const timestamp = new Date().getTime();
-      const fileName = `${plantId}_${timestamp}.jpg`;
-      const localFilePath = `${this.PHOTOS_DIR}${fileName}`;
+      const fullSizeFileName = `${plantId}_${timestamp}.jpg`;
+      const thumbnailFileName = `${plantId}_${timestamp}_thumb.jpg`;
+      const localFullSizePath = `${this.PHOTOS_DIR}${fullSizeFileName}`;
 
-      // Copy file to local storage for offline access
+      // Copy full-size file to local storage for offline access
       await FileSystem.copyAsync({
         from: sourceUri,
-        to: localFilePath,
+        to: localFullSizePath,
       });
 
-      // Upload to Supabase Storage for cloud backup and sync
-      let cloudFilePath: string | null = null;
+      // Create thumbnail
+      console.log('Creating thumbnail...');
+      const thumbnailUri = await this.createThumbnail(sourceUri);
+      const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
+      
+      // Copy thumbnail to local storage
+      await FileSystem.copyAsync({
+        from: thumbnailUri,
+        to: localThumbnailPath,
+      });
+
+      // Upload both versions to Supabase Storage in parallel
+      console.log('Uploading full-size and thumbnail to cloud storage...');
+      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
+        this.uploadFileToStorage(localFullSizePath, fullSizeFileName),
+        this.uploadFileToStorage(localThumbnailPath, thumbnailFileName),
+      ]);
+
+      // Clean up local files after processing
       try {
-        console.log('Starting cloud upload for file:', fileName);
-        const fileInfo = await FileSystem.getInfoAsync(localFilePath);
-        if (fileInfo.exists) {
-          console.log('Local file exists, size:', fileInfo.size);
-          
-          // Read file as base64
-          const fileContent = await FileSystem.readAsStringAsync(localFilePath, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          console.log('File read as base64, length:', fileContent.length);
-          
-          // Convert base64 to Uint8Array for React Native
-          const binaryString = atob(fileContent);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          console.log('Converted to Uint8Array, size:', bytes.length);
-
-          // Upload to Supabase Storage
-          console.log('Uploading to bucket:', this.STORAGE_BUCKET);
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(this.STORAGE_BUCKET)
-            .upload(fileName, bytes, {
-              contentType: 'image/jpeg',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Supabase storage upload error:', uploadError);
-            throw uploadError;
-          }
-
-          if (uploadData) {
-            console.log('Upload successful:', uploadData);
-            // Get public URL
-            const { data: urlData } = supabase.storage
-              .from(this.STORAGE_BUCKET)
-              .getPublicUrl(fileName);
-            
-            if (urlData?.publicUrl) {
-              cloudFilePath = urlData.publicUrl;
-              console.log('Public URL obtained:', cloudFilePath);
-            } else {
-              console.error('Failed to get public URL for uploaded file');
-            }
-          } else {
-            console.error('Upload succeeded but no data returned');
-          }
-        } else {
-          console.error('Local file does not exist:', localFilePath);
-        }
-      } catch (storageError) {
-        console.error('Failed to upload to cloud storage:', storageError);
-        console.error('Storage error details:', JSON.stringify(storageError, null, 2));
-        // Don't fallback to local path - only store cloud URLs in database
+        await FileSystem.deleteAsync(localFullSizePath);
+        await FileSystem.deleteAsync(localThumbnailPath);
+        // Clean up the temporary thumbnail from ImageManipulator
+        await FileSystem.deleteAsync(thumbnailUri);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up local files:', cleanupError);
       }
 
-      // Only proceed if we have a cloud URL
-      if (!cloudFilePath) {
-        // Clean up the local file since we couldn't upload to cloud
-        try {
-          await FileSystem.deleteAsync(localFilePath);
-        } catch (cleanupError) {
-          console.warn('Failed to clean up local file after cloud upload failure:', cleanupError);
-        }
-        throw new Error('Failed to upload photo to cloud storage. Please check your internet connection and try again.');
+      // Only proceed if we have both cloud URLs
+      if (!cloudFullSizePath) {
+        throw new Error('Failed to upload full-size photo to cloud storage. Please check your internet connection and try again.');
+      }
+
+      if (!cloudThumbnailPath) {
+        console.warn('Failed to upload thumbnail to cloud storage, but proceeding with full-size image only.');
       }
 
       // Get current household session and verify plant access
@@ -281,7 +337,8 @@ export class PhotoService {
       const now = new Date().toISOString();
       const photoInsert: PlantPhotoInsert = {
         plant_id: plantId,
-        file_path: cloudFilePath, // Use cloud path if available, otherwise local
+        file_path: cloudFullSizePath,
+        thumbnail_path: cloudThumbnailPath || undefined,
         caption: caption || undefined,
         taken_at: now,
         household_id: session.household_id,
@@ -316,6 +373,7 @@ export class PhotoService {
           .eq('id', plantId);
       }
 
+      console.log('Photo saved successfully with full-size and thumbnail versions');
       return data as PlantPhoto;
     } catch (error) {
       console.error('Error saving photo:', error);
@@ -384,20 +442,39 @@ export class PhotoService {
       const photo = await this.getPhotoById(photoId);
       if (!photo) return false;
 
-      // Delete from Supabase Storage if it's a cloud URL
+      // Delete both full-size and thumbnail from Supabase Storage
+      const filesToDelete: string[] = [];
+      
+      // Add full-size file to deletion list
       if (photo.file_path.startsWith('http')) {
-        try {
-          const fileName = photo.file_path.split('/').pop();
-          if (fileName) {
-            await supabase.storage
-              .from(this.STORAGE_BUCKET)
-              .remove([fileName]);
-          }
-        } catch (storageError) {
-          console.warn('Failed to delete from cloud storage:', storageError);
+        const fileName = photo.file_path.split('/').pop();
+        if (fileName) {
+          filesToDelete.push(fileName);
         }
-      } else {
-        // Delete local file
+      }
+      
+      // Add thumbnail file to deletion list
+      if (photo.thumbnail_path && photo.thumbnail_path.startsWith('http')) {
+        const thumbnailFileName = photo.thumbnail_path.split('/').pop();
+        if (thumbnailFileName) {
+          filesToDelete.push(thumbnailFileName);
+        }
+      }
+      
+      // Delete files from cloud storage
+      if (filesToDelete.length > 0) {
+        try {
+          await supabase.storage
+            .from(this.STORAGE_BUCKET)
+            .remove(filesToDelete);
+          console.log(`Deleted ${filesToDelete.length} files from cloud storage:`, filesToDelete);
+        } catch (storageError) {
+          console.warn('Failed to delete files from cloud storage:', storageError);
+        }
+      }
+      
+      // Handle local file deletion (legacy support)
+      if (!photo.file_path.startsWith('http')) {
         const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
         if (fileInfo.exists) {
           await FileSystem.deleteAsync(photo.file_path);
@@ -686,6 +763,123 @@ export class PhotoService {
     } catch (error) {
       console.error('Error getting thumbnail photo:', error);
       return null;
+    }
+  }
+
+  static async generateThumbnailsForExistingPhotos(): Promise<{ success: number; failed: number; skipped: number }> {
+    try {
+      console.log('Starting thumbnail generation for existing photos...');
+      
+      // Get all photos that don't have thumbnails yet
+      const { data: photosWithoutThumbnails, error } = await supabase
+        .from('plant_photos')
+        .select('*')
+        .is('thumbnail_path', null);
+
+      if (error) {
+        console.error('Error fetching photos without thumbnails:', error);
+        throw new Error(`Failed to fetch photos: ${error.message}`);
+      }
+
+      if (!photosWithoutThumbnails || photosWithoutThumbnails.length === 0) {
+        console.log('No photos found that need thumbnails generated');
+        return { success: 0, failed: 0, skipped: 0 };
+      }
+
+      console.log(`Found ${photosWithoutThumbnails.length} photos that need thumbnails`);
+      
+      let success = 0;
+      let failed = 0;
+      let skipped = 0;
+
+      // Process photos in batches to avoid overwhelming the server
+      const batchSize = 5;
+      for (let i = 0; i < photosWithoutThumbnails.length; i += batchSize) {
+        const batch = photosWithoutThumbnails.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (photo) => {
+          try {
+            console.log(`Processing photo ${photo.id}...`);
+            
+            // Skip if photo doesn't have a valid cloud URL
+            if (!photo.file_path.startsWith('http')) {
+              console.log(`Skipping photo ${photo.id} - not a cloud URL`);
+              skipped++;
+              return;
+            }
+
+            // Create thumbnail from the full-size image URL
+            const thumbnailUri = await this.createThumbnail(photo.file_path);
+            
+            // Generate filename for thumbnail
+            const originalFileName = photo.file_path.split('/').pop();
+            if (!originalFileName) {
+              console.error(`Could not extract filename from ${photo.file_path}`);
+              failed++;
+              return;
+            }
+            
+            // Create thumbnail filename by inserting '_thumb' before the extension
+            const thumbnailFileName = originalFileName.replace(/(\.[^.]+)$/, '_thumb$1');
+            
+            // Copy thumbnail to local storage temporarily
+            await this.ensurePhotosDirectory();
+            const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
+            await FileSystem.copyAsync({
+              from: thumbnailUri,
+              to: localThumbnailPath,
+            });
+
+            // Upload thumbnail to cloud storage
+            const cloudThumbnailPath = await this.uploadFileToStorage(localThumbnailPath, thumbnailFileName);
+            
+            // Clean up local files
+            try {
+              await FileSystem.deleteAsync(localThumbnailPath);
+              await FileSystem.deleteAsync(thumbnailUri);
+            } catch (cleanupError) {
+              console.warn('Failed to clean up temporary files:', cleanupError);
+            }
+
+            if (!cloudThumbnailPath) {
+              console.error(`Failed to upload thumbnail for photo ${photo.id}`);
+              failed++;
+              return;
+            }
+
+            // Update database with thumbnail path
+            const { error: updateError } = await supabase
+              .from('plant_photos')
+              .update({ thumbnail_path: cloudThumbnailPath })
+              .eq('id', photo.id);
+
+            if (updateError) {
+              console.error(`Failed to update photo ${photo.id} with thumbnail path:`, updateError);
+              failed++;
+              return;
+            }
+
+            console.log(`Successfully generated thumbnail for photo ${photo.id}`);
+            success++;
+            
+          } catch (error) {
+            console.error(`Failed to generate thumbnail for photo ${photo.id}:`, error);
+            failed++;
+          }
+        }));
+
+        // Small delay between batches to be nice to the server
+        if (i + batchSize < photosWithoutThumbnails.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      console.log(`Thumbnail generation complete: ${success} success, ${failed} failed, ${skipped} skipped`);
+      return { success, failed, skipped };
+      
+    } catch (error) {
+      console.error('Error in generateThumbnailsForExistingPhotos:', error);
+      throw error;
     }
   }
 }

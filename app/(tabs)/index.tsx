@@ -39,13 +39,13 @@ export default function HomeScreen() {
             // Use the designated thumbnail photo
             const thumbnailPhoto = await PhotoService.getThumbnailPhoto(plant.id);
             if (thumbnailPhoto) {
-              return { plantId: plant.id, path: thumbnailPhoto.file_path };
+              return { plantId: plant.id, path: PhotoService.getImageUrl(thumbnailPhoto, true) };
             }
           } else {
             // Fall back to first photo if no thumbnail is set
             const photos = await PhotoService.getPhotosByPlantId(plant.id);
             if (photos.length > 0) {
-              return { plantId: plant.id, path: photos[0].file_path };
+              return { plantId: plant.id, path: PhotoService.getImageUrl(photos[0], true) };
             }
           }
         } catch (error) {

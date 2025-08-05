@@ -31,6 +31,7 @@ CREATE TABLE plant_photos (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
     file_path TEXT NOT NULL,
+    thumbnail_path TEXT,
     caption TEXT,
     taken_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),

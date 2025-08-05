@@ -29,6 +29,7 @@ export interface PlantPhoto {
   id: string;
   plant_id: string;
   file_path: string;
+  thumbnail_path?: string;
   caption?: string;
   taken_at: string;
   household_id?: string;

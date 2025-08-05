@@ -371,7 +371,7 @@ export default function PlantDetailScreen() {
             <View style={styles.headerLeft}>
               {thumbnailPhoto && (
                 <Image 
-                  source={{ uri: thumbnailPhoto.file_path }} 
+                  source={{ uri: PhotoService.getImageUrl(thumbnailPhoto, true) }} 
                   style={styles.thumbnailImage}
                   resizeMode="cover"
                 />
@@ -432,7 +432,7 @@ export default function PlantDetailScreen() {
                   onLongPress={() => handlePhotoOptions(photo)}
                 >
                   <Image 
-                    source={{ uri: photo.file_path }} 
+                    source={{ uri: PhotoService.getImageUrl(photo, true) }} 
                     style={styles.photoImage}
                     resizeMode="cover"
                   />
@@ -509,7 +509,7 @@ export default function PlantDetailScreen() {
       </ScrollView>
 
       <ImageViewing
-        images={photos.map(photo => ({ uri: photo.file_path }))}
+        images={photos.map(photo => ({ uri: PhotoService.getImageUrl(photo, false) }))}
         imageIndex={currentPhotoIndex}
         visible={imageViewerVisible}
         onRequestClose={() => setImageViewerVisible(false)}

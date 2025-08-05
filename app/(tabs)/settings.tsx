@@ -280,6 +280,34 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleGenerateThumbnails = async () => {
+    Alert.alert(
+      'Generate Thumbnails',
+      'This will create optimized thumbnail versions of existing photos to reduce data usage. This may take a few minutes.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Generate',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const result = await PhotoService.generateThumbnailsForExistingPhotos();
+              Alert.alert(
+                'Thumbnails Generated',
+                `Successfully created ${result.success} thumbnails.\n${result.failed} failed, ${result.skipped} skipped.\n\nYour app will now use less data when loading photos!`
+              );
+            } catch (error) {
+              console.error('Error generating thumbnails:', error);
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteAllData = () => {
     Alert.alert(
       'Delete All Data',
@@ -585,6 +613,21 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Data Management</Text>
+        
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.disabledButton]}
+          onPress={handleGenerateThumbnails}
+          disabled={loading}
+        >
+          <RefreshCw size={16} color={theme.colors.textOnPrimary} />
+          <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
+            {loading ? 'Generating...' : 'Generate Photo Thumbnails'}
+          </Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.warningText}>
+          Creates smaller versions of existing photos to reduce data usage.
+        </Text>
         
         <TouchableOpacity
           style={[styles.deleteButton, loading && styles.disabledButton]}
