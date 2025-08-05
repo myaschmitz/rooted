@@ -27,7 +27,8 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other'>('water');
+  const [activeTab, setActiveTab] = useState<'care' | 'events'>('care');
   const [careDateTime, setCareDateTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -82,16 +83,24 @@ export default function LogCareScreen() {
     }
   };
 
-  const careTypes = [
-    { value: 'water', label: 'Water', icon: '💧' },
-    { value: 'fertilize', label: 'Fertilize', icon: '🌱' },
-    { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
-    { value: 'repot', label: 'Repot', icon: '🪴' },
-    { value: 'prune', label: 'Prune', icon: '✂️' },
-    { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
-    { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
-    { value: 'other', label: 'Other', icon: '📝' },
-  ] as const;
+  const allCareTypes = {
+    care: [
+      { value: 'water', label: 'Water', icon: '💧' },
+      { value: 'fertilize', label: 'Fertilize', icon: '🌱' },
+      { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
+      { value: 'repot', label: 'Repot', icon: '🪴' },
+      { value: 'prune', label: 'Prune', icon: '✂️' },
+      { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
+    ],
+    events: [
+      { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
+      { value: 'new_leaf', label: 'New Leaf', icon: '🍃' },
+      { value: 'relocation', label: 'Relocation', icon: '📦' },
+      { value: 'new_roots_spotted', label: 'New Roots Spotted', icon: '🌿' },
+    ],
+  } as const;
+
+  const careTypes = allCareTypes[activeTab];
 
   const showFertilizerOptions = eventType === 'fertilize' || eventType === 'fertigate';
   const showPestSeverity = eventType === 'pest_spotted';
@@ -115,6 +124,49 @@ export default function LogCareScreen() {
           {/* Care Type Selection */}
           <View style={globalStyles.inputGroup}>
             <Text style={globalStyles.label}>Care Type</Text>
+            
+            {/* Tabs */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === 'care' && styles.tabActive,
+                ]}
+                onPress={() => {
+                  setActiveTab('care');
+                  setEventType('water');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'care' && styles.tabTextActive,
+                  ]}
+                >
+                  Care
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === 'events' && styles.tabActive,
+                ]}
+                onPress={() => {
+                  setActiveTab('events');
+                  setEventType('pest_spotted');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'events' && styles.tabTextActive,
+                  ]}
+                >
+                  Events
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
             <View style={styles.careTypeGrid}>
               {careTypes.map((type) => (
                 <TouchableOpacity
@@ -332,6 +384,32 @@ const createStyles = (theme) => StyleSheet.create({
   saveButton: {
     ...useGlobalStyles().buttonLarge,
     marginTop: 20,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  tabTextActive: {
+    color: theme.colors.background,
+    fontWeight: 'bold',
   },
 });
 

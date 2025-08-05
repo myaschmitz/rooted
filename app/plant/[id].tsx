@@ -341,6 +341,13 @@ export default function PlantDetailScreen() {
     return '(Severe)';
   };
 
+  const formatEventTypeTitle = (eventType: string) => {
+    return eventType
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   const styles = createStyles(theme);
 
   if (loading) {
@@ -466,9 +473,7 @@ export default function PlantDetailScreen() {
                 <View style={styles.careEventHeader}>
                   <View style={styles.careEventInfo}>
                     <Text style={styles.careEventType}>
-                      {event.event_type === 'pest_spotted' ? 'Pest Spotted' :
-                       event.event_type === 'insecticide_spray' ? 'Insecticide Spray' :
-                       event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
+                      {formatEventTypeTitle(event.event_type)}
                     </Text>
                     <Text style={styles.careEventDate}>{formattedDates[event.id] || 'Loading...'}</Text>
                   </View>
