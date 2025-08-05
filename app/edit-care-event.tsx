@@ -23,7 +23,6 @@ export default function EditCareEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
-  const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical'>('good');
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
@@ -45,7 +44,6 @@ export default function EditCareEventScreen() {
       if (eventData) {
         setCareEvent(eventData);
         setEventType(eventData.event_type);
-        setHealthStatus(eventData.health_status || 'good');
         setNotes(eventData.notes || '');
         setFertilizerConcentration(eventData.fertilizer_concentration || '');
         setFertilizerAmount(eventData.fertilizer_amount || '');
@@ -66,7 +64,6 @@ export default function EditCareEventScreen() {
     try {
       await CareEventService.updateCareEvent(id, {
         event_type: eventType,
-        health_status: healthStatus,
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
@@ -93,14 +90,6 @@ export default function EditCareEventScreen() {
     { value: 'other', label: 'Other', emoji: '📝' },
   ] as const;
 
-  const healthOptions = [
-    { value: 'excellent', label: 'Excellent', color: '#2E7D32', emoji: '🌟' },
-    { value: 'good', label: 'Good', color: '#4CAF50', emoji: '😊' },
-    { value: 'okay', label: 'Okay', color: '#FF9800', emoji: '😐' },
-    { value: 'poor', label: 'Poor', color: '#FF5722', emoji: '😟' },
-    { value: 'concerning', label: 'Concerning', color: '#F44336', emoji: '😰' },
-    { value: 'critical', label: 'Critical', color: '#B71C1C', emoji: '💀' },
-  ] as const;
 
   if (loading) {
     return (
@@ -153,41 +142,6 @@ export default function EditCareEventScreen() {
             </View>
           </View>
 
-          {/* Health Status */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Health Status After Care</Text>
-            <View style={styles.healthOptions}>
-              {healthOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.healthOption,
-                    healthStatus === option.value && [
-                      styles.healthOptionSelected,
-                      { backgroundColor: option.color + '20', borderColor: option.color }
-                    ]
-                  ]}
-                  onPress={() => setHealthStatus(option.value)}
-                >
-                  <Text style={styles.healthEmoji}>{option.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.healthOptionText,
-                      healthStatus === option.value && { 
-                        color: option.color, 
-                        fontWeight: 'bold' 
-                      }
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {healthStatus === option.value && (
-                    <View style={[styles.selectedIndicator, { backgroundColor: option.color }]} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
 
           {/* Fertilizer Details (only show if fertilizing) */}
           {(eventType === 'fertilize' || eventType === 'fertigate') && (
@@ -347,44 +301,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   optionTextSelected: {
     color: '#2196F3',
     fontWeight: 'bold',
-  },
-  healthOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  healthOption: {
-    flex: 1,
-    minWidth: '30%',
-    backgroundColor: theme.colors.surface,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  healthOptionSelected: {
-    borderWidth: 3,
-  },
-  healthEmoji: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  healthOptionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   saveButton: {
     backgroundColor: theme.colors.primary,

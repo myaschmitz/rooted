@@ -35,7 +35,6 @@ export default function QuickCareScreen() {
     fertilizerConcentration: '',
     fertilizerAmount: '',
     pestSeverity: 1,
-    healthStatus: undefined as 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical' | undefined
   });
 
   const careTypes: Array<{
@@ -243,9 +242,6 @@ export default function QuickCareScreen() {
           careEventData.pest_severity = careDetails.pestSeverity;
         }
 
-        if (careDetails.healthStatus) {
-          careEventData.health_status = careDetails.healthStatus;
-        }
 
         await CareEventService.createCareEvent(careEventData);
       }
@@ -259,7 +255,6 @@ export default function QuickCareScreen() {
         fertilizerConcentration: '',
         fertilizerAmount: '',
         pestSeverity: 1,
-        healthStatus: undefined
       });
       Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
@@ -522,31 +517,6 @@ export default function QuickCareScreen() {
                 />
               </View>
 
-              {/* Health Status */}
-              <View style={globalStyles.inputGroup}>
-                <Text style={globalStyles.label}>Plant Health Status (Optional)</Text>
-                <View style={styles.healthStatusContainer}>
-                  {([{value: undefined, label: 'No Change'}, {value: 'excellent' as const, label: 'Excellent'}, {value: 'good' as const, label: 'Good'}, {value: 'okay' as const, label: 'Okay'}, {value: 'poor' as const, label: 'Poor'}, {value: 'concerning' as const, label: 'Concerning'}, {value: 'critical' as const, label: 'Critical'}] as const).map((status) => (
-                    <TouchableOpacity
-                      key={status.label}
-                      style={[
-                        styles.healthStatusOption,
-                        careDetails.healthStatus === status.value && styles.healthStatusOptionSelected,
-                      ]}
-                      onPress={() => setCareDetails(prev => ({ ...prev, healthStatus: status.value }))}
-                    >
-                      <Text
-                        style={[
-                          styles.healthStatusText,
-                          careDetails.healthStatus === status.value && styles.healthStatusTextSelected,
-                        ]}
-                      >
-                        {status.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
             </ScrollView>
             
             <View style={[globalStyles.flexRow, { marginTop: 16 }]}>
@@ -752,35 +722,5 @@ const createStyles = (theme) => StyleSheet.create({
   severityTextSelected: {
     fontWeight: 'bold',
     fontSize: 16,
-  },
-  healthStatusContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  healthStatusOption: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    minWidth: '30%',
-    alignItems: 'center',
-  },
-  healthStatusOptionSelected: {
-    backgroundColor: theme.colors.primaryLight,
-    borderColor: theme.colors.primary,
-  },
-  healthStatusText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  healthStatusTextSelected: {
-    color: theme.colors.primary,
-    fontWeight: 'bold',
   },
 });

@@ -27,7 +27,6 @@ export default function EditPlantScreen() {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
-  const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical'>('good');
   const [notes, setNotes] = useState('');
   const [plantPhoto, setPlantPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,7 +48,6 @@ export default function EditPlantScreen() {
         setName(plantData.name || '');
         setType(plantData.type);
         setLocation(plantData.location || '');
-        setHealthStatus(plantData.health_status || 'good');
         setNotes(plantData.notes || '');
       }
     } catch (error) {
@@ -74,7 +72,6 @@ export default function EditPlantScreen() {
         name: name.trim() || undefined,
         type: type.trim(),
         location: location.trim() || undefined,
-        health_status: healthStatus,
         notes: notes.trim() || undefined,
       });
 
@@ -132,14 +129,6 @@ export default function EditPlantScreen() {
     }
   };
 
-  const healthOptions = [
-    { value: 'excellent', label: 'Excellent', color: '#2E7D32', emoji: '🌟' },
-    { value: 'good', label: 'Good', color: '#4CAF50', emoji: '😊' },
-    { value: 'okay', label: 'Okay', color: '#FF9800', emoji: '😐' },
-    { value: 'poor', label: 'Poor', color: '#FF5722', emoji: '😟' },
-    { value: 'concerning', label: 'Concerning', color: '#F44336', emoji: '😰' },
-    { value: 'critical', label: 'Critical', color: '#B71C1C', emoji: '💀' },
-  ] as const;
 
   if (loading) {
     return (
@@ -218,41 +207,6 @@ export default function EditPlantScreen() {
             />
           </View>
 
-          {/* Health Status */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Health Status</Text>
-            <View style={styles.healthOptions}>
-              {healthOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.healthOption,
-                    healthStatus === option.value && [
-                      styles.healthOptionSelected,
-                      { backgroundColor: option.color + '20', borderColor: option.color }
-                    ]
-                  ]}
-                  onPress={() => setHealthStatus(option.value)}
-                >
-                  <Text style={styles.healthEmoji}>{option.emoji}</Text>
-                  <Text
-                    style={[
-                      styles.healthOptionText,
-                      healthStatus === option.value && { 
-                        color: option.color, 
-                        fontWeight: 'bold' 
-                      }
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                  {healthStatus === option.value && (
-                    <View style={[styles.selectedIndicator, { backgroundColor: option.color }]} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
 
           {/* Notes */}
           <View style={styles.inputGroup}>
@@ -365,44 +319,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   photoPlaceholderSubtext: {
     fontSize: 16,
     color: theme.colors.textSecondary,
-  },
-  healthOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  healthOption: {
-    flex: 1,
-    minWidth: '30%',
-    backgroundColor: theme.colors.surface,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  healthOptionSelected: {
-    borderWidth: 3,
-  },
-  healthEmoji: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  healthOptionText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   saveButton: {
     backgroundColor: theme.colors.primary,

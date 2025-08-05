@@ -35,7 +35,6 @@ export default function LogCareScreen() {
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
   const [fertilizerAmount, setFertilizerAmount] = useState('');
   const [pestSeverity, setPestSeverity] = useState<number>(1);
-  const [healthStatus, setHealthStatus] = useState<'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical' | undefined>(undefined);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -70,13 +69,8 @@ export default function LogCareScreen() {
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
         fertilizer_amount: fertilizerAmount.trim() || undefined,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
-        health_status: healthStatus,
       });
 
-      // If health status was provided, update the plant's health status too
-      if (healthStatus && plant) {
-        await PlantService.updatePlant(plant.id, { health_status: healthStatus });
-      }
 
       // Navigate back directly to refresh the plant detail screen
       router.back();

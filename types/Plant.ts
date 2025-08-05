@@ -3,7 +3,6 @@ export interface Plant {
   name?: string;
   type: string;
   location?: string;
-  health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   notes?: string;
   thumbnail_photo_id?: string;
   household_id?: string;
@@ -21,7 +20,6 @@ export interface CareEvent {
   fertilizer_concentration?: string;
   fertilizer_amount?: string;
   pest_severity?: number; // 1-10 scale for pest events
-  health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
   household_id?: string;
   created_at: string;
   updated_at: string;

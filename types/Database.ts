@@ -79,7 +79,6 @@ export type Database = {
           name?: string;
           type: string;
           location?: string;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           notes?: string;
           thumbnail_photo_id?: string;
           household_id?: string;
@@ -91,7 +90,6 @@ export type Database = {
           name?: string;
           type: string;
           location?: string;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           notes?: string;
           thumbnail_photo_id?: string;
           household_id?: string;
@@ -103,7 +101,6 @@ export type Database = {
           name?: string;
           type?: string;
           location?: string;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           notes?: string;
           thumbnail_photo_id?: string;
           household_id?: string;
@@ -120,7 +117,6 @@ export type Database = {
           fertilizer_concentration?: string;
           fertilizer_amount?: string;
           pest_severity?: number;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           household_id?: string;
           created_at: string;
           updated_at: string;
@@ -134,7 +130,6 @@ export type Database = {
           fertilizer_concentration?: string;
           fertilizer_amount?: string;
           pest_severity?: number;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           household_id?: string;
           created_at?: string;
           updated_at?: string;
@@ -148,7 +143,6 @@ export type Database = {
           fertilizer_concentration?: string;
           fertilizer_amount?: string;
           pest_severity?: number;
-          health_status?: 'excellent' | 'good' | 'okay' | 'poor' | 'concerning' | 'critical';
           household_id?: string;
           updated_at?: string;
         };

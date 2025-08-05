@@ -328,17 +328,6 @@ export default function PlantDetailScreen() {
     updateFormattedDates();
   }, [updateFormattedDates]);
 
-  const getHealthStatusColor = (status?: string) => {
-    switch (status) {
-      case 'excellent': return '#2E7D32';  // Dark green
-      case 'good': return '#4CAF50';       // Green
-      case 'okay': return '#FF9800';       // Orange
-      case 'poor': return '#F57C00';       // Dark orange
-      case 'concerning': return '#F44336'; // Red
-      case 'critical': return '#B71C1C';   // Dark red
-      default: return '#8d8d8dff';           // Default to green
-    }
-  };
 
   const getPestSeverityColor = (severity: number) => {
     if (severity <= 3) return '#4CAF50';    // Green for low
@@ -393,11 +382,6 @@ export default function PlantDetailScreen() {
                 {plant.location && (
                   <Text style={styles.location}>📍 {plant.location}</Text>
                 )}
-                <View style={styles.healthStatus}>
-                  <Text style={[styles.healthText, { color: getHealthStatusColor(plant.health_status) }]}>
-                    Health: {plant.health_status ? plant.health_status.charAt(0).toUpperCase() + plant.health_status.slice(1) : 'Good'}
-                  </Text>
-                </View>
               </View>
             </View>
             <View style={styles.headerButtons}>
@@ -487,11 +471,6 @@ export default function PlantDetailScreen() {
                        event.event_type.charAt(0).toUpperCase() + event.event_type.slice(1)}
                     </Text>
                     <Text style={styles.careEventDate}>{formattedDates[event.id] || 'Loading...'}</Text>
-                    {event.health_status && (
-                      <Text style={[styles.careEventHealth, { color: getHealthStatusColor(event.health_status) }]}>
-                        Health: {event.health_status.charAt(0).toUpperCase() + event.health_status.slice(1)}
-                      </Text>
-                    )}
                   </View>
                   <View style={styles.careEventActions}>
                     <TouchableOpacity
@@ -594,13 +573,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textTertiary,
     marginBottom: 10,
   },
-  healthStatus: {
-    marginTop: 5,
-  },
-  healthText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
   actionButtons: {
     flexDirection: 'row',
     padding: 10,
@@ -697,11 +669,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   careEventDate: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-  },
-  careEventHealth: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 2,
   },
   careEventNotes: {
     fontSize: 14,
