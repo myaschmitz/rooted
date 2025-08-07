@@ -114,8 +114,7 @@ export type Database = {
           event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
           date: string;
           notes?: string;
-          fertilizer_concentration?: string;
-          fertilizer_amount?: string;
+          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
           pest_severity?: number;
           household_id?: string;
           created_at: string;
@@ -127,8 +126,7 @@ export type Database = {
           event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
           date: string;
           notes?: string;
-          fertilizer_concentration?: string;
-          fertilizer_amount?: string;
+          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
           pest_severity?: number;
           household_id?: string;
           created_at?: string;
@@ -140,8 +138,7 @@ export type Database = {
           event_type?: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
           date?: string;
           notes?: string;
-          fertilizer_concentration?: string;
-          fertilizer_amount?: string;
+          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
           pest_severity?: number;
           household_id?: string;
           updated_at?: string;

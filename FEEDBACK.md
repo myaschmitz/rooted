@@ -7,10 +7,11 @@
 - [x] More helpful display for plant cards: show last watering instead of health
 - [x] Add thumbnail to plant details page
 - [x] Compress date and time in add events page (show date and "X days ago")
+- [x] Sticky headers for the name of the room that you're in
 
 ### Event Management
-- Separate care actions vs general events
-- Add new event types: new leaf, relocation, roots spotted
+- [x] Separate care actions vs general events
+- [x] Add new event types: new leaf, relocation, roots spotted
 - Create fertilizer concentration buttons (1/4, 1/2, 1x, 1.5x, and 2x strengths)
 
 ### Photo Management

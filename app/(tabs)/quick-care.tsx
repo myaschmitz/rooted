@@ -32,8 +32,7 @@ export default function QuickCareScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [careDetails, setCareDetails] = useState({
     notes: '',
-    fertilizerConcentration: '',
-    fertilizerAmount: '',
+    fertilizerStrength: '1x' as '1/4' | '1/2' | '1x' | '1.5x' | '2x',
     pestSeverity: 1,
   });
 
@@ -233,12 +232,7 @@ export default function QuickCareScreen() {
 
         // Add type-specific details
         if (selectedCareType === 'fertilize' || selectedCareType === 'fertigate') {
-          if (careDetails.fertilizerConcentration.trim()) {
-            careEventData.fertilizer_concentration = careDetails.fertilizerConcentration.trim();
-          }
-          if (careDetails.fertilizerAmount.trim()) {
-            careEventData.fertilizer_amount = careDetails.fertilizerAmount.trim();
-          }
+          careEventData.fertilizer_concentration = careDetails.fertilizerStrength;
         } else if (selectedCareType === 'pest_spotted') {
           careEventData.pest_severity = careDetails.pestSeverity;
         }
@@ -253,8 +247,7 @@ export default function QuickCareScreen() {
       setSelectedCareType(null);
       setCareDetails({
         notes: '',
-        fertilizerConcentration: '',
-        fertilizerAmount: '',
+        fertilizerStrength: '1x' as '1/4' | '1/2' | '1x' | '1.5x' | '2x',
         pestSeverity: 1,
       });
       Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
@@ -445,27 +438,30 @@ export default function QuickCareScreen() {
 
               {/* Fertilizer Options (only show for fertilize) */}
               {showFertilizerOptions && (
-                <>
-                  <View style={globalStyles.inputGroup}>
-                    <Text style={globalStyles.label}>Fertilizer Concentration</Text>
-                    <TextInput
-                      style={globalStyles.input}
-                      value={careDetails.fertilizerConcentration}
-                      onChangeText={(text) => setCareDetails(prev => ({ ...prev, fertilizerConcentration: text }))}
-                      placeholder="e.g., 1/4 strength, 20-20-20"
-                    />
+                <View style={globalStyles.inputGroup}>
+                  <Text style={globalStyles.label}>Fertilizer Strength</Text>
+                  <View style={styles.strengthContainer}>
+                    {['1/4', '1/2', '1x', '1.5x', '2x'].map((strength) => (
+                      <TouchableOpacity
+                        key={strength}
+                        style={[
+                          styles.strengthOption,
+                          careDetails.fertilizerStrength === strength && styles.strengthOptionSelected,
+                        ]}
+                        onPress={() => setCareDetails(prev => ({ ...prev, fertilizerStrength: strength as '1/4' | '1/2' | '1x' | '1.5x' | '2x' }))}
+                      >
+                        <Text
+                          style={[
+                            styles.strengthText,
+                            careDetails.fertilizerStrength === strength && styles.strengthTextSelected,
+                          ]}
+                        >
+                          {strength}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-
-                  <View style={globalStyles.inputGroup}>
-                    <Text style={globalStyles.label}>Amount Used</Text>
-                    <TextInput
-                      style={globalStyles.input}
-                      value={careDetails.fertilizerAmount}
-                      onChangeText={(text) => setCareDetails(prev => ({ ...prev, fertilizerAmount: text }))}
-                      placeholder="e.g., 1 cup, 500ml"
-                    />
-                  </View>
-                </>
+                </View>
               )}
 
               {/* Pest Severity (only show for pest_spotted) */}
@@ -592,7 +588,7 @@ export default function QuickCareScreen() {
             keyExtractor={(item) => item.id}
             style={globalStyles.list}
             contentContainerStyle={selectedPlants.size > 0 ? globalStyles.listContent : undefined}
-            stickySectionHeadersEnabled={false}
+            stickySectionHeadersEnabled={true}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -723,5 +719,34 @@ const createStyles = (theme) => StyleSheet.create({
   severityTextSelected: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  strengthOption: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  strengthOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  strengthText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  strengthTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
   },
 });

@@ -311,7 +311,7 @@ export default function HomeScreen() {
             renderSectionHeader={renderSectionHeader}
             keyExtractor={(item) => item.id}
             style={styles.list}
-            stickySectionHeadersEnabled={false}
+            stickySectionHeadersEnabled={true}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

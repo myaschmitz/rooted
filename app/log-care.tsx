@@ -33,8 +33,7 @@ export default function LogCareScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [notes, setNotes] = useState('');
-  const [fertilizerConcentration, setFertilizerConcentration] = useState('');
-  const [fertilizerAmount, setFertilizerAmount] = useState('');
+  const [fertilizerStrength, setFertilizerStrength] = useState<'1/4' | '1/2' | '1x' | '1.5x' | '2x'>('1x');
   const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
 
@@ -67,8 +66,7 @@ export default function LogCareScreen() {
         event_type: eventType,
         date: careDateTime.toISOString(),
         notes: notes.trim() || undefined,
-        fertilizer_concentration: fertilizerConcentration.trim() || undefined,
-        fertilizer_amount: fertilizerAmount.trim() || undefined,
+        fertilizer_concentration: fertilizerStrength,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 
@@ -233,29 +231,32 @@ export default function LogCareScreen() {
             </View>
           </View>
 
-          {/* Fertilizer Options (only show for fertilize) */}
+          {/* Fertilizer Options (only show for fertilize/fertigate) */}
           {showFertilizerOptions && (
-            <>
-              <View style={globalStyles.inputGroup}>
-                <Text style={globalStyles.label}>Fertilizer Concentration</Text>
-                <TextInput
-                  style={globalStyles.input}
-                  value={fertilizerConcentration}
-                  onChangeText={setFertilizerConcentration}
-                  placeholder="e.g., 1/4 strength, 20-20-20"
-                />
+            <View style={globalStyles.inputGroup}>
+              <Text style={globalStyles.label}>Fertilizer Strength</Text>
+              <View style={styles.strengthContainer}>
+                {['1/4', '1/2', '1x', '1.5x', '2x'].map((strength) => (
+                  <TouchableOpacity
+                    key={strength}
+                    style={[
+                      styles.strengthOption,
+                      fertilizerStrength === strength && styles.strengthOptionSelected,
+                    ]}
+                    onPress={() => setFertilizerStrength(strength as '1/4' | '1/2' | '1x' | '1.5x' | '2x')}
+                  >
+                    <Text
+                      style={[
+                        styles.strengthText,
+                        fertilizerStrength === strength && styles.strengthTextSelected,
+                      ]}
+                    >
+                      {strength}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              <View style={globalStyles.inputGroup}>
-                <Text style={globalStyles.label}>Amount Used</Text>
-                <TextInput
-                  style={globalStyles.input}
-                  value={fertilizerAmount}
-                  onChangeText={setFertilizerAmount}
-                  placeholder="e.g., 1 cup, 500ml"
-                />
-              </View>
-            </>
+            </View>
           )}
 
           {/* Pest Severity (only show for pest_spotted) */}
@@ -443,6 +444,35 @@ const createStyles = (theme) => StyleSheet.create({
     color: theme.colors.background,
     fontSize: 12,
     fontWeight: '600',
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  strengthOption: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  strengthOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  strengthText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  strengthTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
   },
 });
 

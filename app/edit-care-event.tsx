@@ -24,8 +24,7 @@ export default function EditCareEventScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [notes, setNotes] = useState('');
-  const [fertilizerConcentration, setFertilizerConcentration] = useState('');
-  const [fertilizerAmount, setFertilizerAmount] = useState('');
+  const [fertilizerStrength, setFertilizerStrength] = useState<'1/4' | '1/2' | '1x' | '1.5x' | '2x'>('1x');
   const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,8 +44,7 @@ export default function EditCareEventScreen() {
         setEvent(eventData);
         setEventType(eventData.event_type);
         setNotes(eventData.notes || '');
-        setFertilizerConcentration(eventData.fertilizer_concentration || '');
-        setFertilizerAmount(eventData.fertilizer_amount || '');
+        setFertilizerStrength((eventData.fertilizer_concentration as '1/4' | '1/2' | '1x' | '1.5x' | '2x') || '1x');
         setPestSeverity(eventData.pest_severity || 1);
       }
     } catch (error) {
@@ -65,8 +63,7 @@ export default function EditCareEventScreen() {
       await EventService.updateEvent(id, {
         event_type: eventType,
         notes: notes.trim() || undefined,
-        fertilizer_concentration: fertilizerConcentration.trim() || undefined,
-        fertilizer_amount: fertilizerAmount.trim() || undefined,
+        fertilizer_concentration: fertilizerStrength,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 
@@ -145,29 +142,30 @@ export default function EditCareEventScreen() {
 
           {/* Fertilizer Details (only show if fertilizing) */}
           {(eventType === 'fertilize' || eventType === 'fertigate') && (
-            <>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Fertilizer Concentration</Text>
-                <TextInput
-                  style={styles.input}
-                  value={fertilizerConcentration}
-                  onChangeText={setFertilizerConcentration}
-                  placeholder="e.g., Half strength, 10-10-10"
-                  autoCapitalize="none"
-                />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Fertilizer Strength</Text>
+              <View style={styles.strengthContainer}>
+                {['1/4', '1/2', '1x', '1.5x', '2x'].map((strength) => (
+                  <TouchableOpacity
+                    key={strength}
+                    style={[
+                      styles.strengthOption,
+                      fertilizerStrength === strength && styles.strengthOptionSelected,
+                    ]}
+                    onPress={() => setFertilizerStrength(strength as '1/4' | '1/2' | '1x' | '1.5x' | '2x')}
+                  >
+                    <Text
+                      style={[
+                        styles.strengthText,
+                        fertilizerStrength === strength && styles.strengthTextSelected,
+                      ]}
+                    >
+                      {strength}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Amount Used</Text>
-                <TextInput
-                  style={styles.input}
-                  value={fertilizerAmount}
-                  onChangeText={setFertilizerAmount}
-                  placeholder="e.g., 1 cup, 500ml"
-                  autoCapitalize="none"
-                />
-              </View>
-            </>
+            </View>
           )}
 
           {/* Pest Severity (only show for pest_spotted) */}
@@ -328,5 +326,34 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  strengthOption: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  strengthOptionSelected: {
+    borderColor: '#2196F3',
+    backgroundColor: '#e3f2fd',
+  },
+  strengthText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  strengthTextSelected: {
+    color: '#2196F3',
+    fontWeight: 'bold',
   },
 });

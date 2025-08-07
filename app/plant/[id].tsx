@@ -497,8 +497,7 @@ export default function PlantDetailScreen() {
                 )}
                 {event.fertilizer_concentration && (
                   <Text style={styles.fertilizerInfo}>
-                    Concentration: {event.fertilizer_concentration}
-                    {event.fertilizer_amount && ` • Amount: ${event.fertilizer_amount}`}
+                    Strength: {event.fertilizer_concentration}
                   </Text>
                 )}
                 {event.pest_severity && (
