@@ -36,6 +36,8 @@ export default function PlantDetailScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [currentThumbnailId, setCurrentThumbnailId] = useState<string | null>(null);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -222,6 +224,69 @@ export default function PlantDetailScreen() {
     }
   };
 
+  const handleDeleteSelectedPhotos = async () => {
+    const selectedCount = selectedPhotos.size;
+    if (selectedCount === 0) return;
+
+    Alert.alert(
+      'Delete Photos',
+      `Are you sure you want to delete ${selectedCount} photo${selectedCount > 1 ? 's' : ''}? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const selectedPhotoIds = Array.from(selectedPhotos);
+              let wasThumbnailDeleted = false;
+              
+              // Check if we're deleting the current thumbnail
+              if (plant?.thumbnail_photo_id && selectedPhotos.has(plant.thumbnail_photo_id)) {
+                wasThumbnailDeleted = true;
+              }
+
+              // Delete all selected photos
+              await Promise.all(
+                selectedPhotoIds.map(photoId => PhotoService.deletePhoto(photoId))
+              );
+
+              // If we deleted the thumbnail photo, we need to set a new one
+              if (wasThumbnailDeleted && id) {
+                // Get remaining photos
+                const remainingPhotos = await PhotoService.getPhotosByPlantId(id);
+                
+                if (remainingPhotos.length > 0) {
+                  // Sort photos by taken_at ascending to get the oldest first
+                  const sortedPhotos = [...remainingPhotos].sort((a, b) => 
+                    new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+                  );
+                  const newThumbnail = sortedPhotos[0];
+                  
+                  // Set the oldest remaining photo as the new thumbnail
+                  await PhotoService.setThumbnailPhoto(id, newThumbnail.id);
+                } else {
+                  // No photos left, clear the thumbnail
+                  await PhotoService.clearThumbnailPhoto(id);
+                }
+              }
+
+              // Reset multiselect mode and refresh data
+              setIsMultiSelectMode(false);
+              setSelectedPhotos(new Set());
+              loadPlantData();
+              
+              Alert.alert('Success', `${selectedCount} photo${selectedCount > 1 ? 's' : ''} deleted successfully`);
+            } catch (error) {
+              console.error('Failed to delete photos:', error);
+              Alert.alert('Error', 'Failed to delete photos');
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const handleDeletePlant = async () => {
     if (!plant || !id) return;
 
@@ -399,7 +464,7 @@ export default function PlantDetailScreen() {
                 <SquarePen size={16} color="#666" />
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.deleteButton} 
+                style={styles.headerDeleteButton} 
                 onPress={handleDeletePlant}
               >
                 <Trash2 size={16} color="#F44336" />
@@ -429,31 +494,80 @@ export default function PlantDetailScreen() {
         {/* Photos */}
         {photos.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
+              <View style={styles.multiSelectButtonsContainer}>
+                {isMultiSelectMode && selectedPhotos.size > 0 && (
+                  <TouchableOpacity 
+                    style={[styles.multiSelectButton, styles.deleteButton]} 
+                    onPress={() => handleDeleteSelectedPhotos()}
+                  >
+                    <Text style={styles.deleteButtonText}>
+                      Delete ({selectedPhotos.size})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity 
+                  style={[
+                    styles.multiSelectButton,
+                    !isMultiSelectMode && styles.deletePhotosButton,
+                    isMultiSelectMode && styles.cancelButton
+                  ]} 
+                  onPress={() => {
+                    setIsMultiSelectMode(!isMultiSelectMode);
+                    setSelectedPhotos(new Set());
+                  }}
+                >
+                  <Text style={[
+                    styles.multiSelectButtonText,
+                    isMultiSelectMode && styles.cancelButtonText
+                  ]}>
+                    {isMultiSelectMode ? 'Cancel' : 'Delete Photos'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {photos.slice(0, 5).map((photo, index) => (
                 <TouchableOpacity 
                   key={photo.id} 
                   style={styles.photoItem}
-                  onPress={() => handlePhotoPress(photo)}
-                  onLongPress={() => handlePhotoOptions(photo)}
+                  onPress={() => {
+                    if (isMultiSelectMode) {
+                      const newSelected = new Set(selectedPhotos);
+                      if (newSelected.has(photo.id)) {
+                        newSelected.delete(photo.id);
+                      } else {
+                        newSelected.add(photo.id);
+                      }
+                      setSelectedPhotos(newSelected);
+                    } else {
+                      handlePhotoPress(photo);
+                    }
+                  }}
+                  onLongPress={() => !isMultiSelectMode && handlePhotoOptions(photo)}
                 >
                   <Image 
                     source={{ uri: PhotoService.getImageUrl(photo, true) }} 
-                    style={styles.photoImage}
+                    style={[
+                      styles.photoImage,
+                      plant?.thumbnail_photo_id === photo.id && styles.thumbnailPhotoImage,
+                      selectedPhotos.has(photo.id) && styles.selectedPhotoImage
+                    ]}
                     resizeMode="cover"
                   />
-                  {plant?.thumbnail_photo_id === photo.id && (
-                    <View style={styles.thumbnailBadge}>
-                      <Text style={styles.thumbnailBadgeText}>★</Text>
+                  {isMultiSelectMode && (
+                    <View style={styles.selectionOverlay}>
+                      <View style={[
+                        styles.selectionCheckbox,
+                        selectedPhotos.has(photo.id) && styles.selectedCheckbox
+                      ]}>
+                        {selectedPhotos.has(photo.id) && (
+                          <Text style={styles.checkmark}>✓</Text>
+                        )}
+                      </View>
                     </View>
                   )}
-                  <TouchableOpacity 
-                    style={styles.deletePhotoButton}
-                    onPress={() => handleDeletePhoto(photo.id)}
-                  >
-                    <X size={14} color={theme.colors.textOnPrimary} />
-                  </TouchableOpacity>
                   <Text style={styles.photoDate}>{formattedDates[photo.id] || 'Loading...'}</Text>
                 </TouchableOpacity>
               ))}
@@ -607,6 +721,48 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 10,
     color: theme.colors.text,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  multiSelectButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  multiSelectButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 6,
+  },
+  deleteButton: {
+    backgroundColor: '#DC3545',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deletePhotosButton: {
+    backgroundColor: '#DC3545',
+  },
+  multiSelectButtonText: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#999999',
+  },
+  cancelButtonText: {
+    color: '#999999',
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   notesText: {
     fontSize: 16,
     lineHeight: 24,
@@ -622,6 +778,39 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 60,
     borderRadius: 8,
     marginBottom: 5,
+  },
+  thumbnailPhotoImage: {
+    borderWidth: 3,
+    borderColor: '#FFD700',
+  },
+  selectedPhotoImage: {
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+    opacity: 0.8,
+  },
+  selectionOverlay: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+  },
+  selectionCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: theme.colors.textOnPrimary,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedCheckbox: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  checkmark: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   deletePhotoButton: {
     position: 'absolute',
@@ -778,7 +967,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButton: {
+  headerDeleteButton: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
