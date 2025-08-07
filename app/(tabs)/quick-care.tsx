@@ -672,7 +672,7 @@ const createStyles = (theme) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     marginBottom: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
   },
   locationTitle: {
     fontSize: 18,
