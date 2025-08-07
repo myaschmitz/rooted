@@ -26,14 +26,14 @@ export class DatabaseService {
   static async getHealthStatus(): Promise<{
     connected: boolean;
     plantsCount: number;
-    careEventsCount: number;
+    eventsCount: number;
     photosCount: number;
     notesCount: number;
   }> {
     try {
       const [plantsResult, careEventsResult, photosResult, notesResult] = await Promise.all([
         supabase.from('plants').select('*', { count: 'exact', head: true }),
-        supabase.from('care_events').select('*', { count: 'exact', head: true }),
+        supabase.from('events').select('*', { count: 'exact', head: true }),
         supabase.from('plant_photos').select('*', { count: 'exact', head: true }),
         supabase.from('plant_notes').select('*', { count: 'exact', head: true })
       ]);
@@ -41,7 +41,7 @@ export class DatabaseService {
       return {
         connected: true,
         plantsCount: plantsResult.count || 0,
-        careEventsCount: careEventsResult.count || 0,
+        eventsCount: careEventsResult.count || 0,
         photosCount: photosResult.count || 0,
         notesCount: notesResult.count || 0,
       };
@@ -50,7 +50,7 @@ export class DatabaseService {
       return {
         connected: false,
         plantsCount: 0,
-        careEventsCount: 0,
+        eventsCount: 0,
         photosCount: 0,
         notesCount: 0,
       };
@@ -66,7 +66,7 @@ export class DatabaseService {
       // Delete in order to respect foreign key constraints
       await supabase.from('plant_notes').delete().neq('id', '');
       await supabase.from('plant_photos').delete().neq('id', '');
-      await supabase.from('care_events').delete().neq('id', '');
+      await supabase.from('events').delete().neq('id', '');
       await supabase.from('plants').delete().neq('id', '');
       
       console.log('Database reset completed successfully');

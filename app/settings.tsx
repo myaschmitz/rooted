@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { ChevronDown } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../services/PlantService';
-import { CareEventService } from '../services/CareEventService';
+import { EventService } from '../services/EventService';
 import { PhotoService } from '../services/PhotoService';
 
 const DATE_FORMATS = [
@@ -111,7 +111,7 @@ export default function Settings() {
       await PhotoService.deleteAllPhotos();
       
       // Delete all events
-      await CareEventService.deleteAllCareEvents();
+      await EventService.deleteAllEvents();
       
       // Delete all plants
       await PlantService.deleteAllPlants();

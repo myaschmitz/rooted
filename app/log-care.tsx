@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { CareEventService } from '../services/CareEventService';
+import { EventService } from '../services/EventService';
 import { PlantService } from '../services/PlantService';
 import { DateTimeService } from '../services/DateTimeService';
 import { Plant } from '../types/Plant';
@@ -27,7 +27,7 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [activeTab, setActiveTab] = useState<'care' | 'events'>('care');
   const [careDateTime, setCareDateTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,7 +62,7 @@ export default function LogCareScreen() {
 
     setSaving(true);
     try {
-      await CareEventService.createCareEvent({
+      await EventService.createEvent({
         plant_id: plantId,
         event_type: eventType,
         date: careDateTime.toISOString(),

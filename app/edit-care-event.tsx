@@ -12,8 +12,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { CareEventService } from '../services/CareEventService';
-import { CareEvent } from '../types/Plant';
+import { EventService } from '../services/EventService';
+import { Event } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
 
@@ -21,7 +21,7 @@ export default function EditCareEventScreen() {
   const { theme } = useTheme();
   const careStyles = useCareStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [careEvent, setCareEvent] = useState<CareEvent | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [notes, setNotes] = useState('');
   const [fertilizerConcentration, setFertilizerConcentration] = useState('');
@@ -33,16 +33,16 @@ export default function EditCareEventScreen() {
   const styles = createStyles(theme);
 
   useEffect(() => {
-    loadCareEventData();
+    loadEventData();
   }, [id]);
 
-  const loadCareEventData = async () => {
+  const loadEventData = async () => {
     if (!id) return;
     
     try {
-      const eventData = await CareEventService.getCareEventById(id);
+      const eventData = await EventService.getEventById(id);
       if (eventData) {
-        setCareEvent(eventData);
+        setEvent(eventData);
         setEventType(eventData.event_type);
         setNotes(eventData.notes || '');
         setFertilizerConcentration(eventData.fertilizer_concentration || '');
@@ -62,7 +62,7 @@ export default function EditCareEventScreen() {
 
     setSaving(true);
     try {
-      await CareEventService.updateCareEvent(id, {
+      await EventService.updateEvent(id, {
         event_type: eventType,
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerConcentration.trim() || undefined,
@@ -99,7 +99,7 @@ export default function EditCareEventScreen() {
     );
   }
 
-  if (!careEvent) {
+  if (!event) {
     return (
       <View style={styles.container}>
         <Text>Event not found</Text>

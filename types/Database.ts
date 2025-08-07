@@ -107,7 +107,7 @@ export type Database = {
           updated_at?: string;
         };
       };
-      care_events: {
+      events: {
         Row: {
           id: string;
           plant_id: string;

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../../services/PlantService';
-import { CareEventService } from '../../services/CareEventService';
+import { EventService } from '../../services/EventService';
 import { PhotoService } from '../../services/PhotoService';
 import { HouseholdService } from '../../services/HouseholdService';
 import { HouseholdContext, HouseholdMember } from '../../types/Household';
@@ -345,7 +345,7 @@ export default function SettingsScreen() {
       await PhotoService.deleteAllPhotos();
       
       // Delete all events
-      await CareEventService.deleteAllCareEvents();
+      await EventService.deleteAllEvents();
       
       // Delete all plants
       await PlantService.deleteAllPlants();

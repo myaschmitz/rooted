@@ -3,7 +3,7 @@ import { supabase } from '../services/SupabaseService';
 
 interface UseRealtimeUpdatesProps {
   onPlantsUpdate?: () => void;
-  onCareEventsUpdate?: () => void;
+  onEventsUpdate?: () => void;
   onPhotosUpdate?: () => void;
 }
 
@@ -74,11 +74,11 @@ class RealtimeSubscriptionManager {
         {
           event: '*',
           schema: 'public',
-          table: 'care_events'
+          table: 'events'
         },
         (payload) => {
           console.log('Events table changed:', payload.eventType);
-          this.notifySubscribers('onCareEventsUpdate');
+          this.notifySubscribers('onEventsUpdate');
         }
       )
       .on(
@@ -178,7 +178,7 @@ class RealtimeSubscriptionManager {
 
 export const useRealtimeUpdates = ({ 
   onPlantsUpdate, 
-  onCareEventsUpdate, 
+  onEventsUpdate, 
   onPhotosUpdate 
 }: UseRealtimeUpdatesProps) => {
   const idRef = useRef<string>(Math.random().toString(36));
@@ -186,7 +186,7 @@ export const useRealtimeUpdates = ({
 
   useEffect(() => {
     const id = idRef.current;
-    manager.subscribe(id, { onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate });
+    manager.subscribe(id, { onPlantsUpdate, onEventsUpdate, onPhotosUpdate });
 
     return () => {
       manager.unsubscribe(id);
@@ -196,8 +196,8 @@ export const useRealtimeUpdates = ({
   // Update callbacks without resubscribing
   useEffect(() => {
     const id = idRef.current;
-    manager.updateCallbacks(id, { onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate });
-  }, [onPlantsUpdate, onCareEventsUpdate, onPhotosUpdate]);
+    manager.updateCallbacks(id, { onPlantsUpdate, onEventsUpdate, onPhotosUpdate });
+  }, [onPlantsUpdate, onEventsUpdate, onPhotosUpdate]);
 
   return {
     isConnected: manager.getConnectionStatus(),

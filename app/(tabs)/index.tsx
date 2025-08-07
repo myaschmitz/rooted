@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
-import { CareEventService } from '../../services/CareEventService';
+import { EventService } from '../../services/EventService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
@@ -68,8 +68,8 @@ export default function HomeScreen() {
         try {
           // Get both water and fertigate events (fertigate is water + fertilizer)
           const [lastWatering, lastFertigate] = await Promise.all([
-            CareEventService.getLastCareEventByType(plant.id, 'water'),
-            CareEventService.getLastCareEventByType(plant.id, 'fertigate')
+            EventService.getLastEventByType(plant.id, 'water'),
+            EventService.getLastEventByType(plant.id, 'fertigate')
           ]);
 
           // Find the most recent between water and fertigate

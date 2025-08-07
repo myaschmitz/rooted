@@ -14,9 +14,9 @@ import {
 import ImageViewing from 'react-native-image-viewing';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen, Trash2, X } from 'lucide-react-native';
-import { Plant, CareEvent, PlantPhoto } from '../../types/Plant';
+import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
-import { CareEventService } from '../../services/CareEventService';
+import { EventService } from '../../services/EventService';
 import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -28,7 +28,7 @@ export default function PlantDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [plant, setPlant] = useState<Plant | null>(null);
-  const [careEvents, setCareEvents] = useState<CareEvent[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [photos, setPhotos] = useState<PlantPhoto[]>([]);
   const [thumbnailPhoto, setThumbnailPhoto] = useState<PlantPhoto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function PlantDetailScreen() {
     try {
       const [plantData, eventsData, photosData] = await Promise.all([
         PlantService.getPlantById(id),
-        CareEventService.getCareEventsByPlantId(id),
+        EventService.getEventsByPlantId(id),
         PhotoService.getPhotosByPlantId(id),
       ]);
 
@@ -77,7 +77,7 @@ export default function PlantDetailScreen() {
         setPlant(plantData);
       }
 
-      setCareEvents(eventsData);
+      setEvents(eventsData);
       setPhotos(photosData);
       setCurrentThumbnailId(plantData?.thumbnail_photo_id || null);
     } catch (error) {
@@ -104,7 +104,7 @@ export default function PlantDetailScreen() {
   // Set up real-time subscriptions for automatic updates
   useRealtimeUpdates({
     onPlantsUpdate: loadPlantData,
-    onCareEventsUpdate: loadPlantData,
+    onEventsUpdate: loadPlantData,
     onPhotosUpdate: loadPlantData,
   });
 
@@ -272,7 +272,7 @@ export default function PlantDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await CareEventService.deleteCareEvent(eventId);
+              const success = await EventService.deleteEvent(eventId);
               
               if (success) {
                 loadPlantData(); // Refresh to remove deleted event
@@ -312,7 +312,7 @@ export default function PlantDetailScreen() {
     const dateMap: {[key: string]: string} = {};
     
     // Format event dates
-    for (const event of careEvents) {
+    for (const event of events) {
       dateMap[event.id] = await DateTimeService.formatDate(event.date);
     }
     
@@ -322,7 +322,7 @@ export default function PlantDetailScreen() {
     }
     
     setFormattedDates(dateMap);
-  }, [careEvents, photos]);
+  }, [events, photos]);
 
   useEffect(() => {
     updateFormattedDates();
@@ -463,11 +463,11 @@ export default function PlantDetailScreen() {
 
         {/* Care History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Care History ({careEvents.length})</Text>
-          {careEvents.length === 0 ? (
+          <Text style={styles.sectionTitle}>Care History ({events.length})</Text>
+          {events.length === 0 ? (
             <Text style={styles.emptyCareText}>No events recorded yet</Text>
           ) : (
-            careEvents.slice(0, 10).map((event) => (
+            events.slice(0, 10).map((event) => (
               <React.Fragment key={event.id}>
                 <View style={styles.careEventItem}>
                 <View style={styles.careEventHeader}>

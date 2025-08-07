@@ -11,7 +11,7 @@ export interface Plant {
   updated_at: string;
 }
 
-export interface CareEvent {
+export interface Event {
   id: string;
   plant_id: string;
   event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';

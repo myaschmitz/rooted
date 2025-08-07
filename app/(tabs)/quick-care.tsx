@@ -5,7 +5,7 @@ import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout, MoreHorizonta
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
-import { CareEventService } from '../../services/CareEventService';
+import { EventService } from '../../services/EventService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
@@ -173,7 +173,7 @@ export default function QuickCareScreen() {
   // Set up real-time subscriptions for automatic updates
   useRealtimeUpdates({
     onPlantsUpdate: loadPlants,
-    onCareEventsUpdate: loadPlants, // Events don't directly affect this page, but keeping for consistency
+    onEventsUpdate: loadPlants, // Events don't directly affect this page, but keeping for consistency
     onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
   });
 
@@ -244,7 +244,7 @@ export default function QuickCareScreen() {
         }
 
 
-        await CareEventService.createCareEvent(careEventData);
+        await EventService.createEvent(careEventData);
       }
       
       // Reset form and close modals
