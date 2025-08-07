@@ -12,11 +12,11 @@
 ### Event Management
 - [x] Separate care actions vs general events
 - [x] Add new event types: new leaf, relocation, roots spotted
-- Create fertilizer concentration buttons (1/4, 1/2, 1x, 1.5x, and 2x strengths)
+- [x] Create fertilizer concentration buttons (1/4, 1/2, 1x, 1.5x, and 2x strengths)
 
 ### Photo Management
-- Remove badges from photos
-- Add delete button with multiselect capability
+- [x] Remove badges from photos
+- [x] Add delete button with multiselect capability
 
 ### Features
 - Add metrics (e.g., water frequency)
