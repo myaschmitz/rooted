@@ -2,6 +2,7 @@ import { Event } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
 import { PlantService } from './PlantService';
+import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type EventRow = Database['public']['Tables']['events']['Row'];
@@ -87,6 +88,15 @@ export class EventService {
       notes: event.notes,
     }, plantName);
 
+    // Invalidate cache
+    await CacheInvalidationService.invalidateOnUserAction('event_added', {
+      entityId: event.plant_id,
+      additionalData: { 
+        eventId: event.id,
+        eventType: event.event_type 
+      }
+    });
+
     return event;
   }
 
@@ -118,7 +128,19 @@ export class EventService {
       throw new Error(`Failed to update event: ${error.message}`);
     }
 
-    return data as Event;
+    const event = data as Event;
+
+    // Invalidate cache
+    await CacheInvalidationService.invalidateOnUserAction('event_updated', {
+      entityId: event.plant_id,
+      additionalData: { 
+        eventId: event.id,
+        eventType: event.event_type,
+        updatedFields: Object.keys(updates)
+      }
+    });
+
+    return event;
   }
 
   static async getEventById(id: string): Promise<Event | null> {
@@ -147,6 +169,12 @@ export class EventService {
   }
 
   static async deleteEvent(id: string): Promise<boolean> {
+    // Get event info before deleting for cache invalidation
+    const event = await this.getEventById(id);
+    if (!event) {
+      return false; // Event not found or not accessible
+    }
+
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
@@ -163,6 +191,15 @@ export class EventService {
       console.error('Error deleting event:', error);
       throw new Error(`Failed to delete event: ${error.message}`);
     }
+
+    // Invalidate cache
+    await CacheInvalidationService.invalidateOnUserAction('event_deleted', {
+      entityId: event.plant_id,
+      additionalData: { 
+        eventId: event.id,
+        eventType: event.event_type 
+      }
+    });
 
     return true;
   }

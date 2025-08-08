@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../services/SupabaseService';
+import { CacheInvalidationService } from '../services/CacheInvalidationService';
 
 interface UseRealtimeUpdatesProps {
   onPlantsUpdate?: () => void;
@@ -17,12 +19,19 @@ class RealtimeSubscriptionManager {
   private retryCount = 0;
   private maxRetries = 3;
   private retryTimeout: NodeJS.Timeout | null = null;
+  private queryClient: QueryClient | null = null;
 
   static getInstance(): RealtimeSubscriptionManager {
     if (!RealtimeSubscriptionManager.instance) {
       RealtimeSubscriptionManager.instance = new RealtimeSubscriptionManager();
     }
     return RealtimeSubscriptionManager.instance;
+  }
+
+  setQueryClient(queryClient: QueryClient): void {
+    this.queryClient = queryClient;
+    // Set the default query client for cache invalidation
+    CacheInvalidationService.setDefaultQueryClient(queryClient);
   }
 
   subscribe(id: string, callbacks: UseRealtimeUpdatesProps): void {
@@ -64,8 +73,40 @@ class RealtimeSubscriptionManager {
           schema: 'public',
           table: 'plants'
         },
-        (payload) => {
-          console.log('Plants table changed:', payload.eventType);
+        async (payload) => {
+          console.log('Plants table changed:', payload.eventType, payload.new?.id || payload.old?.id);
+          
+          // Trigger cache invalidation based on the event type
+          const plantId = payload.new?.id || payload.old?.id;
+          if (plantId) {
+            try {
+              if (payload.eventType === 'INSERT') {
+                await CacheInvalidationService.invalidateOnUserAction('plant_added', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { location: payload.new?.location }
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                await CacheInvalidationService.invalidateOnUserAction('plant_updated', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { 
+                    newLocation: payload.new?.location,
+                    oldLocation: payload.old?.location
+                  }
+                });
+              } else if (payload.eventType === 'DELETE') {
+                await CacheInvalidationService.invalidateOnUserAction('plant_deleted', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { location: payload.old?.location }
+                });
+              }
+            } catch (error) {
+              console.error('Failed to invalidate cache for plants change:', error);
+            }
+          }
+          
           this.notifySubscribers('onPlantsUpdate');
         }
       )
@@ -76,8 +117,46 @@ class RealtimeSubscriptionManager {
           schema: 'public',
           table: 'events'
         },
-        (payload) => {
-          console.log('Events table changed:', payload.eventType);
+        async (payload) => {
+          console.log('Events table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          
+          // Trigger cache invalidation based on the event type
+          const plantId = payload.new?.plant_id || payload.old?.plant_id;
+          if (plantId) {
+            try {
+              if (payload.eventType === 'INSERT') {
+                await CacheInvalidationService.invalidateOnUserAction('event_added', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { 
+                    eventId: payload.new?.id,
+                    eventType: payload.new?.event_type
+                  }
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                await CacheInvalidationService.invalidateOnUserAction('event_updated', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { 
+                    eventId: payload.new?.id,
+                    eventType: payload.new?.event_type
+                  }
+                });
+              } else if (payload.eventType === 'DELETE') {
+                await CacheInvalidationService.invalidateOnUserAction('event_deleted', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { 
+                    eventId: payload.old?.id,
+                    eventType: payload.old?.event_type
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Failed to invalidate cache for events change:', error);
+            }
+          }
+          
           this.notifySubscribers('onEventsUpdate');
         }
       )
@@ -88,8 +167,37 @@ class RealtimeSubscriptionManager {
           schema: 'public',
           table: 'plant_photos'
         },
-        (payload) => {
-          console.log('Plant photos table changed:', payload.eventType);
+        async (payload) => {
+          console.log('Plant photos table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          
+          // Trigger cache invalidation based on the event type
+          const plantId = payload.new?.plant_id || payload.old?.plant_id;
+          if (plantId) {
+            try {
+              if (payload.eventType === 'INSERT') {
+                await CacheInvalidationService.invalidateOnUserAction('photo_added', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { photoId: payload.new?.id }
+                });
+              } else if (payload.eventType === 'UPDATE') {
+                await CacheInvalidationService.invalidateOnUserAction('photo_updated', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { photoId: payload.new?.id }
+                });
+              } else if (payload.eventType === 'DELETE') {
+                await CacheInvalidationService.invalidateOnUserAction('photo_deleted', {
+                  queryClient: this.queryClient,
+                  entityId: plantId,
+                  additionalData: { photoId: payload.old?.id }
+                });
+              }
+            } catch (error) {
+              console.error('Failed to invalidate cache for photos change:', error);
+            }
+          }
+          
           this.notifySubscribers('onPhotosUpdate');
         }
       )
@@ -183,6 +291,14 @@ export const useRealtimeUpdates = ({
 }: UseRealtimeUpdatesProps) => {
   const idRef = useRef<string>(Math.random().toString(36));
   const manager = RealtimeSubscriptionManager.getInstance();
+  const queryClient = useQueryClient();
+
+  // Set the query client on the manager for cache invalidation
+  useEffect(() => {
+    if (queryClient) {
+      manager.setQueryClient(queryClient);
+    }
+  }, [queryClient]);
 
   useEffect(() => {
     const id = idRef.current;

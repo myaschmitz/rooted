@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  Image,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen, Trash2, X, Download } from 'lucide-react-native';
@@ -18,6 +18,7 @@ import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { EventService } from '../../services/EventService';
 import { PhotoService } from '../../services/PhotoService';
+import { CachedPhotoService } from '../../services/CachedPhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
@@ -469,7 +470,9 @@ export default function PlantDetailScreen() {
                   <Image 
                     source={{ uri: PhotoService.getImageUrl(thumbnailPhoto, true) }} 
                     style={styles.thumbnailImage}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
                   />
                 </TouchableOpacity>
               )}
@@ -579,7 +582,9 @@ export default function PlantDetailScreen() {
                       plant?.thumbnail_photo_id === photo.id && styles.thumbnailPhotoImage,
                       selectedPhotos.has(photo.id) && styles.selectedPhotoImage
                     ]}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={200}
                   />
                   {isMultiSelectMode && (
                     <View style={styles.selectionOverlay}>

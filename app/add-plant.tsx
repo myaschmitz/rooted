@@ -6,8 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
@@ -128,7 +128,12 @@ export default function AddPlantScreen() {
             <TouchableOpacity style={styles.photoContainer} onPress={handleAddPhoto}>
               {plantPhoto ? (
                 <View style={styles.photoWrapper}>
-                  <Image source={{ uri: plantPhoto }} style={styles.plantImage} />
+                  <Image 
+                    source={{ uri: plantPhoto }} 
+                    style={styles.plantImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                   <View style={styles.photoButtonsContainer}>
                     <TouchableOpacity style={styles.removePhotoButton} onPress={handleRemovePhoto}>
                       <Text style={styles.removePhotoButtonText}>×</Text>

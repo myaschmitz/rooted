@@ -1,8 +1,26 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { AuthGuard } from '../components/AuthGuard';
+
+// Create a client with optimized cache settings for plant care app
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes - data is considered fresh for 5 minutes
+      cacheTime: 30 * 60 * 1000, // 30 minutes - keep unused data in cache for 30 minutes
+      retry: 3, // Retry failed requests 3 times
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
+      refetchOnReconnect: true, // Refetch when internet reconnects
+    },
+    mutations: {
+      retry: 2, // Retry failed mutations 2 times
+    },
+  },
+});
 
 function ThemedStack() {
   const { theme } = useTheme();
@@ -78,8 +96,10 @@ function ThemedStack() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <ThemedStack />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ThemedStack />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

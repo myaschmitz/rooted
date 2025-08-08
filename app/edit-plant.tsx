@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
@@ -156,7 +156,12 @@ export default function EditPlantScreen() {
             <TouchableOpacity style={styles.photoContainer} onPress={handleAddPhoto}>
               {plantPhoto ? (
                 <View style={styles.photoWrapper}>
-                  <Image source={{ uri: plantPhoto }} style={styles.plantImage} />
+                  <Image 
+                    source={{ uri: plantPhoto }} 
+                    style={styles.plantImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                  />
                   <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
                     <Camera size={20} color="#FFFFFF" />
                   </TouchableOpacity>

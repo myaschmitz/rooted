@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout, MoreHorizontal } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
