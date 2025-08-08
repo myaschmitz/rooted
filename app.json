@@ -36,7 +36,10 @@
     ],
     "scheme": "rooted",
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "c985d2e8-93a8-4a5d-a7b7-cb59d9e46f11"
+      }
     },
     "owner": "myaschm"
   }
