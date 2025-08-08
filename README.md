@@ -135,7 +135,7 @@ All tables include UUID primary keys and sync tracking columns.
 ### Editing Events
 1. From a plant's detail page, find the event in the history
 2. Tap the "✏️" button next to the event
-3. Modify care type, health status, notes, or fertilizer details
+3. Modify event type, health status, notes, or fertilizer details
 4. Save changes
 
 ### Adding and Managing Photos

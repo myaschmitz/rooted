@@ -170,9 +170,9 @@ const styles = StyleSheet.create({
 <View style={GlobalStyles.flexCenter}>
 ```
 
-### **Care-Specific Components**
+### **Event-Specific Components**
 ```tsx
-// Care type selection
+// Event type selection
 <View style={CareStyles.careTypeGrid}>
 <TouchableOpacity style={CareStyles.careTypeOption}>
 

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { EventService } from '../services/EventService';
 import { Event } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
@@ -23,6 +24,7 @@ export default function EditCareEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
+  const [eventDate, setEventDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [fertilizerStrength, setFertilizerStrength] = useState<'1/4' | '1/2' | '1x' | '1.5x' | '2x'>('1x');
   const [pestSeverity, setPestSeverity] = useState<number>(1);
@@ -43,6 +45,7 @@ export default function EditCareEventScreen() {
       if (eventData) {
         setEvent(eventData);
         setEventType(eventData.event_type);
+        setEventDate(new Date(eventData.date));
         setNotes(eventData.notes || '');
         setFertilizerStrength((eventData.fertilizer_concentration as '1/4' | '1/2' | '1x' | '1.5x' | '2x') || '1x');
         setPestSeverity(eventData.pest_severity || 1);
@@ -62,6 +65,7 @@ export default function EditCareEventScreen() {
     try {
       await EventService.updateEvent(id, {
         event_type: eventType,
+        date: eventDate.toISOString(),
         notes: notes.trim() || undefined,
         fertilizer_concentration: fertilizerStrength,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
@@ -112,9 +116,9 @@ export default function EditCareEventScreen() {
     >
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
-          {/* Care Type */}
+          {/* Event Type */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Care Type</Text>
+            <Text style={styles.label}>Event Type</Text>
             <View style={styles.optionsContainer}>
               {careTypeOptions.map((option) => (
                 <TouchableOpacity
@@ -139,6 +143,47 @@ export default function EditCareEventScreen() {
             </View>
           </View>
 
+          {/* Date and Time */}
+          <View style={styles.inputGroup}>
+            <View style={styles.dateTimeRow}>
+              <View style={styles.dateTimeSection}>
+                <Text style={styles.label}>Date</Text>
+                <DateTimePicker
+                  value={eventDate}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) {
+                      setEventDate(selectedDate);
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.dateTimeSection}>
+                <Text style={styles.label}>Time</Text>
+                <DateTimePicker
+                  value={eventDate}
+                  mode="time"
+                  display="default"
+                  onChange={(event, selectedTime) => {
+                    if (selectedTime) {
+                      setEventDate(selectedTime);
+                    }
+                  }}
+                />
+              </View>
+              <View style={styles.buttonSection}>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => {
+                    setEventDate(new Date());
+                  }}
+                >
+                  <Text style={styles.nowButtonText}>Set to Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
 
           {/* Fertilizer Details (only show if fertilizing) */}
           {(eventType === 'fertilize' || eventType === 'fertigate') && (
@@ -355,5 +400,30 @@ const createStyles = (theme: any) => StyleSheet.create({
   strengthTextSelected: {
     color: '#2196F3',
     fontWeight: 'bold',
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  dateTimeSection: {
+    flex: 1,
+    marginRight: 8,
+  },
+  buttonSection: {
+    justifyContent: 'flex-end',
+    marginLeft: 8,
+  },
+  nowButton: {
+    backgroundColor: theme.colors.secondary,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  nowButtonText: {
+    color: theme.colors.textOnSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
