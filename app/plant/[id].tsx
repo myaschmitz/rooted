@@ -575,9 +575,9 @@ export default function PlantDetailScreen() {
           </View>
         )}
 
-        {/* Care History */}
+        {/* Event History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Care History ({events.length})</Text>
+          <Text style={styles.sectionTitle}>Event History ({events.length})</Text>
           {events.length === 0 ? (
             <Text style={styles.emptyCareText}>No events recorded yet</Text>
           ) : (
