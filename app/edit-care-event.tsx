@@ -6,9 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,6 +14,7 @@ import { EventService } from '../services/EventService';
 import { Event } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
+import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
@@ -123,12 +121,11 @@ export default function EditCareEventScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+    <View style={styles.container}>
+      <KeyboardAwareScrollView
+        extraScrollHeight={100}
+        keyboardVerticalOffset={100}
+      >
         <View style={styles.form}>
           {/* Event Type */}
           <View style={styles.inputGroup}>
@@ -331,8 +328,8 @@ export default function EditCareEventScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
@@ -340,9 +337,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  scrollView: {
-    flex: 1,
   },
   form: {
     padding: 20,
