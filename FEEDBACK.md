@@ -23,7 +23,7 @@
 - Add ability to sort plants in the plants page
 
 ### Optimization
-- Need to add caching and similar items so that the item is not doing so many reads
+- [x] Need to add caching and similar items so that the item is not doing so many reads
 - [x] Upon adding a photo, add a full size version and a smaller version for the thumbnails to decrease the amount of megabytes being read on every load of the plants page and quick events page.
 
 ### Event System Enhancements
