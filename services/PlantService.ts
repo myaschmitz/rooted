@@ -63,7 +63,6 @@ export class PlantService {
 
     const plantInsert: PlantInsert = {
       ...plantData,
-      health_status: plantData.health_status || 'good',
       household_id: session.household_id,
     };
 
@@ -196,27 +195,6 @@ export class PlantService {
     return (data || []) as Plant[];
   }
 
-  static async getPlantsByHealthStatus(status: string): Promise<Plant[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error('No household session found');
-    }
-
-    const { data, error } = await supabase
-      .from('plants')
-      .select('*')
-      .eq('household_id', session.household_id)
-      .eq('health_status', status)
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching plants by health status:', error);
-      throw new Error(`Failed to fetch plants by health status: ${error.message}`);
-    }
-
-    return (data || []) as Plant[];
-  }
 
   static async deleteAllPlants(): Promise<void> {
     const { error } = await supabase

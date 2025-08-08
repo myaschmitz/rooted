@@ -1,7 +1,5 @@
 # User Feedback
 
-## Sage's Thoughts
-
 ### UI/UX Improvements
 - [x] Make thumbnails a bit bigger
 - [x] More helpful display for plant cards: show last watering instead of health
@@ -13,6 +11,8 @@
 - [x] Separate care actions vs general events
 - [x] Add new event types: new leaf, relocation, roots spotted
 - [x] Create fertilizer concentration buttons (1/4, 1/2, 1x, 1.5x, and 2x strengths)
+- [x] Automatically add event for when a plant is added
+- [] Allow for editing date for events
 
 ### Photo Management
 - [x] Remove badges from photos
@@ -21,8 +21,6 @@
 ### Features
 - Add metrics (e.g., water frequency)
 - Add ability to sort plants in the plants page
-
-## Mya's Thoughts
 
 ### Optimization
 - Need to add caching and similar items so that the item is not doing so many reads

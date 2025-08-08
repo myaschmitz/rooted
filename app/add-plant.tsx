@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
+import { EventService } from '../services/EventService';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
@@ -48,6 +49,20 @@ export default function AddPlantScreen() {
           await PhotoService.savePhoto(newPlant.id, plantPhoto, 'Initial photo');
         } catch (photoError) {
           console.warn('Failed to save photo, but plant was created:', photoError);
+        }
+      }
+
+      // Create a "plant added" event to track when the plant was added
+      if (newPlant) {
+        try {
+          await EventService.createEvent({
+            plant_id: newPlant.id,
+            event_type: 'other',
+            date: new Date().toISOString(),
+            notes: 'Plant added to collection'
+          });
+        } catch (eventError) {
+          console.warn('Failed to create plant added event:', eventError);
         }
       }
 
