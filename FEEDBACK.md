@@ -12,7 +12,7 @@
 - [x] Add new event types: new leaf, relocation, roots spotted
 - [x] Create fertilizer concentration buttons (1/4, 1/2, 1x, 1.5x, and 2x strengths)
 - [x] Automatically add event for when a plant is added
-- [] Allow for editing date for events
+- [x] Allow for editing date for events
 
 ### Photo Management
 - [x] Remove badges from photos
@@ -31,6 +31,7 @@
 - Add tabs at the top to separate event categories:
   - **Care Tab**: water, fertilize, fertigate, repot, prune, insecticide
   - **Events Tab**: pest spotted, new leaf, relocation, roots spotted
+- Add notification system
 
 ### UX Improvements
 - [x] When keyboard opens, snap the input field above the keyboard
