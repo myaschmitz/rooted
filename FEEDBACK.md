@@ -35,6 +35,6 @@
 
 ### UX Improvements
 - [x] When keyboard opens, snap the input field above the keyboard
-- Add ability to download photos
+- [x] Add ability to download photos
 - Add ability to search via a search bar in plants list
 - [x] Add ability to zoom into full screen photos
