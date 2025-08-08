@@ -28,7 +28,7 @@
 
 ### Event System Enhancements
 - Attach photos to events (connect photos to specific events)
-- Add tabs at the top to separate event categories:
+- [x] Add tabs at the top to separate event categories:
   - **Care Tab**: water, fertilize, fertigate, repot, prune, insecticide
   - **Events Tab**: pest spotted, new leaf, relocation, roots spotted
 - Add notification system
