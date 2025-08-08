@@ -34,7 +34,7 @@
     "expo-sqlite": "~15.2.14",
     "expo-status-bar": "~2.2.3",
     "lucide-react-native": "^0.525.0",
-    "react": "19.0.0",
+    "react": "^19.1.1",
     "react-native": "0.79.5",
     "react-native-image-viewing": "^0.2.2",
     "react-native-safe-area-context": "5.4.0",
