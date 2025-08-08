@@ -35,6 +35,7 @@ export default function PlantDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [thumbnailViewerVisible, setThumbnailViewerVisible] = useState(false);
   const [currentThumbnailId, setCurrentThumbnailId] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
@@ -161,6 +162,10 @@ export default function PlantDetailScreen() {
     const photoIndex = photos.findIndex(p => p.id === photo.id);
     setCurrentPhotoIndex(photoIndex);
     setImageViewerVisible(true);
+  };
+
+  const handleThumbnailPress = () => {
+    setThumbnailViewerVisible(true);
   };
 
   const handleDeletePhoto = async (photoId: string) => {
@@ -460,11 +465,13 @@ export default function PlantDetailScreen() {
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
               {thumbnailPhoto && (
-                <Image 
-                  source={{ uri: PhotoService.getImageUrl(thumbnailPhoto, true) }} 
-                  style={styles.thumbnailImage}
-                  resizeMode="cover"
-                />
+                <TouchableOpacity onPress={handleThumbnailPress}>
+                  <Image 
+                    source={{ uri: PhotoService.getImageUrl(thumbnailPhoto, true) }} 
+                    style={styles.thumbnailImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
               )}
               <View style={[styles.headerContent, thumbnailPhoto && styles.headerContentWithThumbnail]}>
                 <Text style={styles.plantName}>{plant.name || `${plant.type}`}</Text>
@@ -697,6 +704,26 @@ export default function PlantDetailScreen() {
             </View>
           );
         }}
+      />
+
+      <ImageViewing
+        images={thumbnailPhoto ? [{ uri: PhotoService.getImageUrl(thumbnailPhoto, false) }] : []}
+        imageIndex={0}
+        visible={thumbnailViewerVisible}
+        onRequestClose={() => setThumbnailViewerVisible(false)}
+        swipeToCloseEnabled={true}
+        doubleTapToZoomEnabled={true}
+        presentationStyle="overFullScreen"
+        HeaderComponent={() => (
+          <View style={styles.thumbnailViewerHeader}>
+            <TouchableOpacity
+              style={styles.thumbnailCloseButton}
+              onPress={() => setThumbnailViewerVisible(false)}
+            >
+              <X size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        )}
       />
     </View>
   );
@@ -1063,5 +1090,19 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
+  },
+  thumbnailViewerHeader: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1000,
+  },
+  thumbnailCloseButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
