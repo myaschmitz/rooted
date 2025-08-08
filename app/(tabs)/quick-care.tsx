@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, Image, Modal, FlatList, StyleSheet, ActivityIndicator, RefreshControl, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Check, Filter, Calendar, Droplets, Scissors, Bug, Sprout, MoreHorizontal } from 'lucide-react-native';
 import { PlantService } from '../../services/PlantService';
@@ -423,96 +423,106 @@ export default function QuickCareScreen() {
         onRequestClose={handleDetailBack}
       >
         <View style={globalStyles.modalOverlay}>
-          <View style={[globalStyles.modalContent, { maxHeight: '90%' }]}>
-            <View style={globalStyles.modalHeader}>
-              <View style={globalStyles.flexRowCenter}>
-                {IconComponent && <IconComponent size={24} color={careTypeInfo.color} />}
-                <Text style={[globalStyles.modalTitle, { marginLeft: 8 }]}>{careTypeInfo?.label} Details</Text>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            style={{ flex: 1, justifyContent: 'center' }}
+          >
+            <View style={[globalStyles.modalContent, { maxHeight: '80%', minHeight: 300 }]}>
+              <View style={globalStyles.modalHeader}>
+                <View style={globalStyles.flexRowCenter}>
+                  {IconComponent && <IconComponent size={24} color={careTypeInfo.color} />}
+                  <Text style={[globalStyles.modalTitle, { marginLeft: 8 }]}>{careTypeInfo?.label} Details</Text>
+                </View>
               </View>
-            </View>
             
-            <ScrollView style={{ maxHeight: 400 }} keyboardShouldPersistTaps="handled">
-              <Text style={[globalStyles.bodySmall, { marginBottom: 16 }]}>
-                {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
-              </Text>
+            <ScrollView 
+              style={{ maxHeight: 400 }} 
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+                <Text style={[globalStyles.bodySmall, { marginBottom: 16 }]}>
+                  {selectedPlants.size} plant{selectedPlants.size !== 1 ? 's' : ''} selected
+                </Text>
 
-              {/* Fertilizer Options (only show for fertilize) */}
-              {showFertilizerOptions && (
-                <View style={globalStyles.inputGroup}>
-                  <Text style={globalStyles.label}>Fertilizer Strength</Text>
-                  <View style={styles.strengthContainer}>
-                    {['1/4', '1/2', '1x', '1.5x', '2x'].map((strength) => (
-                      <TouchableOpacity
-                        key={strength}
-                        style={[
-                          styles.strengthOption,
-                          careDetails.fertilizerStrength === strength && styles.strengthOptionSelected,
-                        ]}
-                        onPress={() => setCareDetails(prev => ({ ...prev, fertilizerStrength: strength as '1/4' | '1/2' | '1x' | '1.5x' | '2x' }))}
-                      >
-                        <Text
+                {/* Fertilizer Options (only show for fertilize) */}
+                {showFertilizerOptions && (
+                  <View style={globalStyles.inputGroup}>
+                    <Text style={globalStyles.label}>Fertilizer Strength</Text>
+                    <View style={styles.strengthContainer}>
+                      {['1/4', '1/2', '1x', '1.5x', '2x'].map((strength) => (
+                        <TouchableOpacity
+                          key={strength}
                           style={[
-                            styles.strengthText,
-                            careDetails.fertilizerStrength === strength && styles.strengthTextSelected,
+                            styles.strengthOption,
+                            careDetails.fertilizerStrength === strength && styles.strengthOptionSelected,
                           ]}
+                          onPress={() => setCareDetails(prev => ({ ...prev, fertilizerStrength: strength as '1/4' | '1/2' | '1x' | '1.5x' | '2x' }))}
                         >
-                          {strength}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text
+                            style={[
+                              styles.strengthText,
+                              careDetails.fertilizerStrength === strength && styles.strengthTextSelected,
+                            ]}
+                          >
+                            {strength}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
 
-              {/* Pest Severity (only show for pest_spotted) */}
-              {showPestSeverity && (
-                <View style={globalStyles.inputGroup}>
-                  <Text style={globalStyles.label}>Pest Severity (1-10 scale)</Text>
-                  <Text style={globalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
-                  <View style={styles.severityContainer}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
-                      <TouchableOpacity
-                        key={severity}
-                        style={[
-                          styles.severityButton,
-                          careDetails.pestSeverity === severity && styles.severityButtonSelected,
-                          careDetails.pestSeverity === severity 
-                            ? (severity <= 3 && styles.severityLowSelected) ||
-                              (severity >= 4 && severity <= 6 && styles.severityMediumSelected) ||
-                              (severity >= 7 && styles.severityHighSelected)
-                            : (severity <= 3 && styles.severityLow) ||
-                              (severity >= 4 && severity <= 6 && styles.severityMedium) ||
-                              (severity >= 7 && styles.severityHigh),
-                        ]}
-                        onPress={() => setCareDetails(prev => ({ ...prev, pestSeverity: severity }))}
-                      >
-                        <Text
+                {/* Pest Severity (only show for pest_spotted) */}
+                {showPestSeverity && (
+                  <View style={globalStyles.inputGroup}>
+                    <Text style={globalStyles.label}>Pest Severity (1-10 scale)</Text>
+                    <Text style={globalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+                    <View style={styles.severityContainer}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((severity) => (
+                        <TouchableOpacity
+                          key={severity}
                           style={[
-                            styles.severityText,
-                            careDetails.pestSeverity === severity && styles.severityTextSelected,
+                            styles.severityButton,
+                            careDetails.pestSeverity === severity && styles.severityButtonSelected,
+                            careDetails.pestSeverity === severity 
+                              ? (severity <= 3 && styles.severityLowSelected) ||
+                                (severity >= 4 && severity <= 6 && styles.severityMediumSelected) ||
+                                (severity >= 7 && styles.severityHighSelected)
+                              : (severity <= 3 && styles.severityLow) ||
+                                (severity >= 4 && severity <= 6 && styles.severityMedium) ||
+                                (severity >= 7 && styles.severityHigh),
                           ]}
+                          onPress={() => setCareDetails(prev => ({ ...prev, pestSeverity: severity }))}
                         >
-                          {severity}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text
+                            style={[
+                              styles.severityText,
+                              careDetails.pestSeverity === severity && styles.severityTextSelected,
+                            ]}
+                          >
+                            {severity}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
 
-              {/* Notes */}
-              <View style={globalStyles.inputGroup}>
-                <Text style={globalStyles.label}>Notes</Text>
-                <TextInput
-                  style={globalStyles.inputTextArea}
-                  value={careDetails.notes}
-                  onChangeText={(text) => setCareDetails(prev => ({ ...prev, notes: text }))}
-                  placeholder="Additional notes about this event..."
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </View>
+                {/* Notes */}
+                <View style={globalStyles.inputGroup}>
+                  <Text style={globalStyles.label}>Notes</Text>
+                  <TextInput
+                    style={globalStyles.inputTextArea}
+                    value={careDetails.notes}
+                    onChangeText={(text) => setCareDetails(prev => ({ ...prev, notes: text }))}
+                    placeholder="Additional notes about this event..."
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                </View>
 
             </ScrollView>
             
@@ -538,7 +548,8 @@ export default function QuickCareScreen() {
                 )}
               </TouchableOpacity>
             </View>
-          </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     );

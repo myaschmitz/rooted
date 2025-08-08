@@ -5,9 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -19,6 +16,7 @@ import { Plant } from '../types/Plant';
 import { useGlobalStyles } from '../styles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
+import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
@@ -104,12 +102,11 @@ export default function LogCareScreen() {
   const showPestSeverity = eventType === 'pest_spotted';
 
   return (
-    <KeyboardAvoidingView
-      style={globalStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
-      <ScrollView style={globalStyles.scrollView} keyboardShouldPersistTaps="handled">
+    <View style={globalStyles.container}>
+      <KeyboardAwareScrollView
+        extraScrollHeight={100}
+        keyboardVerticalOffset={100}
+      >
         <View style={globalStyles.form}>
           {/* Plant Info */}
           {plant && (
@@ -320,8 +317,8 @@ export default function LogCareScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

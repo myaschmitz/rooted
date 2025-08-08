@@ -26,7 +26,7 @@
 
 ### Optimization
 - Need to add caching and similar items so that the item is not doing so many reads
-- Upon adding a photo, add a full size version and a smaller version for the thumbnails to decrease the amount of megabytes being read on every load of the plants page and quick events page.
+- [x] Upon adding a photo, add a full size version and a smaller version for the thumbnails to decrease the amount of megabytes being read on every load of the plants page and quick events page.
 
 ### Event System Enhancements
 - Attach photos to events (connect photos to specific events)
@@ -35,7 +35,7 @@
   - **Events Tab**: pest spotted, new leaf, relocation, roots spotted
 
 ### UX Improvements
-- When keyboard opens, snap the input field above the keyboard
+- [x] When keyboard opens, snap the input field above the keyboard
 - Add ability to download photos
 - Add ability to search via a search bar in plants list
 - [x] Add ability to zoom into full screen photos

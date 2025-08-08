@@ -6,10 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  ScrollView,
-  KeyboardAvoidingView,
   ActivityIndicator,
-  Platform,
   Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,6 +14,7 @@ import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
 import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
+import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { Camera } from 'lucide-react-native';
 
@@ -147,12 +145,11 @@ export default function EditPlantScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-    >
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+    <View style={styles.container}>
+      <KeyboardAwareScrollView
+        extraScrollHeight={100}
+        keyboardVerticalOffset={100}
+      >
         <View style={styles.form}>
           {/* Plant Photo */}
           <View style={styles.inputGroup}>
@@ -233,8 +230,8 @@ export default function EditPlantScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
@@ -243,12 +240,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
   form: {
     padding: 20,
-    paddingBottom: 40, // Extra bottom padding for keyboard
   },
   inputGroup: {
     marginBottom: 20,
