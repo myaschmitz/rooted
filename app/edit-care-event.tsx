@@ -30,6 +30,7 @@ export default function EditCareEventScreen() {
   const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'care' | 'events'>('care');
   
   const styles = createStyles(theme);
 
@@ -49,6 +50,10 @@ export default function EditCareEventScreen() {
         setNotes(eventData.notes || '');
         setFertilizerStrength((eventData.fertilizer_concentration as '1/4' | '1/2' | '1x' | '1.5x' | '2x') || '1x');
         setPestSeverity(eventData.pest_severity || 1);
+        
+        // Set the correct tab based on event type
+        const eventTypes = ['pest_spotted', 'new_leaf', 'relocation', 'new_roots_spotted'];
+        setActiveTab(eventTypes.includes(eventData.event_type) ? 'events' : 'care');
       }
     } catch (error) {
       console.error('Failed to load event:', error);
@@ -80,19 +85,25 @@ export default function EditCareEventScreen() {
     }
   };
 
-  const careTypeOptions = [
-    { value: 'water', label: 'Watering', emoji: '💧' },
-    { value: 'fertilize', label: 'Fertilizing', emoji: '🌱' },
-    { value: 'fertigate', label: 'Fertigation', emoji: '💧🌱' },
-    { value: 'prune', label: 'Pruning', emoji: '✂️' },
-    { value: 'repot', label: 'Repotting', emoji: '🪴' },
-    { value: 'pest_spotted', label: 'Pest Spotted', emoji: '🐛' },
-    { value: 'insecticide_spray', label: 'Insecticide Spray', emoji: '🧴' },
-    { value: 'new_leaf', label: 'New Leaf', emoji: '🍃' },
-    { value: 'relocation', label: 'Relocation', emoji: '📦' },
-    { value: 'new_roots_spotted', label: 'New Roots Spotted', emoji: '🌿' },
-    { value: 'other', label: 'Other', emoji: '📝' },
-  ] as const;
+  const allCareTypes = {
+    care: [
+      { value: 'water', label: 'Water', icon: '💧' },
+      { value: 'fertilize', label: 'Fertilize', icon: '🌱' },
+      { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
+      { value: 'repot', label: 'Repot', icon: '🪴' },
+      { value: 'prune', label: 'Prune', icon: '✂️' },
+      { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
+      { value: 'other', label: 'Other', icon: '📝' },
+    ],
+    events: [
+      { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
+      { value: 'new_leaf', label: 'New Leaf', icon: '🍃' },
+      { value: 'relocation', label: 'Relocation', icon: '📦' },
+      { value: 'new_roots_spotted', label: 'New Roots Spotted', icon: '🌿' },
+    ],
+  } as const;
+
+  const careTypes = allCareTypes[activeTab];
 
 
   if (loading) {
@@ -122,24 +133,67 @@ export default function EditCareEventScreen() {
           {/* Event Type */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Event Type</Text>
-            <View style={styles.optionsContainer}>
-              {careTypeOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
+            
+            {/* Tabs */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === 'care' && styles.tabActive,
+                ]}
+                onPress={() => {
+                  setActiveTab('care');
+                  setEventType('water');
+                }}
+              >
+                <Text
                   style={[
-                    styles.optionButton,
-                    eventType === option.value && styles.optionButtonSelected
+                    styles.tabText,
+                    activeTab === 'care' && styles.tabTextActive,
                   ]}
-                  onPress={() => setEventType(option.value)}
                 >
-                  <Text style={styles.optionEmoji}>{option.emoji}</Text>
+                  Care
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  activeTab === 'events' && styles.tabActive,
+                ]}
+                onPress={() => {
+                  setActiveTab('events');
+                  setEventType('pest_spotted');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === 'events' && styles.tabTextActive,
+                  ]}
+                >
+                  Events
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.careTypeGrid}>
+              {careTypes.map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={[
+                    styles.careTypeOption,
+                    eventType === type.value && styles.careTypeOptionSelected,
+                  ]}
+                  onPress={() => setEventType(type.value)}
+                >
+                  <Text style={styles.careTypeIcon}>{type.icon}</Text>
                   <Text
                     style={[
-                      styles.optionText,
-                      eventType === option.value && styles.optionTextSelected
+                      styles.careTypeText,
+                      eventType === type.value && styles.careTypeTextSelected,
                     ]}
                   >
-                    {option.label}
+                    {type.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -331,8 +385,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   optionButtonSelected: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#2196F3',
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
     borderWidth: 2,
   },
   optionEmoji: {
@@ -345,7 +399,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   optionTextSelected: {
-    color: '#2196F3',
+    color: theme.colors.primary,
     fontWeight: 'bold',
   },
   saveButton: {
@@ -392,8 +446,8 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginHorizontal: 4,
   },
   strengthOptionSelected: {
-    borderColor: '#2196F3',
-    backgroundColor: '#e3f2fd',
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
   },
   strengthText: {
     fontSize: 14,
@@ -401,7 +455,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   strengthTextSelected: {
-    color: '#2196F3',
+    color: theme.colors.primary,
     fontWeight: 'bold',
   },
   dateTimeRow: {
@@ -428,5 +482,65 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textOnSecondary,
     fontSize: 12,
     fontWeight: '600',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  tabTextActive: {
+    color: theme.colors.background,
+    fontWeight: 'bold',
+  },
+  careTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  careTypeOption: {
+    width: '30%',
+    borderRadius: 12,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 8,
+  },
+  careTypeOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  careTypeIcon: {
+    fontSize: 32,
+  },
+  careTypeText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  careTypeTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
   },
 });
