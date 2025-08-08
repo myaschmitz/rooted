@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import { SquarePen, Trash2, X } from 'lucide-react-native';
+import { SquarePen, Trash2, X, Download } from 'lucide-react-native';
 import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { EventService } from '../../services/EventService';
@@ -367,6 +367,24 @@ export default function PlantDetailScreen() {
     );
   };
 
+  const handleDownloadPhoto = async (photo: PlantPhoto) => {
+    try {
+      const photoUrl = PhotoService.getImageUrl(photo, false); // Get full-size image
+      const filename = `${plant?.name || plant?.type}_${new Date(photo.taken_at).toISOString().split('T')[0]}.jpg`;
+      
+      const result = await PhotoService.downloadPhotoToDevice(photoUrl, filename);
+      
+      if (result.success) {
+        Alert.alert('Success', 'Photo downloaded to your photo library!');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to download photo');
+      }
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+      Alert.alert('Error', 'Failed to download photo');
+    }
+  };
+
   const formatDate = async (dateString: string) => {
     return await DateTimeService.formatDate(dateString);
   };
@@ -632,6 +650,25 @@ export default function PlantDetailScreen() {
         visible={imageViewerVisible}
         onRequestClose={() => setImageViewerVisible(false)}
         swipeToCloseEnabled={false}
+        HeaderComponent={({ imageIndex }) => {
+          const currentPhoto = photos[imageIndex];
+          return (
+            <View style={styles.imageViewerHeader}>
+              <TouchableOpacity
+                style={styles.downloadButton}
+                onPress={() => handleDownloadPhoto(currentPhoto)}
+              >
+                <Download size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setImageViewerVisible(false)}
+              >
+                <X size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          );
+        }}
         FooterComponent={({ imageIndex }) => {
           const currentPhoto = photos[imageIndex];
           return (
@@ -877,6 +914,32 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     fontStyle: 'italic',
+  },
+  imageViewerHeader: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    zIndex: 1000,
+  },
+  downloadButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageViewerFooter: {
     padding: 20,

@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as MediaLibrary from 'expo-media-library';
 import { PlantPhoto } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
@@ -880,6 +881,60 @@ export class PhotoService {
     } catch (error) {
       console.error('Error in generateThumbnailsForExistingPhotos:', error);
       throw error;
+    }
+  }
+
+  static async downloadPhotoToDevice(photoUrl: string, filename?: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      console.log('Starting photo download to device...');
+      
+      // Request media library permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        return { 
+          success: false, 
+          error: 'Permission to access media library is required to download photos!' 
+        };
+      }
+
+      // Create a temporary filename if not provided
+      const tempFilename = filename || `plant_photo_${Date.now()}.jpg`;
+      const downloadPath = `${FileSystem.documentDirectory}${tempFilename}`;
+
+      console.log('Downloading photo from:', photoUrl);
+      console.log('Temp download path:', downloadPath);
+
+      // Download the photo to temporary storage
+      const downloadResult = await FileSystem.downloadAsync(photoUrl, downloadPath);
+      
+      if (!downloadResult.uri) {
+        return { 
+          success: false, 
+          error: 'Failed to download photo from server' 
+        };
+      }
+
+      console.log('Photo downloaded to temp location:', downloadResult.uri);
+
+      // Save to device's media library
+      const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
+      console.log('Photo saved to media library:', asset);
+
+      // Clean up temporary file
+      try {
+        await FileSystem.deleteAsync(downloadResult.uri);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up temporary download file:', cleanupError);
+      }
+
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error downloading photo to device:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      };
     }
   }
 }
