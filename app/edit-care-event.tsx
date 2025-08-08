@@ -23,7 +23,7 @@ export default function EditCareEventScreen() {
   const careStyles = useCareStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
-  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
+  const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other'>('water');
   const [eventDate, setEventDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [fertilizerStrength, setFertilizerStrength] = useState<'1/4' | '1/2' | '1x' | '1.5x' | '2x'>('1x');
@@ -88,6 +88,9 @@ export default function EditCareEventScreen() {
     { value: 'repot', label: 'Repotting', emoji: '🪴' },
     { value: 'pest_spotted', label: 'Pest Spotted', emoji: '🐛' },
     { value: 'insecticide_spray', label: 'Insecticide Spray', emoji: '🧴' },
+    { value: 'new_leaf', label: 'New Leaf', emoji: '🍃' },
+    { value: 'relocation', label: 'Relocation', emoji: '📦' },
+    { value: 'new_roots_spotted', label: 'New Roots Spotted', emoji: '🌿' },
     { value: 'other', label: 'Other', emoji: '📝' },
   ] as const;
 
