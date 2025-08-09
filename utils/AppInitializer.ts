@@ -2,16 +2,13 @@ import { DatabaseService } from '../services/DatabaseService';
 
 export class AppInitializer {
   static async initialize(): Promise<void> {
-    console.log('=== STEP 1: Starting AppInitializer ===');
     console.log('Starting app initialization...');
     
     try {
 
       // Test Supabase connection
       try {
-        console.log('=== STEP 4: About to test Supabase connection ===');
         const isConnected = await DatabaseService.testConnection();
-        console.log('=== STEP 5: Supabase test completed ===', isConnected);
         if (isConnected) {
           console.log('Supabase connection successful');
         } else {
