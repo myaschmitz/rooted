@@ -23,7 +23,9 @@
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos of your plants."
       }
     },
-    "android": {},
+    "android": {
+      "package": "com.myaschm.rooted"
+    },
     "web": {},
     "plugins": [
       "expo-router",

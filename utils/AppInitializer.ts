@@ -3,12 +3,15 @@ import { CacheService } from '../services/CacheService';
 
 export class AppInitializer {
   static async initialize(): Promise<void> {
+    console.log('=== STEP 1: Starting AppInitializer ===');
     console.log('Starting app initialization...');
     
     try {
       // Initialize local cache first (with fallback to memory cache)
       try {
+        console.log('=== STEP 2: About to initialize CacheService ===');
         await CacheService.init();
+        console.log('=== STEP 3: CacheService initialized successfully ===');
         console.log('Cache service initialized successfully');
       } catch (cacheError) {
         console.error('Cache service initialization error (will fallback to memory cache):', cacheError);
@@ -17,7 +20,9 @@ export class AppInitializer {
 
       // Test Supabase connection
       try {
+        console.log('=== STEP 4: About to test Supabase connection ===');
         const isConnected = await DatabaseService.testConnection();
+        console.log('=== STEP 5: Supabase test completed ===', isConnected);
         if (isConnected) {
           console.log('Supabase connection successful');
         } else {

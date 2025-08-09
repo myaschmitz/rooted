@@ -2,6 +2,7 @@
   "build": {
     "development": {
       "developmentClient": true,
+      "distribution": "internal",
       "env": { "EXPO_PUBLIC_ENVIRONMENT": "development" }
     },
     "preview": {
