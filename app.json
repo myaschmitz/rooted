@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Rooted",
+    "name": "rooted",
     "slug": "rooted",
     "version": "1.0.0",
     "sdkVersion": "53.0.0",
@@ -15,6 +15,7 @@
       "**/*"
     ],
     "ios": {
+      "displayName": "Rooted",
       "supportsTablet": true,
       "bundleIdentifier": "com.myaschm.rooted",
       "infoPlist": {
@@ -24,6 +25,7 @@
       }
     },
     "android": {
+      "displayName": "Rooted",
       "package": "com.myaschm.rooted"
     },
     "web": {},
