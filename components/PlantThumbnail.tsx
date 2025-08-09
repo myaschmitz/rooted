@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Flower2 } from 'lucide-react-native';
 import { useTheme } from '../contexts/ThemeContext';
-import { CachedPhotoService } from '../services/CachedPhotoService';
 
 interface PlantThumbnailProps {
   imageUri?: string;
@@ -17,19 +16,6 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [cachedUri, setCachedUri] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    if (imageUri) {
-      // Pre-cache the image URL for faster loading
-      CachedPhotoService.getCachedPhoto(imageUri, true)
-        .then(setCachedUri)
-        .catch((error) => {
-          console.warn('Failed to cache thumbnail:', error);
-          setCachedUri(imageUri); // Fallback to original
-        });
-    }
-  }, [imageUri]);
   
   const styles = StyleSheet.create({
     container: {
@@ -61,11 +47,11 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
     },
   });
 
-  if ((imageUri || cachedUri) && !hasError) {
+  if (imageUri && !hasError) {
     return (
       <View style={styles.container}>
         <Image 
-          source={{ uri: cachedUri || imageUri }} 
+          source={{ uri: imageUri }} 
           style={styles.image}
           contentFit="cover"
           transition={200}

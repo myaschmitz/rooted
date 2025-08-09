@@ -1,7 +1,6 @@
 import { Plant } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
-import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type PlantRow = Database['public']['Tables']['plants']['Row'];
@@ -87,12 +86,6 @@ export class PlantService {
       location: plant.location,
     }, plant.name || plant.type);
 
-    // Invalidate cache
-    await CacheInvalidationService.invalidateOnUserAction('plant_added', {
-      entityId: plant.id,
-      additionalData: { location: plant.location }
-    });
-
     return plant;
   }
 
@@ -127,16 +120,6 @@ export class PlantService {
       }, plant.name || plant.type);
     }
 
-    // Invalidate cache
-    await CacheInvalidationService.invalidateOnUserAction('plant_updated', {
-      entityId: plant.id,
-      additionalData: { 
-        updatedFields: Object.keys(updates),
-        newLocation: updates.location,
-        // Could add oldLocation if we tracked it
-      }
-    });
-
     return plant;
   }
 
@@ -161,12 +144,6 @@ export class PlantService {
         plant_type: plant.type,
         location: plant.location,
       }, plant.name || plant.type);
-
-      // Invalidate cache
-      await CacheInvalidationService.invalidateOnUserAction('plant_deleted', {
-        entityId: plant.id,
-        additionalData: { location: plant.location }
-      });
     }
 
     return true;

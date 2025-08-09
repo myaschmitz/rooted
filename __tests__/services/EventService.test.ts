@@ -1,13 +1,11 @@
 import { EventService } from '../../services/EventService';
 import { PlantService } from '../../services/PlantService';
 import { HouseholdService } from '../../services/HouseholdService';
-import { CacheInvalidationService } from '../../services/CacheInvalidationService';
 import { Event, Plant } from '../../types/Plant';
 
 // Mock the dependencies
 jest.mock('../../services/PlantService');
 jest.mock('../../services/HouseholdService');
-jest.mock('../../services/CacheInvalidationService');
 
 // Get the global mock client from jest.setup.js
 declare global {
@@ -54,8 +52,6 @@ describe('EventService', () => {
     // Mock PlantService.getPlantById to return a valid plant
     (PlantService.getPlantById as jest.Mock).mockResolvedValue(mockPlant);
     
-    // Mock CacheInvalidationService
-    (CacheInvalidationService.invalidateOnUserAction as jest.Mock).mockResolvedValue(undefined);
     
     // Mock HouseholdService.logActivity
     (HouseholdService.logActivity as jest.Mock).mockResolvedValue(undefined);
@@ -142,16 +138,6 @@ describe('EventService', () => {
         mockPlant.name
       );
       
-      expect(CacheInvalidationService.invalidateOnUserAction).toHaveBeenCalledWith(
-        'event_added',
-        expect.objectContaining({
-          entityId: createdEvent.plant_id,
-          additionalData: { 
-            eventId: createdEvent.id,
-            eventType: createdEvent.event_type 
-          }
-        })
-      );
       
       expect(result).toEqual(createdEvent);
     });
@@ -235,17 +221,6 @@ describe('EventService', () => {
       expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'event-123');
       expect(mockSupabase.eq).toHaveBeenCalledWith('household_id', 'household-123');
       
-      expect(CacheInvalidationService.invalidateOnUserAction).toHaveBeenCalledWith(
-        'event_updated',
-        expect.objectContaining({
-          entityId: updatedEvent.plant_id,
-          additionalData: { 
-            eventId: updatedEvent.id,
-            eventType: updatedEvent.event_type,
-            updatedFields: Object.keys(updateData)
-          }
-        })
-      );
       
       expect(result).toEqual(updatedEvent);
     });
@@ -301,16 +276,6 @@ describe('EventService', () => {
       expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'event-123');
       expect(mockSupabase.eq).toHaveBeenCalledWith('household_id', 'household-123');
       
-      expect(CacheInvalidationService.invalidateOnUserAction).toHaveBeenCalledWith(
-        'event_deleted',
-        expect.objectContaining({
-          entityId: mockEvent.plant_id,
-          additionalData: { 
-            eventId: mockEvent.id,
-            eventType: mockEvent.event_type 
-          }
-        })
-      );
       
       expect(result).toBe(true);
     });

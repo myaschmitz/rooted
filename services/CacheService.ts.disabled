@@ -30,7 +30,7 @@ export class CacheService {
     }
 
     try {
-      console.log('Initializing cache database...');
+      // console.log('Initializing cache database...');
       this.db = await SQLite.openDatabaseAsync('cache.db');
       
       // Test basic database operations first

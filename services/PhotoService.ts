@@ -6,7 +6,6 @@ import { PlantPhoto } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
 import { PlantService } from './PlantService';
-import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type PlantPhotoRow = Database['public']['Tables']['plant_photos']['Row'];
@@ -377,12 +376,6 @@ export class PhotoService {
 
       console.log('Photo saved successfully with full-size and thumbnail versions');
       
-      // Invalidate cache
-      await CacheInvalidationService.invalidateOnUserAction('photo_added', {
-        entityId: data.plant_id,
-        additionalData: { photoId: data.id }
-      });
-      
       return data as PlantPhoto;
     } catch (error) {
       console.error('Error saving photo:', error);
@@ -501,11 +494,6 @@ export class PhotoService {
         throw new Error(`Failed to delete photo: ${error.message}`);
       }
 
-      // Invalidate cache
-      await CacheInvalidationService.invalidateOnUserAction('photo_deleted', {
-        entityId: photo.plant_id,
-        additionalData: { photoId: photo.id }
-      });
 
       return true;
     } catch (error) {
@@ -662,11 +650,6 @@ export class PhotoService {
         throw new Error(`Failed to set thumbnail photo: ${error.message}`);
       }
 
-      // Invalidate cache
-      await CacheInvalidationService.invalidateOnUserAction('thumbnail_changed', {
-        entityId: plantId,
-        additionalData: { photoId }
-      });
     } catch (error) {
       console.error('Error setting thumbnail photo:', error);
       throw error;

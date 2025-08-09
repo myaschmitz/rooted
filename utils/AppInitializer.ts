@@ -1,5 +1,4 @@
 import { DatabaseService } from '../services/DatabaseService';
-import { CacheService } from '../services/CacheService';
 
 export class AppInitializer {
   static async initialize(): Promise<void> {
@@ -7,16 +6,6 @@ export class AppInitializer {
     console.log('Starting app initialization...');
     
     try {
-      // Initialize local cache first (with fallback to memory cache)
-      try {
-        console.log('=== STEP 2: About to initialize CacheService ===');
-        await CacheService.init();
-        console.log('=== STEP 3: CacheService initialized successfully ===');
-        console.log('Cache service initialized successfully');
-      } catch (cacheError) {
-        console.error('Cache service initialization error (will fallback to memory cache):', cacheError);
-        // Cache service now handles fallback internally, so this shouldn't throw
-      }
 
       // Test Supabase connection
       try {
@@ -43,40 +32,18 @@ export class AppInitializer {
 
   static async resetApp(): Promise<void> {
     try {
-      // Clear cache first
-      await CacheService.clearAllCache();
       
       // Reset Supabase database
       await DatabaseService.resetDatabase();
       
-      console.log('App data reset successfully (including cache)');
+      console.log('App data reset successfully');
     } catch (error) {
       console.error('Failed to reset app:', error);
       throw error;
     }
   }
 
-  static async performCacheMaintenance(): Promise<void> {
-    try {
-      await CacheService.performMaintenance();
-      console.log('Cache maintenance completed');
-    } catch (error) {
-      console.error('Failed to perform cache maintenance:', error);
-    }
-  }
 
-  static async getCacheStats() {
-    try {
-      return await CacheService.getCacheStats();
-    } catch (error) {
-      console.error('Failed to get cache stats:', error);
-      return {
-        totalEntries: 0,
-        totalSize: 0,
-        expiredEntries: 0,
-      };
-    }
-  }
 
   static async getAppStatus(): Promise<{
     connected: boolean;

@@ -1,11 +1,9 @@
 import { PlantService } from '../../services/PlantService';
 import { HouseholdService } from '../../services/HouseholdService';
-import { CacheInvalidationService } from '../../services/CacheInvalidationService';
 import { Plant } from '../../types/Plant';
 
 // Mock the dependencies
 jest.mock('../../services/HouseholdService');
-jest.mock('../../services/CacheInvalidationService');
 
 // Get the global mock client from jest.setup.js
 declare global {
@@ -39,8 +37,6 @@ describe('PlantService', () => {
     // Mock HouseholdService to return a valid session
     (HouseholdService.getUserSession as jest.Mock).mockResolvedValue(mockSession);
     
-    // Mock CacheInvalidationService
-    (CacheInvalidationService.invalidateOnUserAction as jest.Mock).mockResolvedValue(undefined);
     
     // Mock HouseholdService.logActivity
     (HouseholdService.logActivity as jest.Mock).mockResolvedValue(undefined);
@@ -157,13 +153,6 @@ describe('PlantService', () => {
         createdPlant.name
       );
       
-      expect(CacheInvalidationService.invalidateOnUserAction).toHaveBeenCalledWith(
-        'plant_added',
-        expect.objectContaining({
-          entityId: createdPlant.id,
-          additionalData: { location: createdPlant.location }
-        })
-      );
       
       expect(result).toEqual(createdPlant);
     });

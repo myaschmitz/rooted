@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
 import { EventService } from '../services/EventService';
-import { CachedPhotoService } from '../services/CachedPhotoService';
 import { Plant, PlantPhoto, Event } from '../types/Plant';
 import { queryKeys } from '../constants/queryKeys';
 
@@ -55,9 +54,6 @@ export const usePlantPhotos = (plantId: string) => {
     enabled: !!plantId,
     // Pre-cache thumbnails when photos are loaded
     onSuccess: (photos: PlantPhoto[]) => {
-      if (photos?.length > 0) {
-        CachedPhotoService.preloadThumbnails(photos);
-      }
     },
   });
 };
@@ -70,9 +66,6 @@ export const usePlantPhotosOldestFirst = (plantId: string) => {
     cacheTime: 60 * 60 * 1000, // 1 hour
     enabled: !!plantId,
     onSuccess: (photos: PlantPhoto[]) => {
-      if (photos?.length > 0) {
-        CachedPhotoService.preloadThumbnails(photos);
-      }
     },
   });
 };
@@ -85,8 +78,6 @@ export const useAllPhotos = () => {
     cacheTime: 60 * 60 * 1000, // 1 hour
     onSuccess: (photos: PlantPhoto[]) => {
       if (photos?.length > 0) {
-        // Pre-cache only first 20 thumbnails to avoid overwhelming the system
-        CachedPhotoService.preloadThumbnails(photos.slice(0, 20));
       }
     },
   });
@@ -101,8 +92,6 @@ export const useThumbnailPhoto = (plantId: string) => {
     enabled: !!plantId,
     onSuccess: (photo: PlantPhoto | null) => {
       if (photo?.thumbnail_path) {
-        // Pre-cache the thumbnail immediately
-        CachedPhotoService.getCachedPhoto(photo.thumbnail_path, true).catch(() => {});
       }
     },
   });
@@ -303,9 +292,6 @@ export const useSavePhoto = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(newPhoto.plant_id) });
       
       // Pre-cache the new photo's thumbnail
-      if (newPhoto.thumbnail_path) {
-        CachedPhotoService.getCachedPhoto(newPhoto.thumbnail_path, true).catch(() => {});
-      }
     },
     onError: (error) => {
       console.error('Failed to save photo:', error);

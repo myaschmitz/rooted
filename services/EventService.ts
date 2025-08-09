@@ -2,7 +2,6 @@ import { Event } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
 import { PlantService } from './PlantService';
-import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type EventRow = Database['public']['Tables']['events']['Row'];
@@ -61,43 +60,7 @@ export class EventService {
       throw new Error(`Failed to create event: ${error.message}`);
     }
 
-    const event = data as Event;
-
-    // Get plant info for activity logging
-    const plant = await PlantService.getPlantById(event.plant_id);
-    const plantName = plant?.name || plant?.type || 'Unknown Plant';
-
-    // Map event types to activity names
-    const activityMap: { [key: string]: string } = {
-      'water': 'watered',
-      'fertilize': 'fertilized',
-      'fertigate': 'fertigated',
-      'repot': 'repotted',
-      'prune': 'pruned',
-      'pest_spotted': 'pest spotted',
-      'insecticide_spray': 'insecticide spray',
-      'other': 'other care'
-    };
-
-    const activityName = activityMap[event.event_type] || event.event_type;
-
-    // Log activity
-    await HouseholdService.logActivity(activityName as any, {
-      plant_id: event.plant_id,
-      event_type: event.event_type,
-      notes: event.notes,
-    }, plantName);
-
-    // Invalidate cache
-    await CacheInvalidationService.invalidateOnUserAction('event_added', {
-      entityId: event.plant_id,
-      additionalData: { 
-        eventId: event.id,
-        eventType: event.event_type 
-      }
-    });
-
-    return event;
+    return data as Event;
   }
 
   static async updateEvent(id: string, updates: Partial<Omit<Event, 'id' | 'created_at'>>): Promise<Event | null> {
@@ -128,19 +91,7 @@ export class EventService {
       throw new Error(`Failed to update event: ${error.message}`);
     }
 
-    const event = data as Event;
-
-    // Invalidate cache
-    await CacheInvalidationService.invalidateOnUserAction('event_updated', {
-      entityId: event.plant_id,
-      additionalData: { 
-        eventId: event.id,
-        eventType: event.event_type,
-        updatedFields: Object.keys(updates)
-      }
-    });
-
-    return event;
+    return data as Event;
   }
 
   static async getEventById(id: string): Promise<Event | null> {
@@ -191,15 +142,6 @@ export class EventService {
       console.error('Error deleting event:', error);
       throw new Error(`Failed to delete event: ${error.message}`);
     }
-
-    // Invalidate cache
-    await CacheInvalidationService.invalidateOnUserAction('event_deleted', {
-      entityId: event.plant_id,
-      additionalData: { 
-        eventId: event.id,
-        eventType: event.event_type 
-      }
-    });
 
     return true;
   }

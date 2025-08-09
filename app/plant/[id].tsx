@@ -18,7 +18,6 @@ import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
 import { EventService } from '../../services/EventService';
 import { PhotoService } from '../../services/PhotoService';
-import { CachedPhotoService } from '../../services/CachedPhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';

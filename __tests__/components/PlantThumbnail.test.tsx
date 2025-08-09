@@ -1,11 +1,9 @@
 import React from 'react';
 import { render, waitFor, fireEvent } from '@testing-library/react-native';
 import { PlantThumbnail } from '../../components/PlantThumbnail';
-import { CachedPhotoService } from '../../services/CachedPhotoService';
 import { useTheme } from '../../contexts/ThemeContext';
 
 // Mock dependencies
-jest.mock('../../services/CachedPhotoService');
 jest.mock('../../contexts/ThemeContext');
 jest.mock('expo-image', () => ({
   Image: ({ onLoad, onError, source, ...props }: any) => {
@@ -53,8 +51,6 @@ describe('PlantThumbnail', () => {
       theme: mockTheme,
     });
 
-    // Mock CachedPhotoService
-    (CachedPhotoService.getCachedPhoto as jest.Mock).mockResolvedValue('cached-uri');
   });
 
   it('renders default icon when no imageUri provided', () => {
@@ -81,7 +77,6 @@ describe('PlantThumbnail', () => {
     });
 
     expect(queryByTestId('flower-icon')).toBeNull();
-    expect(CachedPhotoService.getCachedPhoto).toHaveBeenCalledWith('https://example.com/plant.jpg', true);
   });
 
   it('falls back to icon when image fails to load', async () => {
@@ -104,22 +99,7 @@ describe('PlantThumbnail', () => {
     });
   });
 
-  it('uses cached URI when caching succeeds', async () => {
-    (CachedPhotoService.getCachedPhoto as jest.Mock).mockResolvedValue('cached-photo-uri');
-
-    const { getByTestId } = render(
-      <PlantThumbnail imageUri="https://example.com/plant.jpg" />
-    );
-
-    await waitFor(() => {
-      const image = getByTestId('expo-image');
-      expect(image).toHaveProp('source', { uri: 'cached-photo-uri' });
-    });
-  });
-
-  it('falls back to original URI when caching fails', async () => {
-    (CachedPhotoService.getCachedPhoto as jest.Mock).mockRejectedValue(new Error('Cache failed'));
-
+  it('uses provided URI directly', async () => {
     const { getByTestId } = render(
       <PlantThumbnail imageUri="https://example.com/plant.jpg" />
     );

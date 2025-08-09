@@ -68,13 +68,11 @@ export default function LogCareScreen() {
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 
-
-      // Navigate back directly to refresh the plant detail screen
+      setSaving(false);
       router.back();
     } catch (error) {
       console.error('Failed to log event:', error);
       Alert.alert('Error', 'Failed to log event');
-    } finally {
       setSaving(false);
     }
   };
