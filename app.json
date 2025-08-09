@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.myaschmitz.rooted",
+      "bundleIdentifier": "com.myaschm.rooted",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "This app needs access to your camera to take photos of your plants.",
@@ -36,11 +36,8 @@
     ],
     "scheme": "rooted",
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "b3703897-6483-4647-8b9b-d163c4cca1e2"
-      }
+      "router": {}
     },
-    "owner": "sagewlivingstone"
+    "owner": "myaschm"
   }
 }
