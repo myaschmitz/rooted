@@ -64,7 +64,7 @@ export default function LogCareScreen() {
         event_type: eventType,
         date: careDateTime.toISOString(),
         notes: notes.trim() || undefined,
-        fertilizer_concentration: fertilizerStrength,
+        fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 

@@ -70,7 +70,7 @@ export default function EditCareEventScreen() {
         event_type: eventType,
         date: eventDate.toISOString(),
         notes: notes.trim() || undefined,
-        fertilizer_concentration: fertilizerStrength,
+        fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
 
