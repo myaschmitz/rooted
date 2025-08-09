@@ -4,19 +4,10 @@ import { PhotoService } from '../services/PhotoService';
 import { EventService } from '../services/EventService';
 import { CachedPhotoService } from '../services/CachedPhotoService';
 import { Plant, PlantPhoto, Event } from '../types/Plant';
+import { queryKeys } from '../constants/queryKeys';
 
-// Query keys for consistent cache management
-export const queryKeys = {
-  plants: ['plants'] as const,
-  plant: (id: string) => ['plants', id] as const,
-  plantPhotos: (plantId: string) => ['plant-photos', plantId] as const,
-  plantEvents: (plantId: string) => ['plant-events', plantId] as const,
-  plantStats: (plantId: string) => ['plant-stats', plantId] as const,
-  allPhotos: ['all-photos'] as const,
-  recentEvents: ['recent-events'] as const,
-  plantsByLocation: (location: string) => ['plants-by-location', location] as const,
-  thumbnailPhoto: (plantId: string) => ['thumbnail-photo', plantId] as const,
-};
+// Re-export queryKeys for backward compatibility
+export { queryKeys };
 
 // ============================================================================
 // PLANT QUERIES

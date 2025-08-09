@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { CacheService } from './CacheService';
 import { CachedPhotoService } from './CachedPhotoService';
-import { queryKeys } from '../hooks/queries';
+import { queryKeys } from '../constants/queryKeys';
 
 export type InvalidationAction = 
   | 'plant_added'

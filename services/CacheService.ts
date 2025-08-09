@@ -18,13 +18,23 @@ interface CacheStats {
 export class CacheService {
   private static db: SQLite.SQLiteDatabase | null = null;
   private static initialized = false;
+  private static initializationFailed = false;
+  private static memoryCache = new Map<string, { data: any; expiry: number }>();
+  private static readonly MAX_MEMORY_CACHE_SIZE = 50;
 
   static async init(): Promise<void> {
     if (this.initialized) return;
+    if (this.initializationFailed) {
+      console.warn('Cache initialization previously failed, using memory cache');
+      return;
+    }
 
     try {
       console.log('Initializing cache database...');
       this.db = await SQLite.openDatabaseAsync('cache.db');
+      
+      // Test basic database operations first
+      await this.db.execAsync('SELECT 1');
       
       // Create cache table
       await this.db.execAsync(`
@@ -50,40 +60,79 @@ export class CacheService {
       console.log('Cache database initialized successfully');
     } catch (error) {
       console.error('Failed to initialize cache database:', error);
-      throw new Error(`Cache initialization failed: ${error}`);
+      console.warn('Falling back to memory-only cache for this session');
+      this.initializationFailed = true;
+      this.initialized = true; // Mark as initialized so we don't keep retrying
+      // Don't throw - let the app continue with memory cache
     }
   }
 
   private static async ensureInitialized(): Promise<void> {
-    if (!this.initialized || !this.db) {
+    if (!this.initialized) {
       await this.init();
+    }
+  }
+
+  private static isUsingMemoryCache(): boolean {
+    return this.initializationFailed || !this.db;
+  }
+
+  private static cleanMemoryCache(): void {
+    if (this.memoryCache.size > this.MAX_MEMORY_CACHE_SIZE) {
+      const entries = Array.from(this.memoryCache.entries());
+      // Remove oldest 25% of entries
+      const toRemove = Math.floor(entries.length * 0.25);
+      const sorted = entries.sort((a, b) => a[1].expiry - b[1].expiry);
+      for (let i = 0; i < toRemove; i++) {
+        this.memoryCache.delete(sorted[i][0]);
+      }
     }
   }
 
   static async cacheApiResponse(key: string, data: any, ttl: number = 300000): Promise<void> {
     await this.ensureInitialized();
-    if (!this.db) throw new Error('Cache database not initialized');
+    
+    const expiry = Date.now() + ttl;
+    
+    if (this.isUsingMemoryCache()) {
+      // Use memory cache as fallback
+      this.cleanMemoryCache();
+      this.memoryCache.set(key, { data, expiry });
+      return;
+    }
 
     try {
-      const expiry = Date.now() + ttl;
       const serializedData = JSON.stringify(data);
       
-      await this.db.runAsync(
+      await this.db!.runAsync(
         'INSERT OR REPLACE INTO api_cache (key, data, expiry) VALUES (?, ?, ?)',
         [key, serializedData, expiry]
       );
     } catch (error) {
-      console.error(`Failed to cache data for key ${key}:`, error);
-      throw error;
+      console.error(`Failed to cache data for key ${key}, falling back to memory:`, error);
+      // Fallback to memory cache on error
+      this.cleanMemoryCache();
+      this.memoryCache.set(key, { data, expiry });
     }
   }
 
   static async getCachedResponse<T = any>(key: string): Promise<T | null> {
     await this.ensureInitialized();
-    if (!this.db) return null;
+    
+    if (this.isUsingMemoryCache()) {
+      // Use memory cache as fallback
+      const cached = this.memoryCache.get(key);
+      if (cached && cached.expiry > Date.now()) {
+        return cached.data as T;
+      }
+      if (cached) {
+        this.memoryCache.delete(key); // Remove expired
+      }
+      return null;
+    }
 
     try {
-      const result = await this.db.getFirstAsync<{ data: string; expiry: number }>(
+      const result = await this.db!.getFirstAsync<{ data: string; expiry: number }>(
         'SELECT data, expiry FROM api_cache WHERE key = ? AND expiry > ?',
         [key, Date.now()]
       );
@@ -108,12 +157,18 @@ export class CacheService {
 
   static async invalidateCache(key: string): Promise<void> {
     await this.ensureInitialized();
-    if (!this.db) return;
+    
+    if (this.isUsingMemoryCache()) {
+      this.memoryCache.delete(key);
+      return;
+    }
 
     try {
-      await this.db.runAsync('DELETE FROM api_cache WHERE key = ?', [key]);
+      await this.db!.runAsync('DELETE FROM api_cache WHERE key = ?', [key]);
     } catch (error) {
       console.error(`Failed to invalidate cache for key ${key}:`, error);
+      // Also try to remove from memory cache as fallback
+      this.memoryCache.delete(key);
     }
   }
 
@@ -135,10 +190,25 @@ export class CacheService {
 
   static async cleanupExpiredCache(): Promise<{ cleaned: number; errors: number }> {
     await this.ensureInitialized();
-    if (!this.db) return { cleaned: 0, errors: 1 };
+    
+    if (this.isUsingMemoryCache()) {
+      // Clean memory cache
+      let cleaned = 0;
+      const now = Date.now();
+      for (const [key, entry] of this.memoryCache) {
+        if (entry.expiry < now) {
+          this.memoryCache.delete(key);
+          cleaned++;
+        }
+      }
+      if (cleaned > 0) {
+        console.log(`Cleaned up ${cleaned} expired memory cache entries`);
+      }
+      return { cleaned, errors: 0 };
+    }
 
     try {
-      const result = await this.db.runAsync(
+      const result = await this.db!.runAsync(
         'DELETE FROM api_cache WHERE expiry < ?', 
         [Date.now()]
       );
@@ -157,14 +227,22 @@ export class CacheService {
 
   static async clearAllCache(): Promise<{ success: boolean; error?: string }> {
     await this.ensureInitialized();
-    if (!this.db) return { success: false, error: 'Database not initialized' };
+    
+    if (this.isUsingMemoryCache()) {
+      this.memoryCache.clear();
+      console.log('Memory cache cleared successfully');
+      return { success: true };
+    }
 
     try {
-      await this.db.runAsync('DELETE FROM api_cache');
+      await this.db!.runAsync('DELETE FROM api_cache');
+      this.memoryCache.clear(); // Also clear memory cache
       console.log('All cache cleared successfully');
       return { success: true };
     } catch (error) {
       console.error('Failed to clear all cache:', error);
+      // At least clear memory cache
+      this.memoryCache.clear();
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

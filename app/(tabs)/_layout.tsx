@@ -9,7 +9,15 @@ export default function TabLayout() {
   const { theme } = useTheme();
 
   useEffect(() => {
-    AppInitializer.initialize().catch(console.error);
+    console.log('TabLayout: Starting app initialization...');
+    AppInitializer.initialize()
+      .then(() => {
+        console.log('TabLayout: App initialization completed successfully');
+      })
+      .catch((error) => {
+        console.error('TabLayout: App initialization failed:', error);
+        // Don't crash - log error and continue
+      });
   }, []);
 
   return (

@@ -3,27 +3,36 @@ import { CacheService } from '../services/CacheService';
 
 export class AppInitializer {
   static async initialize(): Promise<void> {
+    console.log('Starting app initialization...');
+    
     try {
-      // Initialize local cache first (always works)
+      // Initialize local cache first (with fallback to memory cache)
       try {
         await CacheService.init();
-        console.log('Local cache initialized successfully');
+        console.log('Cache service initialized successfully');
       } catch (cacheError) {
-        console.error('Failed to initialize local cache:', cacheError);
-        // Don't throw - app can work without cache, just less efficiently
+        console.error('Cache service initialization error (will fallback to memory cache):', cacheError);
+        // Cache service now handles fallback internally, so this shouldn't throw
       }
 
       // Test Supabase connection
-      const isConnected = await DatabaseService.testConnection();
-      if (isConnected) {
-        console.log('Supabase connection successful');
-      } else {
-        console.warn('Supabase connection failed - app will work in offline mode with cache');
+      try {
+        const isConnected = await DatabaseService.testConnection();
+        if (isConnected) {
+          console.log('Supabase connection successful');
+        } else {
+          console.warn('Supabase connection failed - app will work in offline mode');
+        }
+      } catch (dbError) {
+        console.error('Database connection test failed:', dbError);
+        console.warn('App will work in offline mode');
       }
+      
+      console.log('App initialization completed');
     } catch (error) {
-      console.error('Failed to initialize app:', error);
-      // Don't throw error - allow app to continue in offline mode
-      console.warn('App initialized in offline mode');
+      console.error('App initialization failed:', error);
+      // Even if everything fails, let the app continue
+      console.warn('App starting in minimal mode - some features may be limited');
     }
   }
 
