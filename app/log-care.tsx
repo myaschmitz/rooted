@@ -91,6 +91,7 @@ export default function LogCareScreen() {
       { value: 'new_leaf', label: 'New Leaf', icon: '🍃' },
       { value: 'relocation', label: 'Relocation', icon: '📦' },
       { value: 'new_roots_spotted', label: 'New Roots Spotted', icon: '🌿' },
+      { value: 'other', label: 'Other', icon: '📝' },
     ],
   } as const;
 
