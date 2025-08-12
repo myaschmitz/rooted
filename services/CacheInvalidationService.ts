@@ -14,19 +14,28 @@ export type InvalidationAction =
   | 'photo_updated'
   | 'photo_deleted'
   | 'thumbnail_changed'
-  | 'user_action';
+  | 'user_action'
+  | 'household_changed';
 
 export interface CacheInvalidationOptions {
   queryClient?: QueryClient;
-  invalidateSQLite?: boolean;
+  invalidateMMKV?: boolean;
   invalidateReactQuery?: boolean;
   clearPhotoCache?: boolean;
   entityId?: string;
   additionalData?: Record<string, any>;
+  immediate?: boolean; // Whether to execute immediately or batch
 }
 
 export class CacheInvalidationService {
   private static defaultQueryClient: QueryClient | null = null;
+  private static pendingInvalidations: Array<{
+    action: InvalidationAction;
+    options: CacheInvalidationOptions;
+    timestamp: number;
+  }> = [];
+  private static batchTimeout: NodeJS.Timeout | null = null;
+  private static readonly BATCH_DELAY = 100; // ms to wait before processing batch
 
   static setDefaultQueryClient(queryClient: QueryClient): void {
     this.defaultQueryClient = queryClient;
@@ -37,15 +46,114 @@ export class CacheInvalidationService {
     options: CacheInvalidationOptions = {}
   ): Promise<void> {
     const {
+      immediate = false,
+      ...restOptions
+    } = options;
+
+    if (immediate) {
+      await this.executeInvalidation(action, restOptions);
+    } else {
+      // Add to batch for better performance
+      this.addToBatch(action, restOptions);
+    }
+  }
+
+  private static addToBatch(action: InvalidationAction, options: CacheInvalidationOptions): void {
+    this.pendingInvalidations.push({
+      action,
+      options,
+      timestamp: Date.now(),
+    });
+
+    // Clear existing timeout
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+    }
+
+    // Set new timeout
+    this.batchTimeout = setTimeout(() => {
+      this.processBatch();
+    }, this.BATCH_DELAY);
+  }
+
+  private static async processBatch(): Promise<void> {
+    if (this.pendingInvalidations.length === 0) return;
+
+    const batch = [...this.pendingInvalidations];
+    this.pendingInvalidations = [];
+    this.batchTimeout = null;
+
+    console.log(`Processing cache invalidation batch: ${batch.length} actions`);
+
+    // Group by action type for optimization
+    const grouped = batch.reduce((acc, item) => {
+      if (!acc[item.action]) {
+        acc[item.action] = [];
+      }
+      acc[item.action].push(item.options);
+      return acc;
+    }, {} as Record<InvalidationAction, CacheInvalidationOptions[]>);
+
+    // Process each action type
+    const promises = Object.entries(grouped).map(([action, optionsList]) =>
+      this.executeBatchedInvalidation(action as InvalidationAction, optionsList)
+    );
+
+    await Promise.allSettled(promises);
+  }
+
+  private static async executeBatchedInvalidation(
+    action: InvalidationAction,
+    optionsList: CacheInvalidationOptions[]
+  ): Promise<void> {
+    try {
+      // Merge options and deduplicate entity IDs
+      const mergedOptions: CacheInvalidationOptions = {
+        queryClient: this.defaultQueryClient,
+        invalidateMMKV: true,
+        invalidateReactQuery: true,
+        clearPhotoCache: false,
+        ...optionsList[0], // Use first options as base
+      };
+
+      const entityIds = new Set<string>();
+      const additionalData: Record<string, any> = {};
+
+      optionsList.forEach(options => {
+        if (options.entityId) {
+          entityIds.add(options.entityId);
+        }
+        if (options.additionalData) {
+          Object.assign(additionalData, options.additionalData);
+        }
+      });
+
+      // Execute for each unique entity
+      if (entityIds.size > 0) {
+        const promises = Array.from(entityIds).map(entityId =>
+          this.executeInvalidation(action, { ...mergedOptions, entityId, additionalData })
+        );
+        await Promise.allSettled(promises);
+      } else {
+        await this.executeInvalidation(action, { ...mergedOptions, additionalData });
+      }
+    } catch (error) {
+      console.error(`Failed to execute batched invalidation for ${action}:`, error);
+    }
+  }
+
+  private static async executeInvalidation(
+    action: InvalidationAction,
+    options: CacheInvalidationOptions = {}
+  ): Promise<void> {
+    const {
       queryClient = this.defaultQueryClient,
-      invalidateSQLite = true,
+      invalidateMMKV = true,
       invalidateReactQuery = true,
       clearPhotoCache = false,
       entityId,
       additionalData = {}
     } = options;
-
-    console.log(`Cache invalidation triggered: ${action}${entityId ? ` for entity ${entityId}` : ''}`);
 
     try {
       // Execute all cache invalidations in parallel for better performance
@@ -58,10 +166,10 @@ export class CacheInvalidationService {
         );
       }
 
-      // SQLite cache invalidations
-      if (invalidateSQLite) {
+      // MMKV cache invalidations
+      if (invalidateMMKV) {
         invalidationPromises.push(
-          this.invalidateSQLiteCache(action, entityId, additionalData)
+          this.invalidateMMKVCache(action, entityId, additionalData)
         );
       }
 
@@ -72,7 +180,15 @@ export class CacheInvalidationService {
         );
       }
 
-      await Promise.allSettled(invalidationPromises);
+      const results = await Promise.allSettled(invalidationPromises);
+      
+      // Log any failures
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const type = index === 0 ? 'React Query' : index === 1 ? 'MMKV' : 'Photo';
+          console.warn(`${type} cache invalidation failed for ${action}:`, result.reason);
+        }
+      });
     } catch (error) {
       console.error(`Failed to invalidate cache for action ${action}:`, error);
     }
@@ -111,10 +227,10 @@ export class CacheInvalidationService {
             
             // If location changed, invalidate location-based queries
             if (additionalData.oldLocation || additionalData.newLocation) {
-              await queryClient.invalidateQueries({ 
-                queryKey: ['plants-by-location'],
-                exact: false 
-              });
+              const locations = [additionalData.oldLocation, additionalData.newLocation].filter(Boolean);
+              await Promise.all(locations.map(location => 
+                queryClient.invalidateQueries({ queryKey: queryKeys.plantsByLocation(location) })
+              ));
             }
           }
           break;
@@ -134,10 +250,11 @@ export class CacheInvalidationService {
             queryClient.removeQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
             
             // Invalidate location-based queries
-            await queryClient.invalidateQueries({ 
-              queryKey: ['plants-by-location'],
-              exact: false 
-            });
+            if (additionalData.location) {
+              await queryClient.invalidateQueries({ 
+                queryKey: queryKeys.plantsByLocation(additionalData.location)
+              });
+            }
           }
           break;
 
@@ -152,6 +269,11 @@ export class CacheInvalidationService {
             
             // Invalidate plant stats
             await queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(entityId) });
+            
+            // If this event might affect plant display, invalidate plant data too
+            if (additionalData.affectsPlant) {
+              await queryClient.invalidateQueries({ queryKey: queryKeys.plant(entityId) });
+            }
           }
           break;
 
@@ -217,6 +339,11 @@ export class CacheInvalidationService {
           }
           break;
 
+        case 'household_changed':
+          // Nuclear option - invalidate everything for household changes
+          await queryClient.invalidateQueries();
+          break;
+
         case 'user_action':
           // General invalidation for user actions
           await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
@@ -224,14 +351,14 @@ export class CacheInvalidationService {
           break;
 
         default:
-          console.warn(`Unknown invalidation action: ${action}`);
+          console.warn(`Unknown React Query invalidation action: ${action}`);
       }
     } catch (error) {
       console.error(`Failed to invalidate React Query cache for action ${action}:`, error);
     }
   }
 
-  private static async invalidateSQLiteCache(
+  private static async invalidateMMKVCache(
     action: InvalidationAction,
     entityId?: string,
     additionalData: Record<string, any> = {}
@@ -243,13 +370,18 @@ export class CacheInvalidationService {
         case 'plant_added':
         case 'plant_updated':
         case 'plant_deleted':
-          patterns.push('plants-list');
-          patterns.push('plants-all');
+          patterns.push('plants-list', 'plants-all');
           if (entityId) {
             patterns.push(`plant-${entityId}`);
           }
           if (additionalData.location) {
             patterns.push(`plants-location-${additionalData.location}`);
+          }
+          if (additionalData.oldLocation) {
+            patterns.push(`plants-location-${additionalData.oldLocation}`);
+          }
+          if (additionalData.newLocation) {
+            patterns.push(`plants-location-${additionalData.newLocation}`);
           }
           break;
 
@@ -258,8 +390,7 @@ export class CacheInvalidationService {
         case 'event_deleted':
           patterns.push('events-recent');
           if (entityId) {
-            patterns.push(`plant-events-${entityId}`);
-            patterns.push(`plant-stats-${entityId}`);
+            patterns.push(`plant-events-${entityId}`, `plant-stats-${entityId}`);
           }
           break;
 
@@ -268,33 +399,43 @@ export class CacheInvalidationService {
         case 'photo_deleted':
           patterns.push('photos-all');
           if (entityId) {
-            patterns.push(`plant-photos-${entityId}`);
-            patterns.push(`thumbnail-${entityId}`);
+            patterns.push(`plant-photos-${entityId}`, `thumbnail-${entityId}`);
           }
           break;
 
         case 'thumbnail_changed':
           if (entityId) {
-            patterns.push(`plant-${entityId}`);
-            patterns.push(`thumbnail-${entityId}`);
-            patterns.push('plants-list');
+            patterns.push(`plant-${entityId}`, `thumbnail-${entityId}`, 'plants-list');
           }
           break;
 
+        case 'household_changed':
+          // Clear all cache for household changes
+          await CacheService.clearAllCache();
+          return;
+
         case 'user_action':
-          patterns.push('plants-list');
-          patterns.push('events-recent');
+          patterns.push('plants-list', 'events-recent');
           break;
       }
 
       // Invalidate cache patterns in parallel
-      const invalidationPromises = patterns.map(pattern => 
-        CacheService.invalidateCachePattern(pattern)
-      );
+      if (patterns.length > 0) {
+        const invalidationPromises = patterns.map(pattern => 
+          CacheService.invalidateCachePattern(pattern)
+        );
 
-      await Promise.allSettled(invalidationPromises);
+        const results = await Promise.allSettled(invalidationPromises);
+        const totalInvalidated = results.reduce((sum, result) => {
+          return sum + (result.status === 'fulfilled' ? result.value : 0);
+        }, 0);
+
+        if (totalInvalidated > 0) {
+          console.log(`MMKV cache invalidation: ${totalInvalidated} entries removed for ${action}`);
+        }
+      }
     } catch (error) {
-      console.error(`Failed to invalidate SQLite cache for action ${action}:`, error);
+      console.error(`Failed to invalidate MMKV cache for action ${action}:`, error);
     }
   }
 
@@ -306,12 +447,17 @@ export class CacheInvalidationService {
       switch (action) {
         case 'photo_deleted':
         case 'plant_deleted':
-          // For deleted photos/plants, we could clean up specific cache entries
-          // For now, we'll let the normal cache expiration handle it
+          // For deleted photos/plants, clean up the cache
+          await CachedPhotoService.cleanExpiredCache();
           break;
 
         case 'thumbnail_changed':
           // Could clear specific thumbnail cache if needed
+          break;
+
+        case 'household_changed':
+          // Clear all photo cache for household changes
+          await CachedPhotoService.clearAllCache();
           break;
 
         default:
@@ -321,19 +467,6 @@ export class CacheInvalidationService {
     } catch (error) {
       console.error(`Failed to invalidate photo cache for action ${action}:`, error);
     }
-  }
-
-  // Batch invalidation for multiple actions
-  static async batchInvalidate(
-    actions: Array<{ action: InvalidationAction; options?: CacheInvalidationOptions }>
-  ): Promise<void> {
-    console.log(`Batch cache invalidation for ${actions.length} actions`);
-
-    const invalidationPromises = actions.map(({ action, options = {} }) =>
-      this.invalidateOnUserAction(action, options)
-    );
-
-    await Promise.allSettled(invalidationPromises);
   }
 
   // Smart invalidation based on data dependencies
@@ -375,16 +508,37 @@ export class CacheInvalidationService {
     await this.batchInvalidate(actions);
   }
 
+  // Batch invalidation for multiple actions
+  static async batchInvalidate(
+    actions: Array<{ action: InvalidationAction; options?: CacheInvalidationOptions }>
+  ): Promise<void> {
+    console.log(`Manual batch cache invalidation for ${actions.length} actions`);
+
+    const invalidationPromises = actions.map(({ action, options = {} }) =>
+      this.executeInvalidation(action, { ...options, immediate: true })
+    );
+
+    await Promise.allSettled(invalidationPromises);
+  }
+
   // Periodic cache optimization
   static async performPeriodicCleanup(): Promise<void> {
     try {
       console.log('Performing periodic cache cleanup...');
       
-      // Clean up expired SQLite cache
-      await CacheService.cleanupExpiredCache();
-      
-      // Clean up expired photo cache
-      await CachedPhotoService.cleanExpiredCache();
+      await Promise.all([
+        // Clean up expired MMKV cache
+        CacheService.cleanupExpiredCache(),
+        
+        // Clean up expired photo cache
+        CachedPhotoService.cleanExpiredCache(),
+        
+        // Optimize photo cache
+        CachedPhotoService.optimizeCache(),
+
+        // Perform MMKV maintenance
+        CacheService.performMaintenance(),
+      ]);
       
       console.log('Periodic cache cleanup completed');
     } catch (error) {
@@ -394,26 +548,56 @@ export class CacheInvalidationService {
 
   // Get cache health status
   static async getCacheHealth(): Promise<{
-    sqliteCache: any;
+    mmkvCache: any;
     photoCache: any;
     reactQueryCache?: any;
+    overall: 'healthy' | 'degraded' | 'unhealthy';
   }> {
     try {
-      const [sqliteStats, photoStats] = await Promise.all([
+      const [mmkvStats, photoStats, mmkvHealthy, photoHealthy] = await Promise.all([
         CacheService.getCacheStats(),
-        CachedPhotoService.getCacheStats()
+        CachedPhotoService.getCacheStats(),
+        CacheService.isHealthy(),
+        CachedPhotoService.isHealthy(),
       ]);
 
+      const overall = mmkvHealthy && photoHealthy ? 'healthy' : 
+                    mmkvHealthy || photoHealthy ? 'degraded' : 'unhealthy';
+
       return {
-        sqliteCache: sqliteStats,
-        photoCache: photoStats,
+        mmkvCache: { ...mmkvStats, healthy: mmkvHealthy },
+        photoCache: { ...photoStats, healthy: photoHealthy },
+        overall,
       };
     } catch (error) {
       console.error('Failed to get cache health:', error);
       return {
-        sqliteCache: null,
+        mmkvCache: null,
         photoCache: null,
+        overall: 'unhealthy',
       };
+    }
+  }
+
+  // Flush all pending invalidations immediately
+  static async flush(): Promise<void> {
+    if (this.batchTimeout) {
+      clearTimeout(this.batchTimeout);
+      this.batchTimeout = null;
+    }
+    await this.processBatch();
+  }
+
+  // Initialize cache system
+  static async initialize(): Promise<void> {
+    try {
+      await Promise.all([
+        CachedPhotoService.initialize(),
+        CacheService.isHealthy(), // This initializes MMKV if needed
+      ]);
+      console.log('Cache system initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize cache system:', error);
     }
   }
 }

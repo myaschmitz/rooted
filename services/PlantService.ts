@@ -1,6 +1,8 @@
 import { Plant } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
+import { CacheService } from './CacheService';
+import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type PlantRow = Database['public']['Tables']['plants']['Row'];
@@ -15,6 +17,15 @@ export class PlantService {
       throw new Error('No household session found');
     }
 
+    const cacheKey = `plants-list-${session.household_id}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // If not in cache, fetch from database
     const { data, error } = await supabase
       .from('plants')
       .select('*')
@@ -26,7 +37,12 @@ export class PlantService {
       throw new Error(`Failed to fetch plants: ${error.message}`);
     }
 
-    return (data || []) as Plant[];
+    const plants = (data || []) as Plant[];
+    
+    // Cache the result for 5 minutes
+    await CacheService.cacheApiResponse(cacheKey, plants, 5 * 60 * 1000);
+
+    return plants;
   }
 
   static async getPlantById(id: string): Promise<Plant | null> {
@@ -36,6 +52,15 @@ export class PlantService {
       throw new Error('No household session found');
     }
 
+    const cacheKey = `plant-${id}-${session.household_id}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<Plant>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // If not in cache, fetch from database
     const { data, error } = await supabase
       .from('plants')
       .select('*')
@@ -51,7 +76,12 @@ export class PlantService {
       throw new Error(`Failed to fetch plant: ${error.message}`);
     }
 
-    return data as Plant;
+    const plant = data as Plant;
+    
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, plant, 10 * 60 * 1000);
+
+    return plant;
   }
 
   static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at'>): Promise<Plant> {
@@ -85,6 +115,12 @@ export class PlantService {
       plant_type: plant.type,
       location: plant.location,
     }, plant.name || plant.type);
+
+    // Invalidate relevant caches
+    await CacheInvalidationService.invalidateOnUserAction('plant_added', {
+      entityId: plant.id,
+      additionalData: { location: plant.location }
+    });
 
     return plant;
   }
@@ -120,6 +156,15 @@ export class PlantService {
       }, plant.name || plant.type);
     }
 
+    // Invalidate relevant caches
+    await CacheInvalidationService.invalidateOnUserAction('plant_updated', {
+      entityId: plant.id,
+      additionalData: {
+        oldLocation: updates.location ? undefined : plant.location, // If location wasn't updated, pass current location
+        newLocation: updates.location,
+      }
+    });
+
     return plant;
   }
 
@@ -144,6 +189,13 @@ export class PlantService {
         plant_type: plant.type,
         location: plant.location,
       }, plant.name || plant.type);
+
+      // Invalidate relevant caches
+      await CacheInvalidationService.invalidateOnUserAction('plant_deleted', {
+        entityId: plant.id,
+        additionalData: { location: plant.location },
+        clearPhotoCache: true // Also clear photo cache for deleted plants
+      });
     }
 
     return true;
@@ -157,6 +209,13 @@ export class PlantService {
     }
 
     const searchTerm = `%${query.toLowerCase()}%`;
+    const cacheKey = `plants-search-${session.household_id}-${query.toLowerCase()}`;
+    
+    // Try to get from cache first (shorter TTL for searches)
+    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
     
     const { data, error } = await supabase
       .from('plants')
@@ -170,7 +229,12 @@ export class PlantService {
       throw new Error(`Failed to search plants: ${error.message}`);
     }
 
-    return (data || []) as Plant[];
+    const plants = (data || []) as Plant[];
+    
+    // Cache search results for 2 minutes
+    await CacheService.cacheApiResponse(cacheKey, plants, 2 * 60 * 1000);
+
+    return plants;
   }
 
   static async getPlantsByLocation(location: string): Promise<Plant[]> {
@@ -178,6 +242,14 @@ export class PlantService {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error('No household session found');
+    }
+
+    const cacheKey = `plants-location-${session.household_id}-${location}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const { data, error } = await supabase
@@ -192,7 +264,12 @@ export class PlantService {
       throw new Error(`Failed to fetch plants by location: ${error.message}`);
     }
 
-    return (data || []) as Plant[];
+    const plants = (data || []) as Plant[];
+    
+    // Cache the result for 5 minutes
+    await CacheService.cacheApiResponse(cacheKey, plants, 5 * 60 * 1000);
+
+    return plants;
   }
 
 

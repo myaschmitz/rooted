@@ -27,7 +27,7 @@
 - [x] Upon adding a photo, add a full size version and a smaller version for the thumbnails to decrease the amount of megabytes being read on every load of the plants page and quick events page.
 
 ### Event System Enhancements
-- Attach photos to events (connect photos to specific events)
+- [x] Attach photos to events (connect photos to specific events)
 - [x] Add tabs at the top to separate event categories:
   - **Care Tab**: water, fertilize, fertigate, repot, prune, insecticide
   - **Events Tab**: pest spotted, new leaf, relocation, roots spotted

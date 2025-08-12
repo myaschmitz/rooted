@@ -6,6 +6,9 @@ import { PlantPhoto } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
 import { PlantService } from './PlantService';
+import { CacheService } from './CacheService';
+import { CachedPhotoService } from './CachedPhotoService';
+import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
 type PlantPhotoRow = Database['public']['Tables']['plant_photos']['Row'];
@@ -47,6 +50,11 @@ export class PhotoService {
       return photo.thumbnail_path;
     }
     return photo.file_path;
+  }
+
+  // Get cached image URL for better performance
+  static async getCachedImageUrl(photo: PlantPhoto, useThumbnail: boolean = false): Promise<string> {
+    return await CachedPhotoService.getCachedPhotoUrl(photo, useThumbnail);
   }
 
   static async uploadFileToStorage(filePath: string, fileName: string): Promise<string | null> {
@@ -119,6 +127,16 @@ export class PhotoService {
       throw new Error('No household session found');
     }
 
+    const cacheKey = `plant-photos-${plantId}-${session.household_id}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
+    if (cached) {
+      // Preload thumbnails in background for cached results
+      CachedPhotoService.preloadThumbnails(cached, 'medium').catch(() => {});
+      return cached;
+    }
+
     // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
@@ -137,7 +155,15 @@ export class PhotoService {
       throw new Error(`Failed to fetch photos: ${error.message}`);
     }
 
-    return (data || []) as PlantPhoto[];
+    const photos = (data || []) as PlantPhoto[];
+    
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, photos, 10 * 60 * 1000);
+    
+    // Preload thumbnails in background
+    CachedPhotoService.preloadThumbnails(photos, 'medium').catch(() => {});
+
+    return photos;
   }
 
   static async getPhotosByPlantIdOldestFirst(plantId: string): Promise<PlantPhoto[]> {
@@ -145,6 +171,14 @@ export class PhotoService {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error('No household session found');
+    }
+
+    const cacheKey = `plant-photos-oldest-${plantId}-${session.household_id}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     // Verify plant belongs to current household
@@ -165,7 +199,12 @@ export class PhotoService {
       throw new Error(`Failed to fetch photos: ${error.message}`);
     }
 
-    return (data || []) as PlantPhoto[];
+    const photos = (data || []) as PlantPhoto[];
+    
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, photos, 10 * 60 * 1000);
+
+    return photos;
   }
 
   static async pickAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
@@ -380,6 +419,12 @@ export class PhotoService {
       }
 
       console.log('Event photo saved successfully');
+      
+      // Invalidate relevant caches
+      await CacheInvalidationService.invalidateOnUserAction('photo_added', {
+        entityId: plantId
+      });
+      
       return data as PlantPhoto;
     } catch (error) {
       console.error('Error saving event photo:', error);
@@ -590,6 +635,11 @@ export class PhotoService {
 
       console.log('Photo saved successfully with full-size and thumbnail versions');
       
+      // Invalidate relevant caches
+      await CacheInvalidationService.invalidateOnUserAction('photo_added', {
+        entityId: plantId
+      });
+      
       return data as PlantPhoto;
     } catch (error) {
       console.error('Error saving photo:', error);
@@ -708,6 +758,13 @@ export class PhotoService {
         throw new Error(`Failed to delete photo: ${error.message}`);
       }
 
+      // Invalidate relevant caches
+      if (photo) {
+        await CacheInvalidationService.invalidateOnUserAction('photo_deleted', {
+          entityId: photo.plant_id,
+          clearPhotoCache: true
+        });
+      }
 
       return true;
     } catch (error) {
@@ -723,6 +780,16 @@ export class PhotoService {
       throw new Error('No household session found');
     }
 
+    const cacheKey = `all-photos-${session.household_id}`;
+    
+    // Try to get from cache first
+    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
+    if (cached) {
+      // Preload thumbnails in background for cached results
+      CachedPhotoService.preloadThumbnails(cached, 'low').catch(() => {});
+      return cached;
+    }
+
     const { data, error } = await supabase
       .from('plant_photos')
       .select('*')
@@ -734,7 +801,15 @@ export class PhotoService {
       throw new Error(`Failed to fetch all photos: ${error.message}`);
     }
 
-    return (data || []) as PlantPhoto[];
+    const photos = (data || []) as PlantPhoto[];
+    
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, photos, 10 * 60 * 1000);
+    
+    // Preload thumbnails in background
+    CachedPhotoService.preloadThumbnails(photos, 'low').catch(() => {});
+
+    return photos;
   }
 
   static async cleanupOrphanedPhotos(): Promise<void> {
