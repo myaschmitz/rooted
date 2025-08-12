@@ -270,6 +270,220 @@ export class PhotoService {
     }
   }
 
+  static async pickMultiplePhotos(): Promise<{ uri: string }[] | null> {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        throw new Error('Permission to access camera roll is required!');
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+        allowsMultipleSelection: true,
+      });
+
+      if (result.canceled) {
+        return null;
+      }
+
+      return result.assets.map(asset => ({ uri: asset.uri }));
+    } catch (error) {
+      console.error('Error picking multiple photos:', error);
+      throw error;
+    }
+  }
+
+  static async saveEventPhoto(plantId: string, eventId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
+    try {
+      await this.ensurePhotosDirectory();
+
+      // Generate unique filenames
+      const timestamp = new Date().getTime();
+      const fullSizeFileName = `${plantId}_event_${eventId}_${timestamp}.jpg`;
+      const thumbnailFileName = `${plantId}_event_${eventId}_${timestamp}_thumb.jpg`;
+      const localFullSizePath = `${this.PHOTOS_DIR}${fullSizeFileName}`;
+
+      // Copy full-size file to local storage for offline access
+      await FileSystem.copyAsync({
+        from: sourceUri,
+        to: localFullSizePath,
+      });
+
+      // Create thumbnail
+      console.log('Creating thumbnail...');
+      const thumbnailUri = await this.createThumbnail(sourceUri);
+      const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
+      
+      // Copy thumbnail to local storage
+      await FileSystem.copyAsync({
+        from: thumbnailUri,
+        to: localThumbnailPath,
+      });
+
+      // Upload both versions to Supabase Storage in parallel
+      console.log('Uploading full-size and thumbnail to cloud storage...');
+      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
+        this.uploadFileToStorage(localFullSizePath, fullSizeFileName),
+        this.uploadFileToStorage(localThumbnailPath, thumbnailFileName),
+      ]);
+
+      // Clean up local files after processing
+      try {
+        await FileSystem.deleteAsync(localFullSizePath);
+        await FileSystem.deleteAsync(localThumbnailPath);
+        await FileSystem.deleteAsync(thumbnailUri);
+      } catch (cleanupError) {
+        console.warn('Failed to clean up local files:', cleanupError);
+      }
+
+      if (!cloudFullSizePath) {
+        throw new Error('Failed to upload full-size photo to cloud storage. Please check your internet connection and try again.');
+      }
+
+      if (!cloudThumbnailPath) {
+        console.warn('Failed to upload thumbnail to cloud storage, but proceeding with full-size image only.');
+      }
+
+      // Get current household session and verify access
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      const plant = await PlantService.getPlantById(plantId);
+      if (!plant) {
+        throw new Error('Plant not found or not accessible');
+      }
+
+      const now = new Date().toISOString();
+      const photoInsert: PlantPhotoInsert = {
+        plant_id: plantId,
+        event_id: eventId,
+        file_path: cloudFullSizePath,
+        thumbnail_path: cloudThumbnailPath || undefined,
+        caption: caption || undefined,
+        taken_at: now,
+        household_id: session.household_id,
+      };
+
+      const { data, error } = await supabase
+        .from('plant_photos')
+        .insert(photoInsert)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving event photo to database:', error);
+        throw new Error(`Failed to save photo: ${error.message}`);
+      }
+
+      console.log('Event photo saved successfully');
+      return data as PlantPhoto;
+    } catch (error) {
+      console.error('Error saving event photo:', error);
+      throw error;
+    }
+  }
+
+  static async saveMultipleEventPhotos(plantId: string, eventId: string, sourceUris: string[], caption?: string): Promise<PlantPhoto[]> {
+    const savedPhotos: PlantPhoto[] = [];
+    
+    for (const sourceUri of sourceUris) {
+      try {
+        const photo = await this.saveEventPhoto(plantId, eventId, sourceUri, caption);
+        savedPhotos.push(photo);
+      } catch (error) {
+        console.error(`Failed to save photo ${sourceUri}:`, error);
+        // Continue with other photos even if one fails
+      }
+    }
+    
+    return savedPhotos;
+  }
+
+  static async getPhotosByEventId(eventId: string): Promise<PlantPhoto[]> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('household_id', session.household_id)
+      .order('taken_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching event photos:', error);
+      throw new Error(`Failed to fetch event photos: ${error.message}`);
+    }
+
+    return (data || []) as PlantPhoto[];
+  }
+
+  static async linkPhotoToEvent(photoId: string, eventId: string): Promise<PlantPhoto | null> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const photoUpdate: PlantPhotoUpdate = {
+      event_id: eventId,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .update(photoUpdate)
+      .eq('id', photoId)
+      .eq('household_id', session.household_id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error linking photo to event:', error);
+      throw new Error(`Failed to link photo to event: ${error.message}`);
+    }
+
+    return data as PlantPhoto;
+  }
+
+  static async unlinkPhotoFromEvent(photoId: string): Promise<PlantPhoto | null> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const photoUpdate: PlantPhotoUpdate = {
+      event_id: null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('plant_photos')
+      .update(photoUpdate)
+      .eq('id', photoId)
+      .eq('household_id', session.household_id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      console.error('Error unlinking photo from event:', error);
+      throw new Error(`Failed to unlink photo from event: ${error.message}`);
+    }
+
+    return data as PlantPhoto;
+  }
+
   static async savePhoto(plantId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
     try {
       await this.ensurePhotosDirectory();

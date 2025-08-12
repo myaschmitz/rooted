@@ -14,7 +14,7 @@ export interface Plant {
 export interface Event {
   id: string;
   plant_id: string;
-  event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
+  event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
   date: string;
   notes?: string;
   fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
@@ -31,6 +31,7 @@ export interface PlantPhoto {
   thumbnail_path?: string;
   caption?: string;
   taken_at: string;
+  event_id?: string;
   household_id?: string;
   created_at: string;
   updated_at: string;

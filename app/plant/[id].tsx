@@ -39,6 +39,7 @@ export default function PlantDetailScreen() {
   const [currentThumbnailId, setCurrentThumbnailId] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [eventPhotos, setEventPhotos] = useState<{[eventId: string]: PlantPhoto[]}>({});
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -83,6 +84,19 @@ export default function PlantDetailScreen() {
       setEvents(eventsData);
       setPhotos(photosData);
       setCurrentThumbnailId(plantData?.thumbnail_photo_id || null);
+
+      // Load photos for each event
+      const eventPhotoMap: {[eventId: string]: PlantPhoto[]} = {};
+      for (const event of eventsData) {
+        try {
+          const eventPhotosData = await PhotoService.getPhotosByEventId(event.id);
+          eventPhotoMap[event.id] = eventPhotosData;
+        } catch (error) {
+          console.error(`Failed to load photos for event ${event.id}:`, error);
+          eventPhotoMap[event.id] = [];
+        }
+      }
+      setEventPhotos(eventPhotoMap);
     } catch (error) {
       console.error('Failed to load plant data:', error);
       Alert.alert('Error', 'Failed to load plant details');
@@ -648,6 +662,27 @@ export default function PlantDetailScreen() {
                     Pest Severity: {event.pest_severity}/10 {getPestSeverityLabel(event.pest_severity)}
                   </Text>
                 )}
+                {eventPhotos[event.id] && eventPhotos[event.id].length > 0 && (
+                  <View style={styles.eventPhotosContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {eventPhotos[event.id].map((photo) => (
+                        <TouchableOpacity 
+                          key={photo.id} 
+                          style={styles.eventPhotoItem}
+                          onPress={() => handlePhotoPress(photo)}
+                        >
+                          <Image 
+                            source={{ uri: PhotoService.getImageUrl(photo, true) }} 
+                            style={styles.eventPhotoImage}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={200}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
               </React.Fragment>
             ))
@@ -1108,5 +1143,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  eventPhotosContainer: {
+    marginTop: 8,
+  },
+  eventPhotoItem: {
+    marginRight: 8,
+  },
+  eventPhotoImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
   },
 });

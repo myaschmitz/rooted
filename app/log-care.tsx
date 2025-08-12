@@ -6,13 +6,19 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Image,
+  ScrollView,
+  Modal,
+  FlatList,
+  Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { EventService } from '../services/EventService';
 import { PlantService } from '../services/PlantService';
+import { PhotoService } from '../services/PhotoService';
 import { DateTimeService } from '../services/DateTimeService';
-import { Plant } from '../types/Plant';
+import { Plant, PlantPhoto } from '../types/Plant';
 import { useGlobalStyles } from '../styles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
@@ -34,10 +40,16 @@ export default function LogCareScreen() {
   const [fertilizerStrength, setFertilizerStrength] = useState<'1/4' | '1/2' | '1x' | '1.5x' | '2x'>('1x');
   const [pestSeverity, setPestSeverity] = useState<number>(1);
   const [saving, setSaving] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
+  const [plantPhotos, setPlantPhotos] = useState<PlantPhoto[]>([]);
+  const [showPhotoPickerModal, setShowPhotoPickerModal] = useState(false);
+  const [selectedPlantPhotoIds, setSelectedPlantPhotoIds] = useState<string[]>([]);
+  const [selectedExistingPhotoIds, setSelectedExistingPhotoIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (plantId) {
       loadPlant();
+      loadPlantPhotos();
     }
   }, [plantId]);
 
@@ -51,6 +63,76 @@ export default function LogCareScreen() {
     }
   };
 
+  const loadPlantPhotos = async () => {
+    try {
+      const photos = await PhotoService.getPhotosByPlantId(plantId!);
+      setPlantPhotos(photos);
+    } catch (error) {
+      console.error('Failed to load plant photos:', error);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const result = await PhotoService.takePhoto();
+      if (result) {
+        setSelectedPhotos(prev => [...prev, result.uri]);
+      }
+    } catch (error) {
+      console.error('Failed to take photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const handlePickFromLibrary = async () => {
+    try {
+      const result = await PhotoService.pickMultiplePhotos();
+      if (result) {
+        setSelectedPhotos(prev => [...prev, ...result.map(r => r.uri)]);
+      }
+    } catch (error) {
+      console.error('Failed to pick photos:', error);
+      Alert.alert('Error', 'Failed to pick photos from library');
+    }
+  };
+
+  const handlePickFromPlantPhotos = () => {
+    if (plantPhotos.length === 0) {
+      Alert.alert('No Photos', 'This plant doesn\'t have any photos yet. Take some photos first!');
+      return;
+    }
+    setSelectedPlantPhotoIds([]);
+    setShowPhotoPickerModal(true);
+  };
+
+  const togglePlantPhotoSelection = (photoId: string) => {
+    setSelectedPlantPhotoIds(prev => 
+      prev.includes(photoId) 
+        ? prev.filter(id => id !== photoId)
+        : [...prev, photoId]
+    );
+  };
+
+  const confirmPlantPhotoSelection = () => {
+    // Store the photo IDs instead of URLs for existing photos
+    setSelectedExistingPhotoIds(prev => [...prev, ...selectedPlantPhotoIds]);
+    setShowPhotoPickerModal(false);
+    setSelectedPlantPhotoIds([]);
+  };
+
+  const cancelPlantPhotoSelection = () => {
+    setShowPhotoPickerModal(false);
+    setSelectedPlantPhotoIds([]);
+  };
+
+  const removeSelectedPhoto = (photoUri: string) => {
+    setSelectedPhotos(prev => prev.filter(uri => uri !== photoUri));
+  };
+
+  const removeSelectedExistingPhoto = (photoId: string) => {
+    setSelectedExistingPhotoIds(prev => prev.filter(id => id !== photoId));
+  };
+
   const handleSave = async () => {
     if (!plantId) {
       Alert.alert('Error', 'No plant selected');
@@ -59,7 +141,8 @@ export default function LogCareScreen() {
 
     setSaving(true);
     try {
-      await EventService.createEvent({
+      // First create the event
+      const event = await EventService.createEvent({
         plant_id: plantId,
         event_type: eventType,
         date: careDateTime.toISOString(),
@@ -67,6 +150,40 @@ export default function LogCareScreen() {
         fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
+
+      // Handle photos
+      const photoErrors: string[] = [];
+
+      // Save any new photos (from camera/library) if selected
+      if (selectedPhotos.length > 0) {
+        try {
+          await PhotoService.saveMultipleEventPhotos(plantId, event.id, selectedPhotos);
+        } catch (photoError) {
+          console.error('Failed to save new photos:', photoError);
+          photoErrors.push('Some new photos could not be saved.');
+        }
+      }
+
+      // Link any existing plant photos to this event
+      if (selectedExistingPhotoIds.length > 0) {
+        for (const photoId of selectedExistingPhotoIds) {
+          try {
+            await PhotoService.linkPhotoToEvent(photoId, event.id);
+          } catch (photoError) {
+            console.error(`Failed to link photo ${photoId} to event:`, photoError);
+            photoErrors.push('Some existing photos could not be linked.');
+          }
+        }
+      }
+
+      // Show appropriate success/warning message
+      if (photoErrors.length > 0) {
+        Alert.alert(
+          'Event Saved',
+          `Event was saved successfully, but ${photoErrors.join(' ')} You can add photos later by editing the event.`,
+          [{ text: 'OK' }]
+        );
+      }
 
       setSaving(false);
       router.back();
@@ -291,6 +408,97 @@ export default function LogCareScreen() {
             </View>
           )}
 
+          {/* Photos */}
+          <View style={globalStyles.inputGroup}>
+            <Text style={globalStyles.label}>Photos (Optional)</Text>
+            
+            {/* Photo Action Buttons */}
+            <View style={styles.photoActionContainer}>
+              <TouchableOpacity
+                style={styles.photoActionButton}
+                onPress={handleTakePhoto}
+              >
+                <Text style={styles.photoActionIcon}>📸</Text>
+                <Text style={styles.photoActionText}>Take Photo</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.photoActionButton}
+                onPress={handlePickFromLibrary}
+              >
+                <Text style={styles.photoActionIcon}>🖼️</Text>
+                <Text style={styles.photoActionText}>From Library</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.photoActionButton}
+                onPress={handlePickFromPlantPhotos}
+              >
+                <Text style={styles.photoActionIcon}>🌱</Text>
+                <Text style={styles.photoActionText}>Plant Photos</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* New Selected Photos Display */}
+            {selectedPhotos.length > 0 && (
+              <View style={styles.selectedPhotosContainer}>
+                <Text style={styles.selectedPhotosLabel}>
+                  New Photos to Add ({selectedPhotos.length})
+                </Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.selectedPhotosScroll}
+                >
+                  {selectedPhotos.map((photoUri, index) => (
+                    <View key={index} style={styles.selectedPhotoItem}>
+                      <Image source={{ uri: photoUri }} style={styles.selectedPhotoImage} />
+                      <TouchableOpacity
+                        style={styles.removePhotoButton}
+                        onPress={() => removeSelectedPhoto(photoUri)}
+                      >
+                        <Text style={styles.removePhotoText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Selected Existing Photos Display */}
+            {selectedExistingPhotoIds.length > 0 && (
+              <View style={styles.selectedPhotosContainer}>
+                <Text style={styles.selectedPhotosLabel}>
+                  Existing Photos to Link ({selectedExistingPhotoIds.length})
+                </Text>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.selectedPhotosScroll}
+                >
+                  {selectedExistingPhotoIds.map((photoId) => {
+                    const photo = plantPhotos.find(p => p.id === photoId);
+                    if (!photo) return null;
+                    return (
+                      <View key={photoId} style={styles.selectedPhotoItem}>
+                        <Image 
+                          source={{ uri: PhotoService.getImageUrl(photo, true) }} 
+                          style={styles.selectedPhotoImage} 
+                        />
+                        <TouchableOpacity
+                          style={styles.removePhotoButton}
+                          onPress={() => removeSelectedExistingPhoto(photoId)}
+                        >
+                          <Text style={styles.removePhotoText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
           {/* Notes */}
           <View style={globalStyles.inputGroup}>
             <Text style={globalStyles.label}>Notes</Text>
@@ -317,6 +525,71 @@ export default function LogCareScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
+
+      {/* Plant Photo Picker Modal */}
+      <Modal
+        visible={showPhotoPickerModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={cancelPlantPhotoSelection}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Select Plant Photos</Text>
+            <TouchableOpacity
+              style={[
+                styles.modalConfirmButton,
+                selectedPlantPhotoIds.length === 0 && styles.modalConfirmButtonDisabled
+              ]}
+              onPress={confirmPlantPhotoSelection}
+              disabled={selectedPlantPhotoIds.length === 0}
+            >
+              <Text style={[
+                styles.modalConfirmText,
+                selectedPlantPhotoIds.length === 0 && styles.modalConfirmTextDisabled
+              ]}>
+                Add ({selectedPlantPhotoIds.length})
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <FlatList
+            data={plantPhotos}
+            numColumns={3}
+            contentContainerStyle={styles.photoGrid}
+            renderItem={({ item: photo }) => (
+              <TouchableOpacity
+                style={[
+                  styles.photoGridItem,
+                  selectedPlantPhotoIds.includes(photo.id) && styles.photoGridItemSelected
+                ]}
+                onPress={() => togglePlantPhotoSelection(photo.id)}
+              >
+                <Image
+                  source={{ uri: PhotoService.getImageUrl(photo, true) }}
+                  style={styles.photoGridImage}
+                />
+                {selectedPlantPhotoIds.includes(photo.id) && (
+                  <View style={styles.photoSelectedOverlay}>
+                    <Text style={styles.photoSelectedIcon}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            ListEmptyComponent={
+              <View style={styles.emptyPhotoList}>
+                <Text style={styles.emptyPhotoText}>No photos available</Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -469,6 +742,160 @@ const createStyles = (theme) => StyleSheet.create({
   strengthTextSelected: {
     color: theme.colors.primary,
     fontWeight: 'bold',
+  },
+  photoActionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  photoActionButton: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  photoActionIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  photoActionText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  selectedPhotosContainer: {
+    marginTop: 8,
+  },
+  selectedPhotosLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  selectedPhotosScroll: {
+    maxHeight: 100,
+  },
+  selectedPhotoItem: {
+    position: 'relative',
+    marginRight: 20,
+    paddingTop: 10,
+  },
+  selectedPhotoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: 0,
+    right: -8,
+    backgroundColor: theme.colors.error,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    paddingTop: 50,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  modalCancelButton: {
+    padding: 8,
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  modalConfirmButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  modalConfirmButtonDisabled: {
+    backgroundColor: theme.colors.disabled,
+  },
+  modalConfirmText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.background,
+  },
+  modalConfirmTextDisabled: {
+    color: theme.colors.textSecondary,
+  },
+  photoGrid: {
+    padding: 20,
+  },
+  photoGridItem: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    maxWidth: Dimensions.get('window').width / 3 - 16,
+  },
+  photoGridItemSelected: {
+    borderColor: theme.colors.primary,
+  },
+  photoGridImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: theme.colors.surface,
+  },
+  photoSelectedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoSelectedIcon: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  emptyPhotoList: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyPhotoText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
   },
 });
 

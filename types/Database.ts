@@ -152,6 +152,7 @@ export type Database = {
           thumbnail_path?: string;
           caption?: string;
           taken_at: string;
+          event_id?: string;
           household_id?: string;
           created_at: string;
           updated_at: string;
@@ -163,6 +164,7 @@ export type Database = {
           thumbnail_path?: string;
           caption?: string;
           taken_at: string;
+          event_id?: string;
           household_id?: string;
           created_at?: string;
           updated_at?: string;
@@ -174,6 +176,7 @@ export type Database = {
           thumbnail_path?: string;
           caption?: string;
           taken_at?: string;
+          event_id?: string;
           household_id?: string;
           updated_at?: string;
         };
