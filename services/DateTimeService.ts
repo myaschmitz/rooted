@@ -157,4 +157,30 @@ export class DateTimeService {
 
     return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
   }
+
+  static formatTimeAgo(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const now = new Date();
+    const diffMs = now.getTime() - dateObj.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else if (diffWeeks < 4) {
+      return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
+    } else if (diffMonths < 6) {
+      return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+    } else if (diffMonths < 12) {
+      return 'Over 6 months ago';
+    } else {
+      return `Over ${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+    }
+  }
 }

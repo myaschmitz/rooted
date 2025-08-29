@@ -9,6 +9,7 @@ import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { EventService } from '../../services/EventService';
+import { DateTimeService } from '../../services/DateTimeService';
 import { Plant } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
@@ -197,7 +198,7 @@ export default function HomeScreen() {
     }
 
     const wateredDate = dayjs(lastWateredDate);
-    const timeAgo = wateredDate.fromNow();
+    const timeAgo = DateTimeService.formatTimeAgo(lastWateredDate);
     const formattedDate = wateredDate.format('MMM D, YYYY');
     
     return { timeAgo, date: formattedDate };
