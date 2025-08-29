@@ -40,6 +40,7 @@ export default function PlantDetailScreen() {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [eventPhotos, setEventPhotos] = useState<{[eventId: string]: PlantPhoto[]}>({});
+  const [allPhotos, setAllPhotos] = useState<PlantPhoto[]>([]);
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -97,6 +98,18 @@ export default function PlantDetailScreen() {
         }
       }
       setEventPhotos(eventPhotoMap);
+
+      // Combine regular photos and event photos for the image viewer
+      const combinedPhotos = [...photosData];
+      Object.values(eventPhotoMap).forEach(eventPhotoArray => {
+        eventPhotoArray.forEach(photo => {
+          // Only add if not already in the array (avoid duplicates)
+          if (!combinedPhotos.find(p => p.id === photo.id)) {
+            combinedPhotos.push(photo);
+          }
+        });
+      });
+      setAllPhotos(combinedPhotos);
     } catch (error) {
       console.error('Failed to load plant data:', error);
       Alert.alert('Error', 'Failed to load plant details');
@@ -173,7 +186,11 @@ export default function PlantDetailScreen() {
   };
 
   const handlePhotoPress = (photo: PlantPhoto) => {
-    const photoIndex = photos.findIndex(p => p.id === photo.id);
+    const photoIndex = allPhotos.findIndex(p => p.id === photo.id);
+    if (photoIndex === -1 || !allPhotos[photoIndex]) {
+      console.warn('Photo not found in allPhotos array:', photo.id);
+      return;
+    }
     setCurrentPhotoIndex(photoIndex);
     setImageViewerVisible(true);
   };
@@ -691,13 +708,25 @@ export default function PlantDetailScreen() {
       </ScrollView>
 
       <ImageViewing
-        images={photos.map(photo => ({ uri: PhotoService.getImageUrl(photo, false) }))}
-        imageIndex={currentPhotoIndex}
-        visible={imageViewerVisible}
+        images={allPhotos.map(photo => ({ uri: PhotoService.getImageUrl(photo, false) }))}
+        imageIndex={Math.max(0, currentPhotoIndex)}
+        visible={imageViewerVisible && allPhotos.length > 0 && currentPhotoIndex >= 0}
         onRequestClose={() => setImageViewerVisible(false)}
         swipeToCloseEnabled={false}
         HeaderComponent={({ imageIndex }) => {
-          const currentPhoto = photos[imageIndex];
+          const currentPhoto = allPhotos[imageIndex];
+          if (!currentPhoto) {
+            return (
+              <View style={styles.imageViewerHeader}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={() => setImageViewerVisible(false)}
+                >
+                  <X size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            );
+          }
           return (
             <View style={styles.imageViewerHeader}>
               <TouchableOpacity
@@ -716,16 +745,30 @@ export default function PlantDetailScreen() {
           );
         }}
         FooterComponent={({ imageIndex }) => {
-          const currentPhoto = photos[imageIndex];
+          const currentPhoto = allPhotos[imageIndex];
+          if (!currentPhoto) {
+            return (
+              <View style={styles.imageViewerFooter}>
+                <View style={styles.photoInfo}>
+                  <Text style={styles.photoInfoText}>Loading...</Text>
+                  {allPhotos.length > 1 && (
+                    <Text style={styles.photoCounter}>
+                      {imageIndex + 1} of {allPhotos.length}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          }
           return (
             <View style={styles.imageViewerFooter}>
               <View style={styles.photoInfo}>
                 <Text style={styles.photoInfoText}>
-                  {formattedDates[currentPhoto?.id] || 'Loading...'}
+                  {formattedDates[currentPhoto.id] || 'Loading...'}
                 </Text>
-                {photos.length > 1 && (
+                {allPhotos.length > 1 && (
                   <Text style={styles.photoCounter}>
-                    {imageIndex + 1} of {photos.length}
+                    {imageIndex + 1} of {allPhotos.length}
                   </Text>
                 )}
               </View>
