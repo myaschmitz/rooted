@@ -80,6 +80,10 @@ export type ActivityAction =
   | 'created household'
   | 'joined household' 
   | 'left household'
+  | 'removed member'
+  | 'updated member role'
+  | 'updated household name'
+  | 'regenerated household code'
   | 'added plant'
   | 'updated plant'
   | 'deleted plant'
@@ -93,7 +97,10 @@ export type ActivityAction =
   | 'added note'
   | 'updated note'
   | 'deleted note'
-  | 'other care';
+  | 'other care'
+  | 'created reminder'
+  | 'updated reminder'
+  | 'deleted reminder';
 
 export interface ActivityLogDetails {
   plant_id?: string;

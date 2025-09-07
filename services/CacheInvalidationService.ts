@@ -14,6 +14,9 @@ export type InvalidationAction =
   | 'photo_updated'
   | 'photo_deleted'
   | 'thumbnail_changed'
+  | 'reminder_added'
+  | 'reminder_updated'
+  | 'reminder_deleted'
   | 'user_action'
   | 'household_changed';
 

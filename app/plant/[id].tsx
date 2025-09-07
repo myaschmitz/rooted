@@ -15,9 +15,12 @@ import ImageViewing from 'react-native-image-viewing';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen, Trash2, X, Download } from 'lucide-react-native';
 import { Plant, Event, PlantPhoto } from '../../types/Plant';
+import { Reminder } from '../../types/Reminder';
 import { PlantService } from '../../services/PlantService';
 import { EventService } from '../../services/EventService';
 import { PhotoService } from '../../services/PhotoService';
+import { ReminderService } from '../../services/ReminderService';
+import { NotificationService } from '../../services/NotificationService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
@@ -30,6 +33,7 @@ export default function PlantDetailScreen() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [photos, setPhotos] = useState<PlantPhoto[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [thumbnailPhoto, setThumbnailPhoto] = useState<PlantPhoto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,10 +50,11 @@ export default function PlantDetailScreen() {
     if (!id) return;
     
     try {
-      const [plantData, eventsData, photosData] = await Promise.all([
+      const [plantData, eventsData, photosData, remindersData] = await Promise.all([
         PlantService.getPlantById(id),
         EventService.getEventsByPlantId(id),
         PhotoService.getPhotosByPlantId(id),
+        ReminderService.getRemindersByPlantId(id),
       ]);
 
       // Load thumbnail photo
@@ -84,6 +89,7 @@ export default function PlantDetailScreen() {
 
       setEvents(eventsData);
       setPhotos(photosData);
+      setReminders(remindersData);
       setCurrentThumbnailId(plantData?.thumbnail_photo_id || null);
 
       // Load photos for each event
@@ -157,6 +163,49 @@ export default function PlantDetailScreen() {
         { text: 'Cancel', style: 'cancel' },
       ]
     );
+  };
+
+  const handleCreateReminder = () => {
+    router.push(`/create-reminder?plantId=${id}`);
+  };
+
+  const handleToggleReminder = async (reminderId: string) => {
+    try {
+      await ReminderService.toggleReminderActive(reminderId);
+      loadPlantData();
+    } catch (error) {
+      console.error('Failed to toggle reminder:', error);
+      Alert.alert('Error', 'Failed to update reminder');
+    }
+  };
+
+  const handleDeleteReminder = async (reminderId: string, title: string) => {
+    Alert.alert(
+      'Delete Reminder',
+      `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await ReminderService.deleteReminder(reminderId);
+              loadPlantData();
+              Alert.alert('Success', 'Reminder deleted successfully');
+            } catch (error) {
+              console.error('Failed to delete reminder:', error);
+              Alert.alert('Error', 'Failed to delete reminder');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDebugNotifications = async () => {
+    await NotificationService.debugScheduledNotifications();
+    Alert.alert('Debug Info', 'Check console for notification details');
   };
 
   const handleTakePhoto = async () => {
@@ -539,6 +588,9 @@ export default function PlantDetailScreen() {
           <TouchableOpacity style={styles.actionButton} onPress={handleAddPhoto}>
             <Text style={styles.actionButtonText}>📷 Add Photo</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={handleCreateReminder}>
+            <Text style={styles.actionButtonText}>🔔 Add Reminder</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Plant Notes */}
@@ -634,6 +686,62 @@ export default function PlantDetailScreen() {
             </ScrollView>
           </View>
         )}
+
+        {/* Reminders */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Reminders ({reminders.length})</Text>
+            <View style={styles.reminderHeaderButtons}>
+              <TouchableOpacity 
+                style={[styles.addReminderButton, styles.debugButton]} 
+                onPress={handleDebugNotifications}
+              >
+                <Text style={styles.addReminderButtonText}>Debug</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addReminderButton} 
+                onPress={handleCreateReminder}
+              >
+                <Text style={styles.addReminderButtonText}>+ Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {reminders.length === 0 ? (
+            <Text style={styles.emptyCareText}>No reminders set</Text>
+          ) : (
+            reminders.map((reminder) => (
+              <View key={reminder.id} style={styles.reminderItem}>
+                <View style={styles.reminderHeader}>
+                  <View style={styles.reminderInfo}>
+                    <Text style={[styles.reminderTitle, !reminder.is_active && styles.inactiveText]}>
+                      {reminder.title}
+                    </Text>
+                    <Text style={styles.reminderDescription}>{reminder.description}</Text>
+                    <Text style={styles.reminderDetails}>
+                      {new Date(reminder.date).toLocaleDateString()} at {reminder.time} • {NotificationService.formatRecurrenceText(reminder)}
+                    </Text>
+                  </View>
+                  <View style={styles.reminderActions}>
+                    <TouchableOpacity
+                      style={[styles.toggleButton, reminder.is_active ? styles.activeButton : styles.inactiveButton]}
+                      onPress={() => handleToggleReminder(reminder.id)}
+                    >
+                      <Text style={[styles.toggleButtonText, reminder.is_active ? styles.activeButtonText : styles.inactiveButtonText]}>
+                        {reminder.is_active ? 'ON' : 'OFF'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteReminderButton}
+                      onPress={() => handleDeleteReminder(reminder.id, reminder.title)}
+                    >
+                      <Trash2 size={12} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
 
         {/* Event History */}
         <View style={styles.section}>
@@ -1197,5 +1305,90 @@ const createStyles = (theme: any) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 6,
+  },
+  reminderHeaderButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  addReminderButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  debugButton: {
+    backgroundColor: '#6B7280',
+  },
+  addReminderButtonText: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  reminderItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  reminderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  reminderInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  reminderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  reminderDescription: {
+    fontSize: 14,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  reminderDetails: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  reminderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  activeButton: {
+    backgroundColor: '#4CAF50',
+  },
+  inactiveButton: {
+    backgroundColor: '#9E9E9E',
+  },
+  toggleButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  activeButtonText: {
+    color: '#FFFFFF',
+  },
+  inactiveButtonText: {
+    color: '#FFFFFF',
+  },
+  deleteReminderButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inactiveText: {
+    opacity: 0.6,
   },
 });

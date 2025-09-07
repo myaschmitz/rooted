@@ -90,6 +90,13 @@ function ThemedStack() {
             headerBackTitle: 'Back'
           }} 
         />
+        <Stack.Screen 
+          name="create-reminder" 
+          options={{ 
+            title: 'Create Reminder',
+            headerBackTitle: 'Back'
+          }} 
+        />
       </Stack>
     </>
   );

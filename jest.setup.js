@@ -47,6 +47,29 @@ jest.mock('react-native-uuid', () => ({
   v4: jest.fn(() => 'mock-uuid-1234-5678-9abc'),
 }));
 
+// Mock MMKV
+jest.mock('react-native-mmkv', () => ({
+  MMKV: jest.fn().mockImplementation(() => ({
+    set: jest.fn(),
+    getString: jest.fn(() => null),
+    getNumber: jest.fn(() => null),
+    getBoolean: jest.fn(() => null),
+    delete: jest.fn(),
+    clearAll: jest.fn(),
+  })),
+}));
+
+// Mock expo-notifications
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  scheduleNotificationAsync: jest.fn(() => Promise.resolve('mock-notification-id')),
+  cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
+  cancelAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve()),
+  getAllScheduledNotificationsAsync: jest.fn(() => Promise.resolve([])),
+}));
+
 // Mock Date for consistent testing
 const mockDate = new Date('2024-01-15T10:00:00.000Z');
 jest.spyOn(global, 'Date').mockImplementation(() => mockDate);

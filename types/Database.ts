@@ -206,6 +206,55 @@ export type Database = {
           updated_at?: string;
         };
       };
+      reminders: {
+        Row: {
+          id: string;
+          plant_id: string;
+          title: string;
+          description: string;
+          date: string;
+          time: string;
+          recurrence_type: 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+          recurrence_interval?: number;
+          recurrence_unit?: 'days' | 'weeks' | 'months';
+          notification_id?: string;
+          is_active: boolean;
+          household_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plant_id: string;
+          title: string;
+          description: string;
+          date: string;
+          time: string;
+          recurrence_type: 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+          recurrence_interval?: number;
+          recurrence_unit?: 'days' | 'weeks' | 'months';
+          notification_id?: string;
+          is_active?: boolean;
+          household_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          plant_id?: string;
+          title?: string;
+          description?: string;
+          date?: string;
+          time?: string;
+          recurrence_type?: 'none' | 'daily' | 'weekly' | 'monthly' | 'custom';
+          recurrence_interval?: number;
+          recurrence_unit?: 'days' | 'weeks' | 'months';
+          notification_id?: string;
+          is_active?: boolean;
+          household_id?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 };
