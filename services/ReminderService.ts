@@ -108,6 +108,9 @@ export class ReminderService {
   }
 
   static async createReminder(reminderData: Omit<ReminderInsert, 'household_id'>): Promise<Reminder> {
+    console.log('🟡 ReminderService.createReminder called with:', reminderData);
+    console.trace('📍 ReminderService.createReminder call stack');
+    
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error('No household session found');

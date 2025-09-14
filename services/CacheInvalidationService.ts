@@ -342,6 +342,21 @@ export class CacheInvalidationService {
           }
           break;
 
+        case 'reminder_added':
+        case 'reminder_updated':
+        case 'reminder_deleted':
+          if (additionalData.plant_id) {
+            // Invalidate plant reminders using the plant_id from additionalData
+            await queryClient.invalidateQueries({ queryKey: queryKeys.plantReminders(additionalData.plant_id) });
+            
+            // Invalidate all active reminders
+            await queryClient.invalidateQueries({ queryKey: queryKeys.activeReminders });
+            
+            // Invalidate plant detail since reminders are shown there
+            await queryClient.invalidateQueries({ queryKey: queryKeys.plant(additionalData.plant_id) });
+          }
+          break;
+
         case 'household_changed':
           // Nuclear option - invalidate everything for household changes
           await queryClient.invalidateQueries();
@@ -409,6 +424,17 @@ export class CacheInvalidationService {
         case 'thumbnail_changed':
           if (entityId) {
             patterns.push(`plant-${entityId}`, `thumbnail-${entityId}`, 'plants-list');
+          }
+          break;
+
+        case 'reminder_added':
+        case 'reminder_updated':
+        case 'reminder_deleted':
+          // Invalidate all reminder-related cache patterns
+          patterns.push('reminders-active', 'reminders-plant');
+          if (additionalData.plant_id) {
+            // Invalidate plant-specific reminder cache (matches reminders-plant-${plantId}-${householdId})
+            patterns.push(`reminders-plant-${additionalData.plant_id}`);
           }
           break;
 

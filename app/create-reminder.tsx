@@ -19,6 +19,7 @@ import { Plant } from '../types/Plant';
 import { RecurrenceType } from '../types/Reminder';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
+import { useGlobalStyles } from '../styles';
 
 export default function CreateReminderScreen() {
   const { theme } = useTheme();
@@ -27,10 +28,7 @@ export default function CreateReminderScreen() {
   const [selectedPlantId, setSelectedPlantId] = useState<string>(plantId || '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [reminderDate, setReminderDate] = useState(new Date());
-  const [reminderTime, setReminderTime] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [reminderDateTime, setReminderDateTime] = useState(new Date());
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
   const [customInterval, setCustomInterval] = useState<number>(1);
   const [customUnit, setCustomUnit] = useState<'days' | 'weeks' | 'months'>('days');
@@ -39,14 +37,10 @@ export default function CreateReminderScreen() {
   const [saving, setSaving] = useState(false);
 
   const styles = createStyles(theme);
+  const globalStyles = useGlobalStyles();
 
   useEffect(() => {
     loadPlants();
-    
-    // Set default time to 9:00 AM
-    const defaultTime = new Date();
-    defaultTime.setHours(9, 0, 0, 0);
-    setReminderTime(defaultTime);
   }, []);
 
   const loadPlants = async () => {
@@ -83,13 +77,21 @@ export default function CreateReminderScreen() {
         return;
       }
 
+      // Validate that the selected date/time is not in the past
+      const now = new Date();
+      if (reminderDateTime < now) {
+        Alert.alert('Error', 'Cannot create reminders for past dates. Please select a future date and time.');
+        setSaving(false);
+        return;
+      }
+
       // Create reminder
       const reminderData = {
         plant_id: selectedPlantId,
         title: title.trim(),
         description: description.trim(),
-        date: reminderDate.toISOString().split('T')[0], // YYYY-MM-DD
-        time: `${reminderTime.getHours().toString().padStart(2, '0')}:${reminderTime.getMinutes().toString().padStart(2, '0')}`,
+        date: reminderDateTime.toISOString().split('T')[0], // YYYY-MM-DD
+        time: `${reminderDateTime.getHours().toString().padStart(2, '0')}:${reminderDateTime.getMinutes().toString().padStart(2, '0')}`,
         recurrence_type: recurrenceType,
         recurrence_interval: recurrenceType === 'custom' ? customInterval : undefined,
         recurrence_unit: recurrenceType === 'custom' ? customUnit : undefined,
@@ -98,8 +100,7 @@ export default function CreateReminderScreen() {
 
       const reminder = await ReminderService.createReminder(reminderData);
       
-      // Schedule the notification
-      await NotificationService.scheduleReminderNotification(reminder);
+      // Notification is already scheduled by ReminderService.createReminder()
 
       Alert.alert('Success', 'Reminder created successfully', [
         {
@@ -115,27 +116,6 @@ export default function CreateReminderScreen() {
     }
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      setReminderDate(selectedDate);
-    }
-  };
-
-  const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (selectedTime) {
-      setReminderTime(selectedTime);
-    }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString();
-  };
-
-  const formatTime = (time: Date) => {
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   const getSelectedPlantName = () => {
     const plant = plants.find(p => p.id === selectedPlantId);
@@ -202,20 +182,47 @@ export default function CreateReminderScreen() {
         />
       </View>
 
-      {/* Date */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Date *</Text>
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateText}>{formatDate(reminderDate)}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Time */}
-      <View style={styles.section}>
-        <Text style={styles.label}>Time</Text>
-        <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimePicker(true)}>
-          <Text style={styles.dateText}>{formatTime(reminderTime)}</Text>
-        </TouchableOpacity>
+      {/* Date and Time */}
+      <View style={globalStyles.inputGroup}>
+        <View style={styles.dateTimeRow}>
+          <View style={styles.dateTimeSection}>
+            <Text style={globalStyles.label}>Date *</Text>
+            <DateTimePicker
+              value={reminderDateTime}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(event, selectedDate) => {
+                if (selectedDate) {
+                  setReminderDateTime(selectedDate);
+                }
+              }}
+            />
+          </View>
+          <View style={styles.dateTimeSection}>
+            <Text style={globalStyles.label}>Time</Text>
+            <DateTimePicker
+              value={reminderDateTime}
+              mode="time"
+              display="default"
+              onChange={(event, selectedTime) => {
+                if (selectedTime) {
+                  setReminderDateTime(selectedTime);
+                }
+              }}
+            />
+          </View>
+          <View style={styles.buttonSection}>
+            <TouchableOpacity
+              style={styles.nowButton}
+              onPress={() => {
+                setReminderDateTime(new Date());
+              }}
+            >
+              <Text style={styles.nowButtonText}>Set to Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       {/* Recurrence */}
@@ -327,29 +334,6 @@ export default function CreateReminderScreen() {
         </View>
       </Modal>
 
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          testID="datePicker"
-          value={reminderDate}
-          mode="date"
-          is24Hour={true}
-          display="default"
-          onChange={onDateChange}
-        />
-      )}
-
-      {/* Time Picker */}
-      {showTimePicker && (
-        <DateTimePicker
-          testID="timePicker"
-          value={reminderTime}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={onTimeChange}
-        />
-      )}
     </KeyboardAwareScrollView>
   );
 }
@@ -415,6 +399,32 @@ const createStyles = (theme: any) => StyleSheet.create({
   dateText: {
     fontSize: 16,
     color: theme.colors.text,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateTimeSection: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  buttonSection: {
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingTop: 26,
+  },
+  nowButton: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  nowButtonText: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   customRecurrenceRow: {
     flexDirection: 'row',
