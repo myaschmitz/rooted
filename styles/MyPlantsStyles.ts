@@ -125,4 +125,108 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     fontSize: 28,
     lineHeight: 28,
   },
+  // Batch mode styles
+  plantCardSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  checkboxSelected: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  checkboxText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
+  locationHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    marginBottom: 8,
+    backgroundColor: theme.colors.background,
+  },
+  locationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  selectAllText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  // Care detail styles
+  severityContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  severityButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  severityLow: { backgroundColor: '#4CAF50' },
+  severityMedium: { backgroundColor: '#ffcb2eff' },
+  severityHigh: { backgroundColor: '#F44336' },
+  severityButtonSelected: {
+    transform: [{ scale: 1.1 }],
+    shadowColor: theme.colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 6,
+  },
+  severityLowSelected: { backgroundColor: '#2E7D32' },
+  severityMediumSelected: { backgroundColor: '#e6ad00ff' },
+  severityHighSelected: { backgroundColor: '#C62828' },
+  severityText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  severityTextSelected: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  strengthOption: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  strengthOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSecondary,
+  },
+  strengthText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  strengthTextSelected: {
+    color: theme.colors.primary,
+    fontWeight: 'bold',
+  },
 }); 

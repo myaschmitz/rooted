@@ -1,21 +1,23 @@
 {
   "expo": {
-    "name": "rooted",
+    "name": "Rooted",
     "slug": "rooted",
     "version": "1.0.0",
-    "sdkVersion": "53.0.0",
+    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/adaptive-icon.png",
-      "backgroundColor": "#ffffff"
+    "android": {
+      "package": "com.myaschm.rooted",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "displayName": "Rooted",
       "supportsTablet": true,
       "bundleIdentifier": "com.myaschm.rooted",
       "infoPlist": {
@@ -23,10 +25,6 @@
         "NSCameraUsageDescription": "This app needs access to your camera to take photos of your plants.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select photos of your plants."
       }
-    },
-    "android": {
-      "displayName": "Rooted",
-      "package": "com.myaschm.rooted"
     },
     "web": {},
     "plugins": [

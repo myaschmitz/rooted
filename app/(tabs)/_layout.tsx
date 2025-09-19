@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { AppInitializer } from '../../utils/AppInitializer';
-import { Home, Droplets, Settings } from 'lucide-react-native';
+import { Home, Settings } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AuthGuard } from '../../components/AuthGuard';
 
@@ -43,14 +43,6 @@ export default function TabLayout() {
             title: 'Plants',
             tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
             headerTitle: 'My Plants',
-          }}
-        />
-        <Tabs.Screen
-          name="quick-care"
-          options={{
-            title: 'Quick Events',
-            tabBarIcon: ({ color, size }) => <Droplets size={size} color={color} />,
-            headerTitle: 'Quick Events',
           }}
         />
         <Tabs.Screen
