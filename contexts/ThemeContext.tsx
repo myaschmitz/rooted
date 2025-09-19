@@ -30,13 +30,6 @@ export interface Theme {
     gray400: string;
     surfaceVariant: string;
 
-    // Health status colors
-    healthExcellent: string;
-    healthGood: string;
-    healthOkay: string;
-    healthPoor: string;
-    healthConcerning: string;
-    healthCritical: string;
     
     // Border and divider colors
     border: string;
@@ -77,13 +70,6 @@ const lightTheme: Theme = {
     gray400: '#cccccc',
     surfaceVariant: '#f0f0f0',
 
-    healthExcellent: '#2E7D32',
-    healthGood: '#4CAF50',
-    healthOkay: '#FF9800',
-    healthPoor: '#FF5722',
-    healthConcerning: '#F44336',
-    healthCritical: '#B71C1C',
-    
     border: '#e0e0e0',
     borderLight: '#f0f0f0',
     borderFocus: '#4CAF50',
@@ -120,13 +106,6 @@ const darkTheme: Theme = {
     gray400: '#555555',
     surfaceVariant: '#333333',
 
-    healthExcellent: '#2E7D32',
-    healthGood: '#4CAF50',
-    healthOkay: '#FF9800',
-    healthPoor: '#FF5722',
-    healthConcerning: '#F44336',
-    healthCritical: '#B71C1C',
-    
     border: '#333333',
     borderLight: '#2a2a2a',
     borderFocus: '#66BB6A',

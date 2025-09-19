@@ -15,13 +15,6 @@ export const BaseColors = {
   errorCritical: '#B71C1C',
   info: '#2196F3',
   
-  // Health status colors (consistent across themes)
-  healthExcellent: '#2E7D32',
-  healthGood: '#4CAF50',
-  healthOkay: '#FF9800',
-  healthPoor: '#FF5722',
-  healthConcerning: '#F44336',
-  healthCritical: '#B71C1C',
   
   // Severity colors (consistent across themes)
   severityLow: '#4CAF50',

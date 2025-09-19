@@ -47,7 +47,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: 4,
   },
-  healthStatus: {
+  wateringStatus: {
     fontSize: 14,
     fontWeight: '500',
   },

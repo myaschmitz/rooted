@@ -21,16 +21,9 @@ export const useColors = () => {
 
 /**
  * Backwards compatibility export that acts like the old Colors object
- * but is theme-independent for status and health colors
+ * but is theme-independent for status colors
  */
 export const Colors = {
-  // Health status colors (theme-independent)
-  healthExcellent: BaseColors.healthExcellent,
-  healthGood: BaseColors.healthGood,
-  healthOkay: BaseColors.healthOkay,
-  healthPoor: BaseColors.healthPoor,
-  healthConcerning: BaseColors.healthConcerning,
-  healthCritical: BaseColors.healthCritical,
   
   // Severity colors (theme-independent)
   severityLow: BaseColors.severityLow,

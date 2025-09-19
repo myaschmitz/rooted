@@ -211,17 +211,6 @@ export default function HomeScreen() {
     onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
   });
 
-  const getHealthStatusDisplay = (status?: string) => {
-    switch (status) {
-      case 'excellent': return { text: 'Excellent', color: theme.colors.healthExcellent };
-      case 'good': return { text: 'Good', color: theme.colors.healthGood };
-      case 'okay': return { text: 'Okay', color: theme.colors.healthOkay };
-      case 'poor': return { text: 'Poor', color: theme.colors.healthPoor };
-      case 'concerning': return { text: 'Concerning', color: theme.colors.healthConcerning };
-      case 'critical': return { text: 'Critical', color: theme.colors.healthCritical };
-      default: return { text: 'Good', color: theme.colors.healthGood };
-    }
-  };
 
   const formatTimeSinceWatering = (lastWateredDate?: string | null) => {
     if (!lastWateredDate) {
@@ -387,7 +376,7 @@ export default function HomeScreen() {
               <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
               <Text style={styles.plantType}>{item.type}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
-                <Text style={[styles.healthStatus, { color: wateringColor }]}>
+                <Text style={[styles.wateringStatus, { color: wateringColor }]}>
                   Last watered: {wateringDisplay.timeAgo}
                 </Text>
               </View>
@@ -410,7 +399,7 @@ export default function HomeScreen() {
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Text style={[styles.healthStatus, { color: wateringColor }]}>
+              <Text style={[styles.wateringStatus, { color: wateringColor }]}>
                 Last watered: {wateringDisplay.timeAgo}
               </Text>
             </View>
