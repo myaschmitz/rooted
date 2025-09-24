@@ -8,15 +8,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PlantService } from '../services/PlantService';
-import { PhotoService } from '../services/PhotoService';
 import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
-import { Camera } from 'lucide-react-native';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
@@ -26,7 +23,6 @@ export default function EditPlantScreen() {
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
-  const [plantPhoto, setPlantPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -73,14 +69,6 @@ export default function EditPlantScreen() {
         notes: notes.trim() || undefined,
       });
 
-      // If there's a new photo, save it
-      if (plantPhoto) {
-        try {
-          await PhotoService.savePhoto(id, plantPhoto, 'Updated photo');
-        } catch (photoError) {
-          console.warn('Failed to save photo, but plant was updated:', photoError);
-        }
-      }
 
       router.back();
     } catch (error) {
@@ -91,41 +79,6 @@ export default function EditPlantScreen() {
     }
   };
 
-  const handleAddPhoto = () => {
-    Alert.alert(
-      'Add Photo',
-      'Choose how to add a photo',
-      [
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Photo Library', onPress: handlePickPhoto },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleTakePhoto = async () => {
-    try {
-      const photo = await PhotoService.takePhoto();
-      if (photo) {
-        setPlantPhoto(photo.uri);
-      }
-    } catch (error) {
-      console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
-    }
-  };
-
-  const handlePickPhoto = async () => {
-    try {
-      const photo = await PhotoService.pickPhoto();
-      if (photo) {
-        setPlantPhoto(photo.uri);
-      }
-    } catch (error) {
-      console.error('Failed to pick photo:', error);
-      Alert.alert('Error', 'Failed to pick photo');
-    }
-  };
 
 
   if (loading) {
@@ -151,29 +104,6 @@ export default function EditPlantScreen() {
         keyboardVerticalOffset={100}
       >
         <View style={styles.form}>
-          {/* Plant Photo */}
-          <View style={styles.inputGroup}>
-            <TouchableOpacity style={styles.photoContainer} onPress={handleAddPhoto}>
-              {plantPhoto ? (
-                <View style={styles.photoWrapper}>
-                  <Image 
-                    source={{ uri: plantPhoto }} 
-                    style={styles.plantImage}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
-                  />
-                  <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
-                    <Camera size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Camera size={48} color={theme.colors.textSecondary} />
-                  <Text style={styles.photoPlaceholderSubtext}>Tap to add photo</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
 
           {/* Plant Name */}
           <View style={styles.inputGroup}>
@@ -268,55 +198,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   notesInput: {
     minHeight: 100,
-  },
-  photoContainer: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  photoWrapper: {
-    position: 'relative',
-    width: '100%',
-    height: '100%',
-  },
-  plantImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  changePhotoButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  changePhotoText: {
-    fontSize: 18,
-  },
-  photoPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 8,
-  },
-  photoPlaceholderText: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  photoPlaceholderSubtext: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
   },
   saveButton: {
     backgroundColor: theme.colors.primary,
