@@ -78,7 +78,7 @@ export default function LocationDropdown({
 
   const openDropdown = () => {
     setIsOpen(true);
-    setSearchQuery(value);
+    setSearchQuery('');
   };
 
   const styles = createStyles(theme);
@@ -285,6 +285,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
+    color: theme.colors.text,
   },
   locationsList: {
     maxHeight: 300,
