@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, SectionList, ActivityIndicator, RefreshControl, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { Settings, Pin, PinOff, Check, CheckSquare, Square, Droplets, Calendar, Scissors, Bug, Sprout, MoreHorizontal, Filter } from 'lucide-react-native';
+import { Settings, Pin, PinOff, Check, CheckSquare, Square, Droplets, Calendar, Scissors, Bug, Sprout, MoreHorizontal, Filter, Camera } from 'lucide-react-native';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { PlantService } from '../../services/PlantService';
@@ -29,6 +29,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
   const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
+  const [plantLastPhotoData, setPlantLastPhotoData] = useState<{[plantId: string]: string | null}>({});
   
   // Batch care mode state
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
@@ -131,6 +132,27 @@ export default function HomeScreen() {
         }
       });
       setPlantWateringData(wateringData);
+
+      // Load last photo data for each plant in parallel
+      const lastPhotoData: {[plantId: string]: string | null} = {};
+      const photoPromises = allPlants.map(async (plant) => {
+        try {
+          const photos = await PhotoService.getPhotosByPlantId(plant.id);
+          const lastPhoto = photos.length > 0 ? photos[0] : null; // First photo is most recent due to order
+          return { plantId: plant.id, lastPhotoDate: lastPhoto?.taken_at || null };
+        } catch (error) {
+          console.error(`Failed to load photo data for plant ${plant.id}:`, error);
+          return { plantId: plant.id, lastPhotoDate: null };
+        }
+      });
+
+      const photoResults = await Promise.allSettled(photoPromises);
+      photoResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          lastPhotoData[result.value.plantId] = result.value.lastPhotoDate;
+        }
+      });
+      setPlantLastPhotoData(lastPhotoData);
 
       // Separate pinned and non-pinned plants
       const pinnedPlants = allPlants.filter(plant => plant.pinned);
@@ -242,6 +264,18 @@ export default function HomeScreen() {
     } else {
       return '#F44336'; // Red - urgent watering needed
     }
+  };
+
+  const needsPhoto = (lastPhotoDate?: string | null) => {
+    if (!lastPhotoDate) {
+      return true; // Never had a photo
+    }
+
+    const now = dayjs();
+    const photoDate = dayjs(lastPhotoDate);
+    const daysSince = now.diff(photoDate, 'day');
+
+    return daysSince >= 30; // 30 days = approximately 1 month
   };
 
   const handleTogglePin = useCallback(async (plantId: string, event: any) => {
@@ -356,6 +390,8 @@ export default function HomeScreen() {
     const wateringDisplay = formatTimeSinceWatering(lastWatered);
     const wateringColor = getWateringStatusColor(lastWatered);
     const isSelected = selectedPlants.has(item.id);
+    const lastPhotoDate = plantLastPhotoData[item.id];
+    const showCameraIcon = needsPhoto(lastPhotoDate);
     
     if (batchModeEnabled) {
       return (
@@ -404,16 +440,23 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity
-            style={styles.pinButton}
-            onPress={(event) => handleTogglePin(item.id, event)}
-          >
-            {item.pinned ? (
-              <PinOff size={16} color={theme.colors.primary} />
-            ) : (
-              <Pin size={16} color={theme.colors.textSecondary} />
+          <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 32 }}>
+            <TouchableOpacity
+              style={[styles.pinButton]}
+              onPress={(event) => handleTogglePin(item.id, event)}
+            >
+              {item.pinned ? (
+                <PinOff size={16} color={theme.colors.primary} />
+              ) : (
+                <Pin size={16} color={theme.colors.textSecondary} />
+              )}
+            </TouchableOpacity>
+            {showCameraIcon && (
+              <View style={{ padding: 8 }}>
+                <Camera size={14} color={theme.colors.textSecondary} />
+              </View>
             )}
-          </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );

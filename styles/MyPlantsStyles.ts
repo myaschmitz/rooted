@@ -16,10 +16,13 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: 12,
     borderRadius: 8,
     elevation: 3,
+    display: 'flex',
   },
   plantCardContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    verticalAlign: 'middle',
+
   },
   plantThumbnail: {
     marginRight: 12,
@@ -28,8 +31,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   pinButton: {
-    padding: 8,
-    marginLeft: 8,
+    padding: 8
   },
   plantName: {
     fontSize: 18,
