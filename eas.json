@@ -3,12 +3,22 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_ENVIRONMENT": "development" }
+      "env": { 
+        "EXPO_PUBLIC_ENVIRONMENT": "development",
+        "BUNDLE_SUFFIX": ".dev"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "env": { "EXPO_PUBLIC_ENVIRONMENT": "preview" }
+      "env": { 
+        "EXPO_PUBLIC_ENVIRONMENT": "preview",
+        "BUNDLE_SUFFIX": ".preview"
+      }
     },
-    "production": { "env": { "EXPO_PUBLIC_ENVIRONMENT": "production" } }
+    "production": { 
+      "env": { 
+        "EXPO_PUBLIC_ENVIRONMENT": "production"
+      }
+    }
   }
 }
