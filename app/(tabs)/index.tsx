@@ -440,7 +440,7 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-          <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 32 }}>
+          <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 32 }}>
             <TouchableOpacity
               style={[styles.pinButton]}
               onPress={(event) => handleTogglePin(item.id, event)}

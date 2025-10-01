@@ -656,13 +656,13 @@ export default function PlantDetailScreen() {
                       style={styles.editCareButton}
                       onPress={() => router.push(`/edit-care-event?id=${event.id}`)}
                     >
-                      <SquarePen size={12} color="#666" />
+                      <SquarePen size={16} color="#666" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.deleteCareButton}
                       onPress={() => handleDeleteCareEvent(event.id, event.event_type)}
                     >
-                      <Trash2 size={12} color="#F44336" />
+                      <Trash2 size={16} color="#F44336" />
                     </TouchableOpacity>
                   </View>
                 </View>
