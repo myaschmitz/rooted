@@ -10,6 +10,7 @@ import {
   TextInput,
   Share,
   Clipboard,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { 
@@ -56,6 +57,7 @@ export default function SettingsScreen() {
   const [timeFormat, setTimeFormat] = useState('12');
   const [loading, setLoading] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [householdLoading, setHouseholdLoading] = useState(true);
   
   // Household state
   const [householdContext, setHouseholdContext] = useState<HouseholdContext>({
@@ -104,6 +106,8 @@ export default function SettingsScreen() {
       }
     } catch (error) {
       console.error('Error loading household info:', error);
+    } finally {
+      setHouseholdLoading(false);
     }
   };
 
@@ -374,6 +378,15 @@ export default function SettingsScreen() {
       setLoading(false);
     }
   };
+
+  if (householdLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -1020,5 +1033,13 @@ const createStyles = (theme: any) => StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
   },
 });
