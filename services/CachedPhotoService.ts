@@ -14,6 +14,9 @@ export class CachedPhotoService {
   private static readonly THUMBNAIL_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days for thumbnails
   private static readonly MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB max cache size
 
+  // Prevent concurrent downloads of the same file
+  private static downloadPromises = new Map<string, Promise<{ success: boolean; error?: string }>>();
+
   // Initialize cache directories
   static async initialize(): Promise<void> {
     try {
@@ -58,11 +61,26 @@ export class CachedPhotoService {
         }
       }
       
-      // Download and cache
+      // Download and cache with concurrency control
       await this.ensureCacheDirectory(cacheDir);
       
-      // Download with better error handling and timeout
-      const downloadResult = await this.downloadWithRetry(photoUrl, localFile.uri);
+      // Use a unique key for this specific file to prevent concurrent downloads
+      const downloadKey = `${cacheKey}_${localFile.uri}`;
+      
+      // Check if this file is already being downloaded
+      let downloadPromise = this.downloadPromises.get(downloadKey);
+      if (!downloadPromise) {
+        // Start a new download
+        downloadPromise = this.downloadWithRetry(photoUrl, localFile.uri);
+        this.downloadPromises.set(downloadKey, downloadPromise);
+        
+        // Clean up the promise when done
+        downloadPromise.finally(() => {
+          this.downloadPromises.delete(downloadKey);
+        });
+      }
+      
+      const downloadResult = await downloadPromise;
       
       if (downloadResult.success) {
         // Store cache metadata
@@ -74,6 +92,10 @@ export class CachedPhotoService {
         
         return localFile.uri;
       } else {
+        // If download failed but file exists (race condition), return cached version
+        if (localFile.exists) {
+          return localFile.uri;
+        }
         throw new Error(downloadResult.error || 'Download failed');
       }
     } catch (error) {
@@ -82,28 +104,56 @@ export class CachedPhotoService {
     }
   }
 
-  // Download with retry logic
+  // Download with retry logic and proper error handling
   private static async downloadWithRetry(
     url: string, 
     localPath: string, 
     maxRetries: number = 2
   ): Promise<{ success: boolean; error?: string }> {
+    const targetFile = new File(localPath);
+    
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const downloadedFile = await File.downloadFileAsync(url, new File(localPath));
-        if (downloadedFile) {
+        // Ensure destination file doesn't exist to prevent "Destination already exists" error
+        if (targetFile.exists) {
+          try {
+            await targetFile.delete();
+          } catch (deleteError) {
+            // If we can't delete but file exists, it might be a race condition
+            // where another process completed the download
+            if (targetFile.exists) {
+              return { success: true };
+            }
+          }
+        }
+        
+        const downloadedFile = await File.downloadFileAsync(url, targetFile);
+        if (downloadedFile && downloadedFile.exists) {
           return { success: true };
         } else {
-          throw new Error('Download failed');
+          throw new Error('Download completed but file not found');
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Handle "Destination already exists" error gracefully
+        if (errorMessage.includes('Destination already exists') || 
+            errorMessage.includes('destination already exists')) {
+          // Another process likely completed the download, check if file exists
+          if (targetFile.exists) {
+            return { success: true };
+          }
+        }
+        
+        // On last attempt, return the error
         if (attempt === maxRetries) {
           return { 
             success: false, 
-            error: error instanceof Error ? error.message : 'Unknown error' 
+            error: errorMessage
           };
         }
-        // Wait before retry
+        
+        // Wait before retry (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
     }
@@ -266,7 +316,7 @@ export class CachedPhotoService {
                 currentDirSize -= fileSize;
               }
             } catch (error) {
-              console.warn(`Failed to clean cache file ${filePath}:`, error);
+              console.warn(`Failed to clean cache file ${fileName}:`, error);
               errors++;
             }
           }
@@ -365,7 +415,7 @@ export class CachedPhotoService {
                 }
               }
             } catch (error) {
-              console.warn(`Failed to get info for cache file ${filePath}:`, error);
+              console.warn(`Failed to get info for cache file ${fileName}:`, error);
             }
           }
         } catch (error) {
