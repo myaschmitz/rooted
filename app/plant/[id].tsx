@@ -398,6 +398,7 @@ export default function PlantDetailScreen() {
     );
   };
 
+
   const handleDeleteCareEvent = async (eventId: string, eventType: string) => {
     Alert.alert(
       'Delete Event',
@@ -633,7 +634,7 @@ export default function PlantDetailScreen() {
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {photos.slice(0, 5).map((photo, index) => (
+              {photos.map((photo, index) => (
                 <TouchableOpacity 
                   key={photo.id} 
                   style={styles.photoItem}
