@@ -135,14 +135,23 @@ export default function WelcomeScreen() {
                 const response = await HouseholdService.joinHousehold(request);
                 
                 if (response.success) {
+                  // Get the current user session to see if name was modified
+                  const session = await HouseholdService.getUserSession();
+                  const finalUserName = session?.user_name || state.userName;
+                  
+                  const isExistingMember = finalUserName === state.userName?.trim();
+                  const welcomeMessage = isExistingMember 
+                    ? `Welcome back to "${response.household_name}"! You're logged in as "${finalUserName}".`
+                    : `You've successfully joined "${response.household_name}" as a new member.`;
+                  
                   Alert.alert(
                     'Welcome!',
-                    `You've successfully joined "${response.household_name}".`,
+                    welcomeMessage,
                     [
                       {
                         text: 'Continue',
                         onPress: () => {
-                          setState(prev => ({ ...prev, step: 'complete', householdName: response.household_name || undefined }));
+                          setState(prev => ({ ...prev, step: 'complete', householdName: response.household_name || undefined, userName: finalUserName }));
                           setTimeout(() => router.replace('/(tabs)'), 1000);
                         },
                       },

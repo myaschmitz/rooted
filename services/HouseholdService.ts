@@ -23,9 +23,13 @@ export class HouseholdService {
   
   static async createHousehold(request: CreateHouseholdRequest): Promise<CreateHouseholdResponse> {
     try {
+      // For creating a household, we'll still try the original approach since there are no existing members
+      // but we'll be more conservative and just try once with the original name
+      const adminUserName = request.adminUserName;
+
       const { data, error } = await supabase.rpc('create_household', {
         household_name: request.householdName,
-        admin_user_name: request.adminUserName,
+        admin_user_name: adminUserName,
         admin_user_id: request.adminUserId || null,
       });
 
@@ -38,16 +42,17 @@ export class HouseholdService {
         throw new Error('No data returned from household creation');
       }
 
-      const result = data[0];
+      const createResult = data[0];
+
       const response: CreateHouseholdResponse = {
-        household_code: result.household_code,
-        household_id: result.household_id,
+        household_code: createResult.household_code,
+        household_id: createResult.household_id,
       };
 
       await this.storeUserSession({
         user_id: request.adminUserId,
-        user_name: request.adminUserName,
-        household_id: result.household_id,
+        user_name: adminUserName,
+        household_id: createResult.household_id,
         role: 'admin',
       });
 
@@ -60,6 +65,44 @@ export class HouseholdService {
 
   static async joinHousehold(request: JoinHouseholdRequest): Promise<JoinHouseholdResponse> {
     try {
+      // First, validate the household code to make sure it exists
+      const validation = await this.validateHouseholdCode(request.householdCode);
+      if (!validation.valid) {
+        return {
+          success: false,
+          household_name: null,
+          error_message: validation.error_message || 'Invalid household code',
+        };
+      }
+
+      // Get existing members in this household to check if name already exists
+      const existingMembers = await this.getHouseholdMembers(request.householdCode);
+      const existingMember = existingMembers.find(
+        member => member.user_name.toLowerCase() === request.memberUserName.toLowerCase()
+      );
+
+      // If member with this name already exists, log in as that member
+      if (existingMember) {
+        await this.storeUserSession({
+          user_id: request.memberUserId,
+          user_name: existingMember.user_name, // Use the existing member's exact name
+          household_id: request.householdCode,
+          role: existingMember.role, // Use their existing role
+        });
+
+        // Log activity for existing member login
+        await this.logActivity('rejoined household', {
+          member_name: existingMember.user_name,
+        });
+
+        return {
+          success: true,
+          household_name: validation.household_name || null,
+          error_message: null,
+        };
+      }
+
+      // If no existing member with this name, create a new member
       const { data, error } = await supabase.rpc('join_household', {
         household_code: request.householdCode,
         member_user_name: request.memberUserName,
@@ -75,14 +118,15 @@ export class HouseholdService {
         throw new Error('No data returned from household join');
       }
 
-      const result = data[0];
+      const joinResult = data[0];
+
       const response: JoinHouseholdResponse = {
-        success: result.success,
-        household_name: result.household_name,
-        error_message: result.error_message,
+        success: joinResult.success,
+        household_name: joinResult.household_name,
+        error_message: joinResult.error_message,
       };
 
-      if (result.success) {
+      if (joinResult.success) {
         await this.storeUserSession({
           user_id: request.memberUserId,
           user_name: request.memberUserName,

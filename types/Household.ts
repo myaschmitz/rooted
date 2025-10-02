@@ -79,6 +79,7 @@ export interface WelcomeFlowState {
 export type ActivityAction = 
   | 'created household'
   | 'joined household' 
+  | 'rejoined household'
   | 'left household'
   | 'added plant'
   | 'updated plant'
