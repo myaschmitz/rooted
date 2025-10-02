@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { File, Directory, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
@@ -16,14 +16,15 @@ type PlantPhotoInsert = Database['public']['Tables']['plant_photos']['Insert'];
 type PlantPhotoUpdate = Database['public']['Tables']['plant_photos']['Update'];
 
 export class PhotoService {
-  private static readonly PHOTOS_DIR = `${FileSystem.documentDirectory}plant_photos/`;
+  private static get PHOTOS_DIR(): Directory {
+    return new Directory(Paths.document, 'plant_photos');
+  }
   private static readonly STORAGE_BUCKET = 'plant-photos';
   private static readonly THUMBNAIL_SIZE = 300;
 
   static async ensurePhotosDirectory(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(this.PHOTOS_DIR, { intermediates: true });
+    if (!this.PHOTOS_DIR.exists) {
+      await this.PHOTOS_DIR.create({ intermediates: true });
     }
   }
 
@@ -60,18 +61,17 @@ export class PhotoService {
   static async uploadFileToStorage(filePath: string, fileName: string): Promise<string | null> {
     try {
       console.log('Starting cloud upload for file:', fileName);
-      const fileInfo = await FileSystem.getInfoAsync(filePath);
-      if (!fileInfo.exists) {
+      const file = new File(filePath);
+      if (!file.exists) {
         console.error('Local file does not exist:', filePath);
         return null;
       }
 
+      const fileInfo = await file.info();
       console.log('Local file exists, size:', fileInfo.size);
       
       // Read file as base64
-      const fileContent = await FileSystem.readAsStringAsync(filePath, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const fileContent = await file.base64();
       console.log('File read as base64, length:', fileContent.length);
       
       // Convert base64 to Uint8Array for React Native
@@ -342,37 +342,31 @@ export class PhotoService {
       const timestamp = new Date().getTime();
       const fullSizeFileName = `${plantId}_event_${eventId}_${timestamp}.jpg`;
       const thumbnailFileName = `${plantId}_event_${eventId}_${timestamp}_thumb.jpg`;
-      const localFullSizePath = `${this.PHOTOS_DIR}${fullSizeFileName}`;
+      const localFullSizeFile = new File(this.PHOTOS_DIR, fullSizeFileName);
 
       // Copy full-size file to local storage for offline access
-      await FileSystem.copyAsync({
-        from: sourceUri,
-        to: localFullSizePath,
-      });
+      await new File(sourceUri).copy(localFullSizeFile);
 
       // Create thumbnail
       console.log('Creating thumbnail...');
       const thumbnailUri = await this.createThumbnail(sourceUri);
-      const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
+      const localThumbnailFile = new File(this.PHOTOS_DIR, thumbnailFileName);
       
       // Copy thumbnail to local storage
-      await FileSystem.copyAsync({
-        from: thumbnailUri,
-        to: localThumbnailPath,
-      });
+      await new File(thumbnailUri).copy(localThumbnailFile);
 
       // Upload both versions to Supabase Storage in parallel
       console.log('Uploading full-size and thumbnail to cloud storage...');
       const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
-        this.uploadFileToStorage(localFullSizePath, fullSizeFileName),
-        this.uploadFileToStorage(localThumbnailPath, thumbnailFileName),
+        this.uploadFileToStorage(localFullSizeFile.uri, fullSizeFileName),
+        this.uploadFileToStorage(localThumbnailFile.uri, thumbnailFileName),
       ]);
 
       // Clean up local files after processing
       try {
-        await FileSystem.deleteAsync(localFullSizePath);
-        await FileSystem.deleteAsync(localThumbnailPath);
-        await FileSystem.deleteAsync(thumbnailUri);
+        await localFullSizeFile.delete();
+        await localThumbnailFile.delete();
+        await new File(thumbnailUri).delete();
       } catch (cleanupError) {
         console.warn('Failed to clean up local files:', cleanupError);
       }
@@ -537,38 +531,32 @@ export class PhotoService {
       const timestamp = new Date().getTime();
       const fullSizeFileName = `${plantId}_${timestamp}.jpg`;
       const thumbnailFileName = `${plantId}_${timestamp}_thumb.jpg`;
-      const localFullSizePath = `${this.PHOTOS_DIR}${fullSizeFileName}`;
+      const localFullSizeFile = new File(this.PHOTOS_DIR, fullSizeFileName);
 
       // Copy full-size file to local storage for offline access
-      await FileSystem.copyAsync({
-        from: sourceUri,
-        to: localFullSizePath,
-      });
+      await new File(sourceUri).copy(localFullSizeFile);
 
       // Create thumbnail
       console.log('Creating thumbnail...');
       const thumbnailUri = await this.createThumbnail(sourceUri);
-      const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
+      const localThumbnailFile = new File(this.PHOTOS_DIR, thumbnailFileName);
       
       // Copy thumbnail to local storage
-      await FileSystem.copyAsync({
-        from: thumbnailUri,
-        to: localThumbnailPath,
-      });
+      await new File(thumbnailUri).copy(localThumbnailFile);
 
       // Upload both versions to Supabase Storage in parallel
       console.log('Uploading full-size and thumbnail to cloud storage...');
       const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
-        this.uploadFileToStorage(localFullSizePath, fullSizeFileName),
-        this.uploadFileToStorage(localThumbnailPath, thumbnailFileName),
+        this.uploadFileToStorage(localFullSizeFile.uri, fullSizeFileName),
+        this.uploadFileToStorage(localThumbnailFile.uri, thumbnailFileName),
       ]);
 
       // Clean up local files after processing
       try {
-        await FileSystem.deleteAsync(localFullSizePath);
-        await FileSystem.deleteAsync(localThumbnailPath);
+        await localFullSizeFile.delete();
+        await localThumbnailFile.delete();
         // Clean up the temporary thumbnail from ImageManipulator
-        await FileSystem.deleteAsync(thumbnailUri);
+        await new File(thumbnailUri).delete();
       } catch (cleanupError) {
         console.warn('Failed to clean up local files:', cleanupError);
       }
@@ -741,9 +729,9 @@ export class PhotoService {
       
       // Handle local file deletion (legacy support)
       if (!photo.file_path.startsWith('http')) {
-        const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-        if (fileInfo.exists) {
-          await FileSystem.deleteAsync(photo.file_path);
+        const file = new File(photo.file_path);
+        if (file.exists) {
+          await file.delete();
         }
       }
 
@@ -820,8 +808,8 @@ export class PhotoService {
       // Check local files and clean up orphaned database records
       for (const photo of photos) {
         if (!photo.file_path.startsWith('http')) {
-          const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-          if (!fileInfo.exists) {
+          const file = new File(photo.file_path);
+          if (!file.exists) {
             await supabase
               .from('plant_photos')
               .delete()
@@ -831,9 +819,8 @@ export class PhotoService {
       }
 
       // Clean up orphaned local files
-      const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
-      if (dirInfo.exists && dirInfo.isDirectory) {
-        const files = await FileSystem.readDirectoryAsync(this.PHOTOS_DIR);
+      if (this.PHOTOS_DIR.exists) {
+        const files = await this.PHOTOS_DIR.list();
         const dbPhotoPaths = new Set(
           photos
             .filter(p => !p.file_path.startsWith('http'))
@@ -842,7 +829,7 @@ export class PhotoService {
         
         for (const fileName of files) {
           if (!dbPhotoPaths.has(fileName)) {
-            await FileSystem.deleteAsync(`${this.PHOTOS_DIR}${fileName}`);
+            await new File(this.PHOTOS_DIR, fileName).delete();
           }
         }
       }
@@ -869,9 +856,9 @@ export class PhotoService {
             }
           } else {
             // Delete local file
-            const fileInfo = await FileSystem.getInfoAsync(photo.file_path);
-            if (fileInfo.exists) {
-              await FileSystem.deleteAsync(photo.file_path);
+            const file = new File(photo.file_path);
+            if (file.exists) {
+              await file.delete();
             }
           }
         } catch (error) {
@@ -891,10 +878,9 @@ export class PhotoService {
       }
       
       // Clean up local photos directory
-      const dirInfo = await FileSystem.getInfoAsync(this.PHOTOS_DIR);
-      if (dirInfo.exists && dirInfo.isDirectory) {
+      if (this.PHOTOS_DIR.exists) {
         try {
-          await FileSystem.deleteAsync(this.PHOTOS_DIR);
+          await this.PHOTOS_DIR.delete();
         } catch (error) {
           console.error('Error deleting photos directory:', error);
         }
@@ -1117,19 +1103,16 @@ export class PhotoService {
             
             // Copy thumbnail to local storage temporarily
             await this.ensurePhotosDirectory();
-            const localThumbnailPath = `${this.PHOTOS_DIR}${thumbnailFileName}`;
-            await FileSystem.copyAsync({
-              from: thumbnailUri,
-              to: localThumbnailPath,
-            });
+            const localThumbnailFile = new File(this.PHOTOS_DIR, thumbnailFileName);
+            await new File(thumbnailUri).copy(localThumbnailFile);
 
             // Upload thumbnail to cloud storage
-            const cloudThumbnailPath = await this.uploadFileToStorage(localThumbnailPath, thumbnailFileName);
+            const cloudThumbnailPath = await this.uploadFileToStorage(localThumbnailFile.uri, thumbnailFileName);
             
             // Clean up local files
             try {
-              await FileSystem.deleteAsync(localThumbnailPath);
-              await FileSystem.deleteAsync(thumbnailUri);
+              await localThumbnailFile.delete();
+              await new File(thumbnailUri).delete();
             } catch (cleanupError) {
               console.warn('Failed to clean up temporary files:', cleanupError);
             }
@@ -1191,30 +1174,30 @@ export class PhotoService {
 
       // Create a temporary filename if not provided
       const tempFilename = filename || `plant_photo_${Date.now()}.jpg`;
-      const downloadPath = `${FileSystem.documentDirectory}${tempFilename}`;
+      const downloadFile = new File(Paths.document, tempFilename);
 
       console.log('Downloading photo from:', photoUrl);
-      console.log('Temp download path:', downloadPath);
+      console.log('Temp download path:', downloadFile.uri);
 
       // Download the photo to temporary storage
-      const downloadResult = await FileSystem.downloadAsync(photoUrl, downloadPath);
+      const downloadedFile = await File.downloadFileAsync(photoUrl, downloadFile);
       
-      if (!downloadResult.uri) {
+      if (!downloadedFile) {
         return { 
           success: false, 
           error: 'Failed to download photo from server' 
         };
       }
 
-      console.log('Photo downloaded to temp location:', downloadResult.uri);
+      console.log('Photo downloaded to temp location:', downloadedFile.uri);
 
       // Save to device's media library
-      const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
+      const asset = await MediaLibrary.createAssetAsync(downloadedFile.uri);
       console.log('Photo saved to media library:', asset);
 
       // Clean up temporary file
       try {
-        await FileSystem.deleteAsync(downloadResult.uri);
+        await downloadedFile.delete();
       } catch (cleanupError) {
         console.warn('Failed to clean up temporary download file:', cleanupError);
       }

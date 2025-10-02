@@ -41,6 +41,7 @@ export default function PlantDetailScreen() {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [eventPhotos, setEventPhotos] = useState<{[eventId: string]: PlantPhoto[]}>({});
   const [allPhotos, setAllPhotos] = useState<PlantPhoto[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const loadPlantData = useCallback(async () => {
     if (!id) return;
@@ -121,6 +122,7 @@ export default function PlantDetailScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('Plant detail screen focused, refreshing data...');
       loadPlantData();
     }, [loadPlantData])
   );
@@ -160,28 +162,62 @@ export default function PlantDetailScreen() {
   };
 
   const handleTakePhoto = async () => {
+    setUploadingPhoto(true);
     try {
       const photo = await PhotoService.takePhoto();
       if (photo && id) {
-        await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
-        loadPlantData(); // Refresh to show new photo
+        // Save photo and get the saved photo data
+        console.log('Saving photo from camera...');
+        const savedPhoto = await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
+        console.log('Photo saved successfully:', savedPhoto.id);
+        
+        // Immediately add the new photo to the current photos for instant feedback
+        setPhotos(prev => [savedPhoto, ...prev]);
+        setAllPhotos(prev => [savedPhoto, ...prev]);
+        
+        // Set as thumbnail if this is the first photo for this plant
+        if (photos.length === 0 && !plant?.thumbnail_photo_id) {
+          setThumbnailPhoto(savedPhoto);
+          setCurrentThumbnailId(savedPhoto.id);
+        }
+        
+        console.log('Photo successfully added to UI');
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
       Alert.alert('Error', 'Failed to take photo');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
   const handlePickPhoto = async () => {
+    setUploadingPhoto(true);
     try {
       const photo = await PhotoService.pickPhoto();
       if (photo && id) {
-        await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
-        loadPlantData(); // Refresh to show new photo
+        // Save photo and get the saved photo data
+        console.log('Saving photo from library...');
+        const savedPhoto = await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
+        console.log('Photo saved successfully:', savedPhoto.id);
+        
+        // Immediately add the new photo to the current photos for instant feedback
+        setPhotos(prev => [savedPhoto, ...prev]);
+        setAllPhotos(prev => [savedPhoto, ...prev]);
+        
+        // Set as thumbnail if this is the first photo for this plant
+        if (photos.length === 0 && !plant?.thumbnail_photo_id) {
+          setThumbnailPhoto(savedPhoto);
+          setCurrentThumbnailId(savedPhoto.id);
+        }
+        
+        console.log('Photo successfully added to UI');
       }
     } catch (error) {
       console.error('Failed to pick photo:', error);
       Alert.alert('Error', 'Failed to pick photo');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -536,8 +572,19 @@ export default function PlantDetailScreen() {
           <TouchableOpacity style={styles.actionButton} onPress={handleLogCare}>
             <Text style={styles.actionButtonText}>Log Event</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleAddPhoto}>
-            <Text style={styles.actionButtonText}>📷 Add Photo</Text>
+          <TouchableOpacity 
+            style={[styles.actionButton, uploadingPhoto && styles.actionButtonDisabled]} 
+            onPress={handleAddPhoto}
+            disabled={uploadingPhoto}
+          >
+            {uploadingPhoto ? (
+              <View style={styles.buttonLoadingContainer}>
+                <ActivityIndicator size="small" color={theme.colors.textOnPrimary} />
+                <Text style={styles.actionButtonText}>Uploading...</Text>
+              </View>
+            ) : (
+              <Text style={styles.actionButtonText}>📷 Add Photo</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -853,6 +900,14 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textOnPrimary,
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
+  },
+  buttonLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   section: {
     backgroundColor: theme.colors.surface,

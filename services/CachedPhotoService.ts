@@ -1,11 +1,15 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { File, Directory, Paths } from 'expo-file-system';
 import { Image } from 'expo-image';
 import { PlantPhoto } from '../types/Plant';
 import { CacheService } from './CacheService';
 
 export class CachedPhotoService {
-  private static readonly CACHE_DIR = `${FileSystem.cacheDirectory}photos/`;
-  private static readonly THUMBNAIL_CACHE_DIR = `${FileSystem.cacheDirectory}thumbnails/`;
+  private static get CACHE_DIR(): Directory {
+    return new Directory(Paths.cache, 'photos');
+  }
+  private static get THUMBNAIL_CACHE_DIR(): Directory {
+    return new Directory(Paths.cache, 'thumbnails');
+  }
   private static readonly CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days for full photos
   private static readonly THUMBNAIL_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days for thumbnails
   private static readonly MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB max cache size
@@ -32,7 +36,7 @@ export class CachedPhotoService {
 
     const cacheDir = isThumbail ? this.THUMBNAIL_CACHE_DIR : this.CACHE_DIR;
     const fileName = this.getFileNameFromUrl(photoUrl);
-    const localPath = `${cacheDir}${fileName}`;
+    const localFile = new File(cacheDir, fileName);
     const duration = isThumbail ? this.THUMBNAIL_CACHE_DURATION : this.CACHE_DURATION;
     const cacheKey = `photo_cache_${isThumbail ? 'thumb' : 'full'}_${fileName}`;
     
@@ -41,15 +45,15 @@ export class CachedPhotoService {
       const cacheMetadata = await CacheService.getCachedResponse<{ localPath: string; url: string }>(cacheKey);
       
       // Check if cached version exists and is fresh
-      const fileInfo = await FileSystem.getInfoAsync(localPath);
-      if (fileInfo.exists && cacheMetadata) {
+      if (localFile.exists && cacheMetadata) {
+        const fileInfo = await localFile.info();
         const modTime = (fileInfo as any).modificationTime || 0;
         const isExpired = Date.now() - modTime > duration;
         if (!isExpired) {
-          return localPath; // Return cached version
+          return localFile.uri; // Return cached version
         } else {
           // Clean up expired file and metadata
-          await FileSystem.deleteAsync(localPath, { idempotent: true });
+          await localFile.delete();
           await CacheService.invalidateCache(cacheKey);
         }
       }
@@ -58,17 +62,17 @@ export class CachedPhotoService {
       await this.ensureCacheDirectory(cacheDir);
       
       // Download with better error handling and timeout
-      const downloadResult = await this.downloadWithRetry(photoUrl, localPath);
+      const downloadResult = await this.downloadWithRetry(photoUrl, localFile.uri);
       
       if (downloadResult.success) {
         // Store cache metadata
         await CacheService.cacheApiResponse(cacheKey, {
-          localPath,
+          localPath: localFile.uri,
           url: photoUrl,
           cached_at: Date.now(),
         }, duration);
         
-        return localPath;
+        return localFile.uri;
       } else {
         throw new Error(downloadResult.error || 'Download failed');
       }
@@ -86,11 +90,11 @@ export class CachedPhotoService {
   ): Promise<{ success: boolean; error?: string }> {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const downloadResult = await FileSystem.downloadAsync(url, localPath);
-        if (downloadResult.status === 200) {
+        const downloadedFile = await File.downloadFileAsync(url, new File(localPath));
+        if (downloadedFile) {
           return { success: true };
         } else {
-          throw new Error(`HTTP ${downloadResult.status}`);
+          throw new Error('Download failed');
         }
       } catch (error) {
         if (attempt === maxRetries) {
@@ -136,14 +140,13 @@ export class CachedPhotoService {
     }
   }
 
-  private static async ensureCacheDirectory(dir: string): Promise<void> {
+  private static async ensureCacheDirectory(dir: Directory): Promise<void> {
     try {
-      const dirInfo = await FileSystem.getInfoAsync(dir);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+      if (!dir.exists) {
+        await dir.create();
       }
     } catch (error) {
-      console.error(`Failed to create cache directory ${dir}:`, error);
+      console.error(`Failed to create cache directory ${dir.uri}:`, error);
       throw error;
     }
   }
@@ -213,26 +216,25 @@ export class CachedPhotoService {
 
     try {
       const directories = [
-        { path: this.CACHE_DIR, duration: this.CACHE_DURATION },
-        { path: this.THUMBNAIL_CACHE_DIR, duration: this.THUMBNAIL_CACHE_DURATION }
+        { dir: this.CACHE_DIR, duration: this.CACHE_DURATION },
+        { dir: this.THUMBNAIL_CACHE_DIR, duration: this.THUMBNAIL_CACHE_DURATION }
       ];
       
-      for (const { path: dir, duration } of directories) {
+      for (const { dir, duration } of directories) {
         try {
-          const dirInfo = await FileSystem.getInfoAsync(dir);
-          if (!dirInfo.exists) continue;
+          if (!dir.exists) continue;
           
-          const files = await FileSystem.readDirectoryAsync(dir);
+          const files = await dir.list();
           
           // Get file info for all files
           const fileInfos = await Promise.all(
             files.map(async fileName => {
-              const filePath = `${dir}${fileName}`;
+              const file = new File(dir, fileName);
               try {
-                const info = await FileSystem.getInfoAsync(filePath);
-                return { fileName, filePath, info };
+                const info = await file.info();
+                return { fileName, file, info };
               } catch (error) {
-                return { fileName, filePath, info: null };
+                return { fileName, file, info: null };
               }
             })
           );
@@ -244,7 +246,7 @@ export class CachedPhotoService {
 
           let currentDirSize = validFiles.reduce((sum, f) => sum + ((f.info as any)?.size || 0), 0);
 
-          for (const { fileName, filePath, info } of validFiles) {
+          for (const { fileName, file, info } of validFiles) {
             try {
               if (!info?.exists) continue;
               
@@ -253,10 +255,10 @@ export class CachedPhotoService {
               
               if (isExpired || shouldCleanForSpace) {
                 const fileSize = (info as any).size || 0;
-                await FileSystem.deleteAsync(filePath);
+                await file.delete();
                 
                 // Also remove cache metadata
-                const cacheKey = `photo_cache_${dir.includes('thumbnails') ? 'thumb' : 'full'}_${fileName}`;
+                const cacheKey = `photo_cache_${dir.uri.includes('thumbnails') ? 'thumb' : 'full'}_${fileName}`;
                 await CacheService.invalidateCache(cacheKey);
                 
                 cleaned++;
@@ -292,9 +294,8 @@ export class CachedPhotoService {
       await Promise.all([
         // Clear file cache
         ...directories.map(async dir => {
-          const dirInfo = await FileSystem.getInfoAsync(dir);
-          if (dirInfo.exists) {
-            await FileSystem.deleteAsync(dir, { idempotent: true });
+          if (dir.exists) {
+            await dir.delete();
           }
         }),
         // Clear expo-image memory cache
@@ -331,22 +332,21 @@ export class CachedPhotoService {
 
     try {
       const directories = [
-        { path: this.CACHE_DIR, type: 'photos' },
-        { path: this.THUMBNAIL_CACHE_DIR, type: 'thumbnails' }
+        { dir: this.CACHE_DIR, type: 'photos' },
+        { dir: this.THUMBNAIL_CACHE_DIR, type: 'thumbnails' }
       ];
       
-      for (const { path: dir, type } of directories) {
+      for (const { dir, type } of directories) {
         try {
-          const dirInfo = await FileSystem.getInfoAsync(dir);
-          if (!dirInfo.exists) continue;
+          if (!dir.exists) continue;
           
-          const files = await FileSystem.readDirectoryAsync(dir);
+          const files = await dir.list();
           
           for (const fileName of files) {
-            const filePath = `${dir}${fileName}`;
+            const file = new File(dir, fileName);
             try {
-              const fileInfo = await FileSystem.getInfoAsync(filePath);
-              if (fileInfo.exists && typeof (fileInfo as any).size === 'number') {
+              const fileInfo = await file.info();
+              if (file.exists && typeof (fileInfo as any).size === 'number') {
                 totalFiles++;
                 totalSize += (fileInfo as any).size;
                 

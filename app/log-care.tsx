@@ -11,6 +11,7 @@ import {
   Modal,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -45,6 +46,8 @@ export default function LogCareScreen() {
   const [showPhotoPickerModal, setShowPhotoPickerModal] = useState(false);
   const [selectedPlantPhotoIds, setSelectedPlantPhotoIds] = useState<string[]>([]);
   const [selectedExistingPhotoIds, setSelectedExistingPhotoIds] = useState<string[]>([]);
+  const [takingPhoto, setTakingPhoto] = useState(false);
+  const [pickingPhotos, setPickingPhotos] = useState(false);
 
   useEffect(() => {
     if (plantId) {
@@ -73,6 +76,7 @@ export default function LogCareScreen() {
   };
 
   const handleTakePhoto = async () => {
+    setTakingPhoto(true);
     try {
       const result = await PhotoService.takePhoto();
       if (result) {
@@ -81,10 +85,13 @@ export default function LogCareScreen() {
     } catch (error) {
       console.error('Failed to take photo:', error);
       Alert.alert('Error', 'Failed to take photo');
+    } finally {
+      setTakingPhoto(false);
     }
   };
 
   const handlePickFromLibrary = async () => {
+    setPickingPhotos(true);
     try {
       const result = await PhotoService.pickMultiplePhotos();
       if (result) {
@@ -93,6 +100,8 @@ export default function LogCareScreen() {
     } catch (error) {
       console.error('Failed to pick photos:', error);
       Alert.alert('Error', 'Failed to pick photos from library');
+    } finally {
+      setPickingPhotos(false);
     }
   };
 
@@ -415,19 +424,39 @@ export default function LogCareScreen() {
             {/* Photo Action Buttons */}
             <View style={styles.photoActionContainer}>
               <TouchableOpacity
-                style={styles.photoActionButton}
+                style={[styles.photoActionButton, takingPhoto && styles.photoActionButtonDisabled]}
                 onPress={handleTakePhoto}
+                disabled={takingPhoto}
               >
-                <Text style={styles.photoActionIcon}>📸</Text>
-                <Text style={styles.photoActionText}>Take Photo</Text>
+                {takingPhoto ? (
+                  <>
+                    <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                    <Text style={styles.photoActionText}>Taking...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.photoActionIcon}>📸</Text>
+                    <Text style={styles.photoActionText}>Take Photo</Text>
+                  </>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={styles.photoActionButton}
+                style={[styles.photoActionButton, pickingPhotos && styles.photoActionButtonDisabled]}
                 onPress={handlePickFromLibrary}
+                disabled={pickingPhotos}
               >
-                <Text style={styles.photoActionIcon}>🖼️</Text>
-                <Text style={styles.photoActionText}>From Library</Text>
+                {pickingPhotos ? (
+                  <>
+                    <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+                    <Text style={styles.photoActionText}>Picking...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.photoActionIcon}>🖼️</Text>
+                    <Text style={styles.photoActionText}>From Library</Text>
+                  </>
+                )}
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -768,6 +797,9 @@ const createStyles = (theme) => StyleSheet.create({
     color: theme.colors.textSecondary,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  photoActionButtonDisabled: {
+    opacity: 0.6,
   },
   selectedPhotosContainer: {
     marginTop: 8,
