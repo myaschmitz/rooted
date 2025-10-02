@@ -161,26 +161,62 @@ export class DateTimeService {
   static formatTimeAgo(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const now = new Date();
-    const diffMs = now.getTime() - dateObj.getTime();
+    
+    // Normalize to start of day to avoid time-of-day issues
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTargetDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+    
+    const diffMs = startOfToday.getTime() - startOfTargetDay.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffWeeks = Math.floor(diffDays / 7);
-    const diffMonths = Math.floor(diffDays / 30);
-    const diffYears = Math.floor(diffDays / 365);
-
+    
     if (diffDays === 0) {
       return 'Today';
-    } else if (diffDays === 1) {
-      return 'Yesterday';
-    } else if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    } else if (diffWeeks < 4) {
-      return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
-    } else if (diffMonths < 6) {
-      return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
-    } else if (diffMonths < 12) {
-      return 'Over 6 months ago';
+    } else if (diffDays >= 1 && diffDays <= 6) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffDays >= 7 && diffDays < 28) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 365) {
+      // Calculate actual months difference
+      const targetYear = dateObj.getFullYear();
+      const targetMonth = dateObj.getMonth();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      
+      const monthsDiff = (currentYear - targetYear) * 12 + (currentMonth - targetMonth);
+      
+      if (monthsDiff === 0) {
+        const weeks = Math.floor(diffDays / 7);
+        return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+      } else {
+        return `${monthsDiff} month${monthsDiff > 1 ? 's' : ''} ago`;
+      }
     } else {
-      return `Over ${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+      // Calculate years and months
+      const targetYear = dateObj.getFullYear();
+      const targetMonth = dateObj.getMonth();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+      
+      const yearsDiff = currentYear - targetYear;
+      const monthsDiff = currentMonth - targetMonth;
+      
+      if (monthsDiff < 0) {
+        const adjustedYears = yearsDiff - 1;
+        const adjustedMonths = 12 + monthsDiff;
+        
+        if (adjustedMonths === 0) {
+          return `${adjustedYears} year${adjustedYears > 1 ? 's' : ''} ago`;
+        } else {
+          return `${adjustedYears} year${adjustedYears > 1 ? 's' : ''} ${adjustedMonths} month${adjustedMonths > 1 ? 's' : ''} ago`;
+        }
+      } else {
+        if (monthsDiff === 0) {
+          return `${yearsDiff} year${yearsDiff > 1 ? 's' : ''} ago`;
+        } else {
+          return `${yearsDiff} year${yearsDiff > 1 ? 's' : ''} ${monthsDiff} month${monthsDiff > 1 ? 's' : ''} ago`;
+        }
+      }
     }
   }
 }
