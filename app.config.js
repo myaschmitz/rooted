@@ -1,10 +1,12 @@
 export default ({ config }) => {
   const bundleSuffix = process.env.BUNDLE_SUFFIX || '';
-  
+  const appName = process.env.EXPO_PUBLIC_ENVIRONMENT === 'development' ? 'Rooted (dev)' : 'Rooted';
+  const schemeName = process.env.EXPO_PUBLIC_ENVIRONMENT === 'development' ? 'rooted-dev' : 'rooted'
+
   return {
     ...config,
     expo: {
-      name: "Rooted",
+      name: appName,
       slug: "rooted",
       version: "1.0.0",
       sdkVersion: "54.0.0",
@@ -40,7 +42,7 @@ export default ({ config }) => {
           }
         ]
       ],
-      scheme: "rooted",
+      scheme: schemeName,
       extra: {
         router: {},
         eas: {
