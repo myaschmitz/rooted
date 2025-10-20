@@ -12,12 +12,17 @@ export default ({ config }) => {
       sdkVersion: "54.0.0",
       orientation: "portrait",
       icon: "./assets/icon.png",
+      updates: {
+        url: "https://u.expo.dev/c985d2e8-93a8-4a5d-a7b7-cb59d9e46f11",
+        channel: process.env.EXPO_PUBLIC_ENVIRONMENT === 'development' ? 'development' : 'production'
+      },
       android: {
         package: `com.myaschm.rooted${bundleSuffix}`,
         adaptiveIcon: {
           foregroundImage: "./assets/adaptive-icon.png",
           backgroundColor: "#ffffff"
-        }
+        },
+        runtimeVersion: "1.0.0"
       },
       userInterfaceStyle: "automatic",
       assetBundlePatterns: [
@@ -30,6 +35,9 @@ export default ({ config }) => {
           ITSAppUsesNonExemptEncryption: false,
           NSCameraUsageDescription: "This app needs access to your camera to take photos of your plants.",
           NSPhotoLibraryUsageDescription: "This app needs access to your photo library to select photos of your plants."
+        },
+        runtimeVersion: {
+          policy: "appVersion"
         }
       },
       web: {},

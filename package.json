@@ -34,6 +34,7 @@
     "expo-router": "~6.0.10",
     "expo-sqlite": "~16.0.8",
     "expo-status-bar": "~3.0.8",
+    "expo-updates": "~29.0.12",
     "fuse.js": "^7.1.0",
     "lucide-react-native": "^0.525.0",
     "react": "19.1.0",
