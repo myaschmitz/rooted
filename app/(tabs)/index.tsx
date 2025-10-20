@@ -714,7 +714,7 @@ export default function HomeScreen() {
                 >
                   <ArrowDownUp size={18} color={theme.colors.textSecondary} />
                   <Text style={[styles.sortButtonText, { marginLeft: 6, marginRight: 4 }]}>
-                    {globalSortPreference.type === 'name' ? 'Name' : 'Watered'}
+                    {globalSortPreference.type === 'name' ? 'Name' : 'Last Watered'}
                   </Text>
                   <ChevronDown size={16} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
