@@ -749,7 +749,7 @@ export default function HomeScreen() {
                         }}
                       >
                         <Text style={[styles.sortDropdownText, globalSortPreference.type === 'lastWatered' && styles.sortDropdownTextSelected]}>
-                          Watered
+                          Last Watered
                         </Text>
                       </TouchableOpacity>
                     </View>
