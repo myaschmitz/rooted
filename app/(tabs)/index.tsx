@@ -30,6 +30,7 @@ interface GlobalSortPreference {
 }
 
 const SORT_PREFERENCES_KEY = 'global_plant_sort_preferences';
+const PINNED_PLANTS_KEY = 'pinned_plants';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -65,6 +66,9 @@ export default function HomeScreen() {
   
   // Sort dropdown state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  
+  // Pinned plants state
+  const [pinnedPlantIds, setPinnedPlantIds] = useState<Set<string>>(new Set());
 
   const careTypes: Array<{
     type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repot' | 'other';
@@ -145,6 +149,38 @@ export default function HomeScreen() {
     setGlobalSortPreference(newPreference);
     await saveGlobalSortPreference(newPreference);
   }, [saveGlobalSortPreference]);
+
+  // AsyncStorage operations for pinned plants
+  const savePinnedPlants = useCallback(async (pinnedIds: Set<string>) => {
+    try {
+      await AsyncStorage.setItem(PINNED_PLANTS_KEY, JSON.stringify(Array.from(pinnedIds)));
+    } catch (error) {
+      console.error('Failed to save pinned plants:', error);
+    }
+  }, []);
+
+  const loadPinnedPlants = useCallback(async (): Promise<Set<string>> => {
+    try {
+      const stored = await AsyncStorage.getItem(PINNED_PLANTS_KEY);
+      if (stored) {
+        return new Set(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Failed to load pinned plants:', error);
+    }
+    return new Set();
+  }, []);
+
+  const updatePinnedPlants = useCallback(async (plantId: string) => {
+    const newPinnedIds = new Set(pinnedPlantIds);
+    if (newPinnedIds.has(plantId)) {
+      newPinnedIds.delete(plantId);
+    } else {
+      newPinnedIds.add(plantId);
+    }
+    setPinnedPlantIds(newPinnedIds);
+    await savePinnedPlants(newPinnedIds);
+  }, [pinnedPlantIds, savePinnedPlants]);
 
   // Helper function to sort plants based on global preferences
   const sortPlants = useCallback((plants: Plant[]): Plant[] => {
@@ -271,8 +307,8 @@ export default function HomeScreen() {
       setPlantLastPhotoData(lastPhotoData);
 
       // Separate pinned and non-pinned plants
-      const pinnedPlants = allPlants.filter(plant => plant.pinned);
-      const unpinnedPlants = allPlants.filter(plant => !plant.pinned);
+      const pinnedPlants = allPlants.filter(plant => pinnedPlantIds.has(plant.id));
+      const unpinnedPlants = allPlants.filter(plant => !pinnedPlantIds.has(plant.id));
       
       // Create sections array
       const sections: {title: string, data: Plant[]}[] = [];
@@ -287,13 +323,18 @@ export default function HomeScreen() {
       }
       
       // Group unpinned plants by location
-      const groupedPlants = await LocationService.getPlantsGroupedByLocation();
-      const locationSections = Object.entries(groupedPlants).map(([location, plants]) => {
-        // Filter out pinned plants from location sections
-        const unpinnedLocationPlants = (plants as Plant[]).filter(plant => !plant.pinned);
-        
-        // Sort unpinned plants using global preferences
-        const sortedPlants = sortPlants(unpinnedLocationPlants);
+      const groupedUnpinnedPlants = unpinnedPlants.reduce((acc, plant) => {
+        const location = plant.location || 'No Location';
+        if (!acc[location]) {
+          acc[location] = [];
+        }
+        acc[location].push(plant);
+        return acc;
+      }, {} as {[location: string]: Plant[]});
+      
+      const locationSections = Object.entries(groupedUnpinnedPlants).map(([location, plants]) => {
+        // Sort plants using global preferences
+        const sortedPlants = sortPlants(plants);
         
         return {
           title: location,
@@ -318,7 +359,7 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [sortPlants]);
+  }, [sortPlants, pinnedPlantIds]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -347,6 +388,15 @@ export default function HomeScreen() {
     };
     initializeGlobalSortPreference();
   }, [loadGlobalSortPreference]);
+
+  // Load pinned plants on app initialization
+  useEffect(() => {
+    const initializePinnedPlants = async () => {
+      const pinnedIds = await loadPinnedPlants();
+      setPinnedPlantIds(pinnedIds);
+    };
+    initializePinnedPlants();
+  }, [loadPinnedPlants]);
 
   // Set up real-time subscriptions for automatic updates
   useRealtimeUpdates({
@@ -402,13 +452,12 @@ export default function HomeScreen() {
   const handleTogglePin = useCallback(async (plantId: string, event: any) => {
     event.stopPropagation();
     try {
-      await PlantService.togglePinPlant(plantId);
-      await loadPlants();
+      await updatePinnedPlants(plantId);
     } catch (error) {
       console.error('Failed to toggle pin:', error);
       Alert.alert('Error', 'Failed to update pin status');
     }
-  }, [loadPlants]);
+  }, [updatePinnedPlants]);
 
   // Batch care handling functions
   const toggleBatchMode = () => {
@@ -566,7 +615,7 @@ export default function HomeScreen() {
               style={[styles.pinButton]}
               onPress={(event) => handleTogglePin(item.id, event)}
             >
-              {item.pinned ? (
+              {pinnedPlantIds.has(item.id) ? (
                 <PinOff size={16} color={theme.colors.primary} />
               ) : (
                 <Pin size={16} color={theme.colors.textSecondary} />
