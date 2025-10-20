@@ -1,9 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, SectionList, ActivityIndicator, RefreshControl, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
-import { Settings, Pin, PinOff, Check, CheckSquare, Square, Droplets, Calendar, Scissors, Bug, Sprout, MoreHorizontal, Filter, Camera } from 'lucide-react-native';
+import { Settings, Pin, PinOff, Check, CheckSquare, Square, Droplets, Calendar, Scissors, Bug, Sprout, MoreHorizontal, Filter, Camera, Search, X, ArrowUpDown, ArrowUp, ArrowDown, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronDown, ArrowDownUp } from 'lucide-react-native';
 import dayjs from 'dayjs';
+import Fuse from 'fuse.js';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { PlantService } from '../../services/PlantService';
 import { PhotoService } from '../../services/PhotoService';
@@ -19,6 +21,16 @@ import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
 
 dayjs.extend(relativeTime);
 
+type SortType = 'name' | 'lastWatered';
+type SortDirection = 'asc' | 'desc';
+
+interface GlobalSortPreference {
+  type: SortType;
+  direction: SortDirection;
+}
+
+const SORT_PREFERENCES_KEY = 'global_plant_sort_preferences';
+
 export default function HomeScreen() {
   const { theme } = useTheme();
   const globalStyles = useGlobalStyles();
@@ -30,6 +42,10 @@ export default function HomeScreen() {
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
   const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
   const [plantLastPhotoData, setPlantLastPhotoData] = useState<{[plantId: string]: string | null}>({});
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   
   // Batch care mode state
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
@@ -43,6 +59,12 @@ export default function HomeScreen() {
     fertilizerStrength: '1x' as '1/4' | '1/2' | '1x' | '1.5x' | '2x',
     pestSeverity: 1,
   });
+  
+  // Global sorting state
+  const [globalSortPreference, setGlobalSortPreference] = useState<GlobalSortPreference>({ type: 'name', direction: 'asc' });
+  
+  // Sort dropdown state
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
 
   const careTypes: Array<{
     type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repot' | 'other';
@@ -59,6 +81,100 @@ export default function HomeScreen() {
     { type: 'repot', label: 'Repotted', icon: Sprout, color: '#795548' },
     { type: 'other', label: 'Other', icon: MoreHorizontal, color: '#607D8B' },
   ];
+
+  // Fuse.js configuration for fuzzy search
+  const fuseOptions = {
+    keys: [
+      { name: 'name', weight: 0.7 },
+      { name: 'type', weight: 0.5 },
+      { name: 'location', weight: 0.3 }
+    ],
+    threshold: 0.4, // Lower = more strict, higher = more fuzzy
+    includeScore: true,
+    minMatchCharLength: 1,
+  };
+
+  // Create Fuse instance with plants data
+  const fuse = useMemo(() => {
+    return new Fuse(plants, fuseOptions);
+  }, [plants]);
+
+  // Search functionality
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return [];
+    }
+    return fuse.search(searchQuery.trim()).map(result => result.item);
+  }, [fuse, searchQuery]);
+
+  // Handle search input changes
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text);
+    setIsSearching(text.trim().length > 0);
+  }, []);
+
+  // Clear search
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setIsSearching(false);
+  }, []);
+
+  // AsyncStorage operations for global sorting preferences
+  const saveGlobalSortPreference = useCallback(async (preference: GlobalSortPreference) => {
+    try {
+      await AsyncStorage.setItem(SORT_PREFERENCES_KEY, JSON.stringify(preference));
+    } catch (error) {
+      console.error('Failed to save sort preference:', error);
+    }
+  }, []);
+
+  const loadGlobalSortPreference = useCallback(async (): Promise<GlobalSortPreference> => {
+    try {
+      const stored = await AsyncStorage.getItem(SORT_PREFERENCES_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Failed to load sort preference:', error);
+    }
+    return { type: 'name', direction: 'asc' };
+  }, []);
+
+  const updateGlobalSortPreference = useCallback(async (type: SortType, direction: SortDirection) => {
+    const newPreference = { type, direction };
+    setGlobalSortPreference(newPreference);
+    await saveGlobalSortPreference(newPreference);
+  }, [saveGlobalSortPreference]);
+
+  // Helper function to sort plants based on global preferences
+  const sortPlants = useCallback((plants: Plant[]): Plant[] => {
+    return [...plants].sort((a, b) => {
+      let comparison = 0;
+      
+      if (globalSortPreference.type === 'name') {
+        const nameA = (a.name || a.type).toLowerCase();
+        const nameB = (b.name || b.type).toLowerCase();
+        comparison = nameA.localeCompare(nameB);
+      } else if (globalSortPreference.type === 'lastWatered') {
+        const lastWateredA = plantWateringData[a.id];
+        const lastWateredB = plantWateringData[b.id];
+        
+        // Handle null values (never watered) - they should come last in ascending, first in descending
+        if (!lastWateredA && !lastWateredB) {
+          comparison = 0;
+        } else if (!lastWateredA) {
+          comparison = globalSortPreference.direction === 'asc' ? 1 : -1;
+        } else if (!lastWateredB) {
+          comparison = globalSortPreference.direction === 'asc' ? -1 : 1;
+        } else {
+          // Compare dates - more recent should come first in desc, last in asc
+          comparison = dayjs(lastWateredA).isBefore(dayjs(lastWateredB)) ? -1 : 1;
+        }
+      }
+      
+      return globalSortPreference.direction === 'desc' ? -comparison : comparison;
+    });
+  }, [globalSortPreference, plantWateringData]);
 
   const loadPlants = useCallback(async () => {
     try {
@@ -163,9 +279,7 @@ export default function HomeScreen() {
       
       // Add Pinned Plants section if there are any pinned plants
       if (pinnedPlants.length > 0) {
-        const sortedPinnedPlants = pinnedPlants.sort((a, b) => 
-          (a.name || a.type).localeCompare(b.name || b.type)
-        );
+        const sortedPinnedPlants = sortPlants(pinnedPlants);
         sections.push({
           title: 'Pinned Plants',
           data: sortedPinnedPlants
@@ -178,10 +292,8 @@ export default function HomeScreen() {
         // Filter out pinned plants from location sections
         const unpinnedLocationPlants = (plants as Plant[]).filter(plant => !plant.pinned);
         
-        // Sort unpinned plants by name
-        const sortedPlants = unpinnedLocationPlants.sort((a, b) => 
-          (a.name || a.type).localeCompare(b.name || b.type)
-        );
+        // Sort unpinned plants using global preferences
+        const sortedPlants = sortPlants(unpinnedLocationPlants);
         
         return {
           title: location,
@@ -206,7 +318,7 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sortPlants]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -226,6 +338,15 @@ export default function HomeScreen() {
   useEffect(() => {
     loadPlants();
   }, []);
+
+  // Load global sorting preference on app initialization
+  useEffect(() => {
+    const initializeGlobalSortPreference = async () => {
+      const preference = await loadGlobalSortPreference();
+      setGlobalSortPreference(preference);
+    };
+    initializeGlobalSortPreference();
+  }, [loadGlobalSortPreference]);
 
   // Set up real-time subscriptions for automatic updates
   useRealtimeUpdates({
@@ -512,7 +633,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with batch mode toggle */}
+      {/* Header with batch mode toggle and sorting controls */}
       {plants.length > 0 && (
         <View style={globalStyles.flexRowBetween}>
           <TouchableOpacity 
@@ -531,10 +652,114 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
           
-          {batchModeEnabled && selectedPlants.size > 0 && (
-            <Text style={[globalStyles.bodySmall, { marginRight: 16 }]}>
-              {selectedPlants.size} selected
-            </Text>
+          <View style={globalStyles.flexRowCenter}>
+            {batchModeEnabled && selectedPlants.size > 0 ? (
+              <Text style={[globalStyles.bodySmall, { marginRight: 16 }]}>
+                {selectedPlants.size} selected
+              </Text>
+            ) : (
+              <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
+                <TouchableOpacity
+                  style={[styles.sortDropdownButton, { marginRight: 8 }]}
+                  onPress={() => setShowSortDropdown(!showSortDropdown)}
+                >
+                  <ArrowDownUp size={18} color={theme.colors.textSecondary} />
+                  <Text style={[styles.sortButtonText, { marginLeft: 6, marginRight: 4 }]}>
+                    {globalSortPreference.type === 'name' ? 'Name' : 'Watered'}
+                  </Text>
+                  <ChevronDown size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+                {showSortDropdown && (
+                  <>
+                    <TouchableOpacity 
+                      style={styles.dropdownOverlay}
+                      onPress={() => setShowSortDropdown(false)}
+                      activeOpacity={1}
+                    />
+                    <View style={styles.sortDropdown}>
+                      <TouchableOpacity
+                        style={[
+                          styles.sortDropdownItem, 
+                          styles.sortDropdownItemWithBorder,
+                          globalSortPreference.type === 'name' && styles.sortDropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          updateGlobalSortPreference('name', globalSortPreference.direction);
+                          setShowSortDropdown(false);
+                        }}
+                      >
+                        <Text style={[styles.sortDropdownText, globalSortPreference.type === 'name' && styles.sortDropdownTextSelected]}>
+                          Name
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.sortDropdownItem, globalSortPreference.type === 'lastWatered' && styles.sortDropdownItemSelected]}
+                        onPress={() => {
+                          updateGlobalSortPreference('lastWatered', globalSortPreference.direction);
+                          setShowSortDropdown(false);
+                        }}
+                      >
+                        <Text style={[styles.sortDropdownText, globalSortPreference.type === 'lastWatered' && styles.sortDropdownTextSelected]}>
+                          Watered
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+                <TouchableOpacity
+                  style={styles.sortButton}
+                  onPress={() => {
+                    const newDirection = globalSortPreference.direction === 'asc' ? 'desc' : 'asc';
+                    updateGlobalSortPreference(globalSortPreference.type, newDirection);
+                  }}
+                >
+                  {globalSortPreference.direction === 'asc' ? (
+                    <ArrowUpNarrowWide size={20} color={theme.colors.textSecondary} />
+                  ) : (
+                    <ArrowDownWideNarrow size={20} color={theme.colors.textSecondary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Search Bar */}
+      {plants.length > 0 && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginHorizontal: 16,
+          marginBottom: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          backgroundColor: theme.colors.surface,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: isSearching ? theme.colors.primary : theme.colors.border,
+        }}>
+          <Search size={20} color={theme.colors.textSecondary} />
+          <TextInput
+            style={{
+              flex: 1,
+              marginLeft: 8,
+              fontSize: 16,
+              color: theme.colors.textPrimary,
+            }}
+            placeholder="Search plants..."
+            placeholderTextColor={theme.colors.textSecondary}
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={clearSearch}
+              style={{ padding: 4 }}
+            >
+              <X size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -552,23 +777,50 @@ export default function HomeScreen() {
         </View>
       ) : (
         <>
-          <SectionList
-            sections={plantsGrouped}
-            renderItem={renderPlantItem}
-            renderSectionHeader={renderSectionHeader}
-            keyExtractor={(item) => item.id}
-            style={styles.list}
-            stickySectionHeadersEnabled={true}
-            contentContainerStyle={batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.primary}
-                colors={[theme.colors.primary]}
+          {/* Conditional rendering: Search results or sectioned list */}
+          {isSearching ? (
+            searchResults.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Search size={48} color={theme.colors.textSecondary} />
+                <Text style={styles.emptyText}>No plants found</Text>
+                <Text style={styles.emptySubtext}>Try a different search term</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={searchResults}
+                renderItem={renderPlantItem}
+                keyExtractor={(item) => item.id}
+                style={styles.list}
+                contentContainerStyle={batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    tintColor={theme.colors.primary}
+                    colors={[theme.colors.primary]}
+                  />
+                }
               />
-            }
-          />
+            )
+          ) : (
+            <SectionList
+              sections={plantsGrouped}
+              renderItem={renderPlantItem}
+              renderSectionHeader={renderSectionHeader}
+              keyExtractor={(item) => item.id}
+              style={styles.list}
+              stickySectionHeadersEnabled={true}
+              contentContainerStyle={batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={theme.colors.primary}
+                  colors={[theme.colors.primary]}
+                />
+              }
+            />
+          )}
           
           {/* FAB for adding plants or batch care */}
           {batchModeEnabled && selectedPlants.size > 0 ? (
