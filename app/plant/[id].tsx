@@ -291,6 +291,8 @@ export default function PlantDetailScreen() {
       {
         onSuccess: () => {
           Alert.alert('Success', 'Thumbnail photo updated');
+          // Refresh the component data to show the updated thumbnail
+          loadPlantData();
         },
         onError: (error) => {
           console.error('Failed to set thumbnail:', error);
