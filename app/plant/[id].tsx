@@ -21,12 +21,14 @@ import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
+import { useSetThumbnailPhoto } from '../../hooks/queries';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function PlantDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const setThumbnailMutation = useSetThumbnailPhoto();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [photos, setPhotos] = useState<PlantPhoto[]>([]);
@@ -282,18 +284,22 @@ export default function PlantDetailScreen() {
     );
   };
 
-  const handleSetThumbnail = async (photoId: string) => {
-    try {
-      setCurrentThumbnailId(photoId); // Update immediately for UI feedback
-      await PhotoService.setThumbnailPhoto(id!, photoId);
-      loadPlantData(); // Refresh to update thumbnail
-      Alert.alert('Success', 'Thumbnail photo updated');
-    } catch (error) {
-      console.error('Failed to set thumbnail:', error);
-      Alert.alert('Error', 'Failed to set thumbnail photo');
-      // Revert the local state on error
-      setCurrentThumbnailId(plant?.thumbnail_photo_id || null);
-    }
+  const handleSetThumbnail = (photoId: string) => {
+    setCurrentThumbnailId(photoId); // Update immediately for UI feedback
+    setThumbnailMutation.mutate(
+      { plantId: id!, photoId },
+      {
+        onSuccess: () => {
+          Alert.alert('Success', 'Thumbnail photo updated');
+        },
+        onError: (error) => {
+          console.error('Failed to set thumbnail:', error);
+          Alert.alert('Error', 'Failed to set thumbnail photo');
+          // Revert the local state on error
+          setCurrentThumbnailId(plant?.thumbnail_photo_id || null);
+        },
+      }
+    );
   };
 
   const handleDeleteSelectedPhotos = async () => {

@@ -925,6 +925,10 @@ export class PhotoService {
         throw new Error(`Failed to set thumbnail photo: ${error.message}`);
       }
 
+      // Invalidate the plant cache so fresh data is loaded
+      const plantCacheKey = `plant-${plantId}-${session.household_id}`;
+      await CacheService.invalidateCache(plantCacheKey);
+
     } catch (error) {
       console.error('Error setting thumbnail photo:', error);
       throw error;
