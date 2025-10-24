@@ -68,6 +68,8 @@ export default function SettingsScreen() {
   });
   const [editHouseholdNameVisible, setEditHouseholdNameVisible] = useState(false);
   const [newHouseholdName, setNewHouseholdName] = useState('');
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   // Load saved preferences
   useEffect(() => {
@@ -313,33 +315,17 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteAllData = () => {
-    Alert.alert(
-      'Delete All Data',
-      'This will permanently delete all plants, events, photos, and settings. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete All',
-          style: 'destructive',
-          onPress: confirmDeleteAllData,
-        },
-      ]
-    );
+    setDeleteConfirmText('');
+    setDeleteConfirmVisible(true);
   };
 
-  const confirmDeleteAllData = () => {
-    Alert.alert(
-      'Are you absolutely sure?',
-      'This will delete everything and cannot be recovered.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Delete Everything',
-          style: 'destructive',
-          onPress: deleteAllData,
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText !== 'CONFIRM DELETE') {
+      return;
+    }
+    
+    setDeleteConfirmVisible(false);
+    await deleteAllData();
   };
 
   const deleteAllData = async () => {
@@ -714,6 +700,73 @@ export default function SettingsScreen() {
         </View>
       </View>
     </Modal>
+
+    {/* Delete Confirmation Modal */}
+    <Modal
+      visible={deleteConfirmVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setDeleteConfirmVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.editModal, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.error || '#ff4444' }]}>
+            Delete All Plants & Data
+          </Text>
+          
+          <Text style={[styles.deleteWarningText, { color: theme.colors.text }]}>
+            This will permanently delete all plants, events, photos, and settings. This action cannot be undone.
+          </Text>
+          
+          <Text style={[styles.confirmationInstructions, { color: theme.colors.text }]}>
+            Type "CONFIRM DELETE" to confirm:
+          </Text>
+          
+          <TextInput
+            style={[styles.modalInput, { 
+              backgroundColor: theme.colors.background,
+              borderColor: deleteConfirmText === 'CONFIRM DELETE' ? theme.colors.primary : theme.colors.border,
+              color: theme.colors.text 
+            }]}
+            value={deleteConfirmText}
+            onChangeText={setDeleteConfirmText}
+            placeholder="Type here..."
+            placeholderTextColor={theme.colors.textSecondary}
+            autoCapitalize="characters"
+          />
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
+              onPress={() => setDeleteConfirmVisible(false)}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.modalButton, 
+                { 
+                  backgroundColor: deleteConfirmText === 'CONFIRM DELETE' 
+                    ? (theme.colors.error || '#ff4444') 
+                    : theme.colors.disabled,
+                }
+              ]}
+              onPress={handleConfirmDelete}
+              disabled={deleteConfirmText !== 'CONFIRM DELETE' || loading}
+            >
+              <Text style={[styles.modalButtonText, { 
+                color: deleteConfirmText === 'CONFIRM DELETE' 
+                  ? theme.colors.textOnPrimary 
+                  : theme.colors.textSecondary 
+              }]}>
+                {loading ? 'Deleting...' : 'Delete Everything'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 }
@@ -1041,5 +1094,17 @@ const createStyles = (theme: any) => StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+  },
+  deleteWarningText: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  confirmationInstructions: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });
