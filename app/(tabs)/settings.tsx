@@ -921,7 +921,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 10,
+    marginTop: 20,
   },
   disabledButton: {
     backgroundColor: theme.disabled,
