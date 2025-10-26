@@ -647,7 +647,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             {showCameraIcon && (
               <View style={{ padding: 8 }}>
-                <Camera size={14} color={theme.colors.textSecondary} />
+                <Camera size={14} color={theme.colors.warning} />
               </View>
             )}
           </View>
