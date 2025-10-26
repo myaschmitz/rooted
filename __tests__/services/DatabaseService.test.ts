@@ -12,10 +12,15 @@ describe('DatabaseService', () => {
     // Reset all mocks
     jest.clearAllMocks();
     
+    // Create a chainable mock that resolves for delete operations
+    const chainableMock = {
+      neq: jest.fn(() => Promise.resolve({ error: null })),
+    };
+    
     // Reset Supabase mock chain
     mockSupabase.from.mockReturnValue(mockSupabase);
     mockSupabase.select.mockReturnValue(mockSupabase);
-    mockSupabase.delete.mockReturnValue(mockSupabase);
+    mockSupabase.delete.mockReturnValue(chainableMock); // Return object with neq method
     mockSupabase.neq.mockReturnValue(mockSupabase);
     mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null });

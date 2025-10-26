@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../services/SupabaseService';
+import { queryKeys } from '../constants/queryKeys';
 
 interface UseRealtimeUpdatesProps {
   onPlantsUpdate?: () => void;
@@ -73,19 +74,25 @@ class RealtimeSubscriptionManager {
         async (payload) => {
           console.log('Plants table changed:', payload.eventType, payload.new?.id || payload.old?.id);
           
-          // Trigger cache invalidation based on the event type
+          // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.id || payload.old?.id;
-          if (plantId) {
+          if (plantId && this.queryClient) {
             try {
-              if (payload.eventType === 'INSERT') {
-              } else if (payload.eventType === 'UPDATE') {
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                // Invalidate plants list and specific plant
+                this.queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+                this.queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
               } else if (payload.eventType === 'DELETE') {
+                // Remove specific plant from cache and invalidate list
+                this.queryClient.removeQueries({ queryKey: queryKeys.plant(plantId) });
+                this.queryClient.invalidateQueries({ queryKey: queryKeys.plants });
               }
             } catch (error) {
               console.error('Failed to invalidate cache for plants change:', error);
             }
           }
           
+          // Only notify subscribers for additional custom logic if needed
           this.notifySubscribers('onPlantsUpdate');
         }
       )
@@ -99,19 +106,20 @@ class RealtimeSubscriptionManager {
         async (payload) => {
           console.log('Events table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
           
-          // Trigger cache invalidation based on the event type
+          // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.plant_id || payload.old?.plant_id;
-          if (plantId) {
+          if (plantId && this.queryClient) {
             try {
-              if (payload.eventType === 'INSERT') {
-              } else if (payload.eventType === 'UPDATE') {
-              } else if (payload.eventType === 'DELETE') {
-              }
+              // Invalidate all event-related queries for this plant
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(plantId) });
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(plantId) });
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
             } catch (error) {
               console.error('Failed to invalidate cache for events change:', error);
             }
           }
           
+          // Only notify subscribers for additional custom logic if needed
           this.notifySubscribers('onEventsUpdate');
         }
       )
@@ -125,19 +133,22 @@ class RealtimeSubscriptionManager {
         async (payload) => {
           console.log('Plant photos table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
           
-          // Trigger cache invalidation based on the event type
+          // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.plant_id || payload.old?.plant_id;
-          if (plantId) {
+          if (plantId && this.queryClient) {
             try {
-              if (payload.eventType === 'INSERT') {
-              } else if (payload.eventType === 'UPDATE') {
-              } else if (payload.eventType === 'DELETE') {
-              }
+              // Invalidate all photo-related queries for this plant
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantPhotos(plantId) });
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(plantId) });
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
+              // Also invalidate plant data since thumbnail might have changed
+              this.queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
             } catch (error) {
               console.error('Failed to invalidate cache for photos change:', error);
             }
           }
           
+          // Only notify subscribers for additional custom logic if needed
           this.notifySubscribers('onPhotosUpdate');
         }
       )

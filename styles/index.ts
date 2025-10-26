@@ -69,7 +69,6 @@ export {
 } from './theme';
 
 export { 
-  GlobalStyles, 
   ButtonStyles, 
   InputStyles, 
   TextStyles, 
@@ -77,4 +76,4 @@ export {
   useGlobalStyles
 } from './GlobalStyles';
 
-export { CareStyles } from './CareStyles';
+export { useCareStyles } from './CareStyles';

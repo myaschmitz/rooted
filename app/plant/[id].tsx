@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { SquarePen, Trash2, X, Download } from 'lucide-react-native';
 import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
@@ -21,131 +21,136 @@ import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
-import { useSetThumbnailPhoto } from '../../hooks/queries';
+import { 
+  usePlant, 
+  usePlantEvents, 
+  usePlantPhotos, 
+  useThumbnailPhoto,
+  useSetThumbnailPhoto,
+  useDeletePlant,
+  useSavePhoto,
+  useDeletePhoto,
+  useDeleteEvent
+} from '../../hooks/queries';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Stable empty arrays to prevent unnecessary re-renders
+const EMPTY_EVENTS: Event[] = [];
+const EMPTY_PHOTOS: PlantPhoto[] = [];
 
 export default function PlantDetailScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
+  
+  // React Query hooks - these handle caching automatically
+  const { data: plant, isLoading: plantLoading, refetch: refetchPlant } = usePlant(id!);
+  const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = usePlantEvents(id!);
+  const { data: photos, isLoading: photosLoading, refetch: refetchPhotos } = usePlantPhotos(id!);
+  
+  // Explicit typing to ensure TypeScript knows these are arrays
+  const typedEvents: Event[] = useMemo(() => events || EMPTY_EVENTS, [events]);
+  const typedPhotos: PlantPhoto[] = useMemo(() => photos || EMPTY_PHOTOS, [photos]);
+  const { data: thumbnailPhoto, isLoading: thumbnailLoading } = useThumbnailPhoto(id!);
+  
+  // Mutations
   const setThumbnailMutation = useSetThumbnailPhoto();
-  const [plant, setPlant] = useState<Plant | null>(null);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [photos, setPhotos] = useState<PlantPhoto[]>([]);
-  const [thumbnailPhoto, setThumbnailPhoto] = useState<PlantPhoto | null>(null);
-  const [loading, setLoading] = useState(true);
+  const deletePlantMutation = useDeletePlant();
+  const savePhotoMutation = useSavePhoto();
+  const deletePhotoMutation = useDeletePhoto();
+  const deleteEventMutation = useDeleteEvent();
+  
+  // Loading state derived from queries
+  const loading = plantLoading || eventsLoading || photosLoading || thumbnailLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [thumbnailViewerVisible, setThumbnailViewerVisible] = useState(false);
-  const [currentThumbnailId, setCurrentThumbnailId] = useState<string | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [eventPhotos, setEventPhotos] = useState<{[eventId: string]: PlantPhoto[]}>({});
-  const [allPhotos, setAllPhotos] = useState<PlantPhoto[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
-  const loadPlantData = useCallback(async () => {
-    if (!id) return;
+  
+  // Derived current thumbnail ID from plant data
+  const currentThumbnailId = plant?.thumbnail_photo_id || null;
+  
+  // Combine regular photos and event photos for the image viewer
+  const allPhotos = useMemo(() => {
+    const combinedPhotos = [...typedPhotos];
+    Object.values(eventPhotos).forEach(eventPhotoArray => {
+      eventPhotoArray.forEach(photo => {
+        // Only add if not already in the array (avoid duplicates)
+        if (!combinedPhotos.find(p => p.id === photo.id)) {
+          combinedPhotos.push(photo);
+        }
+      });
+    });
+    return combinedPhotos;
+  }, [typedPhotos, eventPhotos]);
+  
+  // Auto-set thumbnail for plants without one
+  useEffect(() => {
+    if (typedPhotos.length > 0 && !plant?.thumbnail_photo_id && plant?.id) {
+      // Sort photos by taken_at ascending to get the oldest first
+      const sortedPhotos = [...typedPhotos].sort((a, b) => 
+        new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+      );
+      const oldestPhoto = sortedPhotos[0];
+      
+      // Set the oldest photo as thumbnail
+      setThumbnailMutation.mutate({ plantId: plant.id, photoId: oldestPhoto.id });
+    }
+  }, [typedPhotos, plant?.thumbnail_photo_id, plant?.id, setThumbnailMutation]);
+  
+  // Load event photos when events change
+  useEffect(() => {
+    if (typedEvents.length === 0) {
+      setEventPhotos({});
+      return;
+    }
     
-    try {
-      const [plantData, eventsData, photosData] = await Promise.all([
-        PlantService.getPlantById(id),
-        EventService.getEventsByPlantId(id),
-        PhotoService.getPhotosByPlantId(id),
-      ]);
-
-      // Load thumbnail photo
-      let thumbnailData = null;
-      if (plantData?.thumbnail_photo_id) {
-        try {
-          thumbnailData = await PhotoService.getThumbnailPhoto(id);
-        } catch (error) {
-          console.error('Failed to load thumbnail photo:', error);
-        }
-      }
-      setThumbnailPhoto(thumbnailData);
-
-      // If there are photos but no thumbnail is set, auto-set the oldest photo as thumbnail
-      if (photosData.length > 0 && !plantData?.thumbnail_photo_id) {
-        // Sort photos by taken_at ascending to get the oldest first
-        const sortedPhotos = [...photosData].sort((a, b) => 
-          new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
-        );
-        const oldestPhoto = sortedPhotos[0];
-        
-        // Set the oldest photo as thumbnail
-        await PhotoService.setThumbnailPhoto(id, oldestPhoto.id);
-        
-        // Update the plant data to reflect the new thumbnail
-        const updatedPlant = await PlantService.getPlantById(id);
-        setPlant(updatedPlant);
-        setCurrentThumbnailId(oldestPhoto.id);
-      } else {
-        setPlant(plantData);
-      }
-
-      setEvents(eventsData);
-      setPhotos(photosData);
-      setCurrentThumbnailId(plantData?.thumbnail_photo_id || null);
-
-      // Load photos for each event
+    const loadEventPhotos = async () => {
       const eventPhotoMap: {[eventId: string]: PlantPhoto[]} = {};
-      for (const event of eventsData) {
-        try {
-          const eventPhotosData = await PhotoService.getPhotosByEventId(event.id);
-          eventPhotoMap[event.id] = eventPhotosData;
-        } catch (error) {
-          console.error(`Failed to load photos for event ${event.id}:`, error);
-          eventPhotoMap[event.id] = [];
-        }
-      }
-      setEventPhotos(eventPhotoMap);
-
-      // Combine regular photos and event photos for the image viewer
-      const combinedPhotos = [...photosData];
-      Object.values(eventPhotoMap).forEach(eventPhotoArray => {
-        eventPhotoArray.forEach(photo => {
-          // Only add if not already in the array (avoid duplicates)
-          if (!combinedPhotos.find(p => p.id === photo.id)) {
-            combinedPhotos.push(photo);
+      // Load photos for events in batches to avoid overwhelming the API
+      const batchSize = 5;
+      for (let i = 0; i < typedEvents.length; i += batchSize) {
+        const batch = typedEvents.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (event) => {
+          try {
+            const eventPhotosData = await PhotoService.getPhotosByEventId(event.id);
+            return { eventId: event.id, photos: eventPhotosData };
+          } catch (error) {
+            console.error(`Failed to load photos for event ${event.id}:`, error);
+            return { eventId: event.id, photos: [] };
           }
         });
-      });
-      setAllPhotos(combinedPhotos);
-    } catch (error) {
-      console.error('Failed to load plant data:', error);
-      Alert.alert('Error', 'Failed to load plant details');
+        
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(({ eventId, photos: eventPhotoData }) => {
+          eventPhotoMap[eventId] = eventPhotoData;
+        });
+      }
+      setEventPhotos(eventPhotoMap);
+    };
+    
+    loadEventPhotos();
+  }, [typedEvents]);
+
+  // Set up real-time subscriptions - React Query will handle invalidation
+  useRealtimeUpdates({});
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchPlant(),
+        refetchEvents(), 
+        refetchPhotos()
+      ]);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
-  }, [id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      console.log('Plant detail screen focused, refreshing data...');
-      loadPlantData();
-    }, [loadPlantData])
-  );
-
-  useEffect(() => {
-    if (id) {
-      loadPlantData();
-    }
-  }, [id]);
-
-  // Set up real-time subscriptions for automatic updates
-  useRealtimeUpdates({
-    onPlantsUpdate: loadPlantData,
-    onEventsUpdate: loadPlantData,
-    onPhotosUpdate: loadPlantData,
-  });
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadPlantData();
-  };
+  }, [refetchPlant, refetchEvents, refetchPhotos]);
 
   const handleLogCare = () => {
     router.push(`/log-care?plantId=${id}`);
@@ -168,22 +173,13 @@ export default function PlantDetailScreen() {
     try {
       const photo = await PhotoService.takePhoto();
       if (photo && id) {
-        // Save photo and get the saved photo data
-        console.log('Saving photo from camera...');
-        const savedPhoto = await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
-        console.log('Photo saved successfully:', savedPhoto.id);
-        
-        // Immediately add the new photo to the current photos for instant feedback
-        setPhotos(prev => [savedPhoto, ...prev]);
-        setAllPhotos(prev => [savedPhoto, ...prev]);
-        
-        // Set as thumbnail if this is the first photo for this plant
-        if (photos.length === 0 && !plant?.thumbnail_photo_id) {
-          setThumbnailPhoto(savedPhoto);
-          setCurrentThumbnailId(savedPhoto.id);
-        }
-        
-        console.log('Photo successfully added to UI');
+        // Use React Query mutation - this will handle cache invalidation
+        await savePhotoMutation.mutateAsync({
+          plantId: id,
+          sourceUri: photo.uri,
+          caption: 'Plant photo'
+        });
+        console.log('Photo saved successfully');
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
@@ -198,22 +194,13 @@ export default function PlantDetailScreen() {
     try {
       const photo = await PhotoService.pickPhoto();
       if (photo && id) {
-        // Save photo and get the saved photo data
-        console.log('Saving photo from library...');
-        const savedPhoto = await PhotoService.savePhoto(id, photo.uri, 'Plant photo');
-        console.log('Photo saved successfully:', savedPhoto.id);
-        
-        // Immediately add the new photo to the current photos for instant feedback
-        setPhotos(prev => [savedPhoto, ...prev]);
-        setAllPhotos(prev => [savedPhoto, ...prev]);
-        
-        // Set as thumbnail if this is the first photo for this plant
-        if (photos.length === 0 && !plant?.thumbnail_photo_id) {
-          setThumbnailPhoto(savedPhoto);
-          setCurrentThumbnailId(savedPhoto.id);
-        }
-        
-        console.log('Photo successfully added to UI');
+        // Use React Query mutation - this will handle cache invalidation
+        await savePhotoMutation.mutateAsync({
+          plantId: id,
+          sourceUri: photo.uri,
+          caption: 'Plant photo'
+        });
+        console.log('Photo saved successfully');
       }
     } catch (error) {
       console.error('Failed to pick photo:', error);
@@ -251,29 +238,33 @@ export default function PlantDetailScreen() {
               // Check if we're deleting the current thumbnail
               const isCurrentThumbnail = plant?.thumbnail_photo_id === photoId;
               
-              await PhotoService.deletePhoto(photoId);
+              await deletePhotoMutation.mutateAsync({ photoId, plantId: id! });
               
               // If we deleted the thumbnail photo, we need to set a new one
               if (isCurrentThumbnail && id) {
-                // Get remaining photos
-                const remainingPhotos = await PhotoService.getPhotosByPlantId(id);
+                // React Query will refetch photos, so we can access updated photos
+                await refetchPhotos();
                 
-                if (remainingPhotos.length > 0) {
-                  // Sort photos by taken_at ascending to get the oldest first
-                  const sortedPhotos = [...remainingPhotos].sort((a, b) => 
-                    new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
-                  );
-                  const newThumbnail = sortedPhotos[0];
-                  
-                  // Set the oldest remaining photo as the new thumbnail
-                  await PhotoService.setThumbnailPhoto(id, newThumbnail.id);
+                if (typedPhotos.length > 1) {
+                  // Get the remaining photos (excluding the one we just deleted)
+                  const remainingPhotos = typedPhotos.filter(p => p.id !== photoId);
+                  if (remainingPhotos.length > 0) {
+                    // Sort photos by taken_at ascending to get the oldest first
+                    const sortedPhotos = [...remainingPhotos].sort((a, b) => 
+                      new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+                    );
+                    const newThumbnail = sortedPhotos[0];
+                    
+                    // Set the oldest remaining photo as the new thumbnail
+                    await PhotoService.setThumbnailPhoto(id, newThumbnail.id);
+                  }
                 } else {
                   // No photos left, clear the thumbnail
                   await PhotoService.clearThumbnailPhoto(id);
                 }
               }
               
-              loadPlantData(); // Refresh to remove deleted photo and update thumbnail
+              // React Query mutations handle cache invalidation automatically
             } catch (error) {
               console.error('Failed to delete photo:', error);
               Alert.alert('Error', 'Failed to delete photo');
@@ -285,20 +276,16 @@ export default function PlantDetailScreen() {
   };
 
   const handleSetThumbnail = (photoId: string) => {
-    setCurrentThumbnailId(photoId); // Update immediately for UI feedback
     setThumbnailMutation.mutate(
       { plantId: id!, photoId },
       {
         onSuccess: () => {
           Alert.alert('Success', 'Thumbnail photo updated');
-          // Refresh the component data to show the updated thumbnail
-          loadPlantData();
+          // React Query automatically updates the cache
         },
         onError: (error) => {
           console.error('Failed to set thumbnail:', error);
           Alert.alert('Error', 'Failed to set thumbnail photo');
-          // Revert the local state on error
-          setCurrentThumbnailId(plant?.thumbnail_photo_id || null);
         },
       }
     );
@@ -351,10 +338,9 @@ export default function PlantDetailScreen() {
                 }
               }
 
-              // Reset multiselect mode and refresh data
+              // Reset multiselect mode - React Query mutations handle cache invalidation automatically
               setIsMultiSelectMode(false);
               setSelectedPhotos(new Set());
-              loadPlantData();
               
               Alert.alert('Success', `${selectedCount} photo${selectedCount > 1 ? 's' : ''} deleted successfully`);
             } catch (error) {
@@ -380,22 +366,18 @@ export default function PlantDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete the plant (this should also cascade delete events and photos via foreign key constraints)
-              const success = await PlantService.deletePlant(id);
+              // Delete the plant using React Query mutation
+              await deletePlantMutation.mutateAsync(id);
               
-              if (success) {
-                Alert.alert('Success', 'Plant deleted successfully', [
-                  {
-                    text: 'OK',
-                    onPress: () => {
-                      // Navigate back to the main plants screen
-                      router.back();
-                    },
+              Alert.alert('Success', 'Plant deleted successfully', [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    // Navigate back to the main plants screen
+                    router.back();
                   },
-                ]);
-              } else {
-                Alert.alert('Error', 'Failed to delete plant');
-              }
+                },
+              ]);
             } catch (error) {
               console.error('Failed to delete plant:', error);
               Alert.alert('Error', 'Failed to delete plant');
@@ -418,14 +400,8 @@ export default function PlantDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await EventService.deleteEvent(eventId);
-              
-              if (success) {
-                loadPlantData(); // Refresh to remove deleted event
-                Alert.alert('Success', 'Event deleted successfully');
-              } else {
-                Alert.alert('Error', 'Failed to delete event');
-              }
+              await deleteEventMutation.mutateAsync({ id: eventId, plantId: id! });
+              Alert.alert('Success', 'Event deleted successfully');
             } catch (error) {
               console.error('Failed to delete event:', error);
               Alert.alert('Error', 'Failed to delete event');
@@ -472,25 +448,25 @@ export default function PlantDetailScreen() {
 
   const [formattedDates, setFormattedDates] = useState<{[key: string]: string}>({});
 
-  const updateFormattedDates = useCallback(async () => {
-    const dateMap: {[key: string]: string} = {};
-    
-    // Format event dates
-    for (const event of events) {
-      dateMap[event.id] = await DateTimeService.formatDate(event.date);
-    }
-    
-    // Format photo dates
-    for (const photo of photos) {
-      dateMap[photo.id] = await DateTimeService.formatDate(photo.taken_at);
-    }
-    
-    setFormattedDates(dateMap);
-  }, [events, photos]);
-
   useEffect(() => {
+    const updateFormattedDates = async () => {
+      const dateMap: {[key: string]: string} = {};
+      
+      // Format event dates
+      for (const event of typedEvents) {
+        dateMap[event.id] = await DateTimeService.formatDate(event.date);
+      }
+      
+      // Format photo dates
+      for (const photo of typedPhotos) {
+        dateMap[photo.id] = await DateTimeService.formatDate(photo.taken_at);
+      }
+      
+      setFormattedDates(dateMap);
+    };
+
     updateFormattedDates();
-  }, [updateFormattedDates]);
+  }, [typedEvents, typedPhotos]);
 
 
   const getPestSeverityColor = (severity: number) => {
@@ -606,10 +582,10 @@ export default function PlantDetailScreen() {
         )}
 
         {/* Photos */}
-        {photos.length > 0 && (
+        {typedPhotos.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
+              <Text style={styles.sectionTitle}>Photos ({typedPhotos.length})</Text>
               <View style={styles.multiSelectButtonsContainer}>
                 {isMultiSelectMode && selectedPhotos.size > 0 && (
                   <TouchableOpacity 
@@ -642,7 +618,7 @@ export default function PlantDetailScreen() {
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {photos.map((photo, index) => (
+              {typedPhotos.map((photo, index) => (
                 <TouchableOpacity 
                   key={photo.id} 
                   style={styles.photoItem}
@@ -693,11 +669,11 @@ export default function PlantDetailScreen() {
 
         {/* Event History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Event History ({events.length})</Text>
-          {events.length === 0 ? (
+          <Text style={styles.sectionTitle}>Event History ({typedEvents.length})</Text>
+          {typedEvents.length === 0 ? (
             <Text style={styles.emptyCareText}>No events recorded yet</Text>
           ) : (
-            events.slice(0, 10).map((event) => (
+            typedEvents.slice(0, 10).map((event) => (
               <React.Fragment key={event.id}>
                 <View style={styles.careEventItem}>
                 <View style={styles.careEventHeader}>

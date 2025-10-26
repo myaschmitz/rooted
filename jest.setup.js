@@ -12,6 +12,20 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
+// Create chainable mock for delete operations that supports multiple eq/neq calls
+const createChainableMock = () => {
+  const finalMock = {
+    eq: jest.fn(() => Promise.resolve({ error: null })),
+    neq: jest.fn(() => Promise.resolve({ error: null })),
+  };
+  
+  const chainable = {
+    neq: jest.fn(() => Promise.resolve({ error: null })),
+    eq: jest.fn(() => finalMock), // Return final mock for the last call in chain
+  };
+  return chainable;
+};
+
 // Mock Supabase
 const mockSupabaseClient = {
   auth: {
@@ -28,7 +42,7 @@ const mockSupabaseClient = {
   select: jest.fn(() => mockSupabaseClient),
   insert: jest.fn(() => mockSupabaseClient),
   update: jest.fn(() => mockSupabaseClient),
-  delete: jest.fn(() => mockSupabaseClient),
+  delete: jest.fn(() => createChainableMock()), // Return chainable object with neq method
   eq: jest.fn(() => mockSupabaseClient),
   neq: jest.fn(() => mockSupabaseClient),
   or: jest.fn(() => mockSupabaseClient),
@@ -45,6 +59,65 @@ jest.mock('./services/SupabaseService', () => ({
 // Mock UUID generator
 jest.mock('react-native-uuid', () => ({
   v4: jest.fn(() => 'mock-uuid-1234-5678-9abc'),
+}));
+
+// Mock react-native-mmkv
+jest.mock('react-native-mmkv', () => ({
+  MMKV: jest.fn().mockImplementation(() => ({
+    set: jest.fn(),
+    getString: jest.fn(),
+    getNumber: jest.fn(),
+    getBoolean: jest.fn(),
+    contains: jest.fn(),
+    delete: jest.fn(),
+    clearAll: jest.fn(),
+    getAllKeys: jest.fn(() => []),
+  })),
+}));
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => ({
+  File: {
+    size: jest.fn(() => Promise.resolve(1000)),
+    exists: jest.fn(() => Promise.resolve(true)),
+    copy: jest.fn(() => Promise.resolve()),
+    delete: jest.fn(() => Promise.resolve()),
+  },
+  Directory: {
+    create: jest.fn(() => Promise.resolve()),
+    exists: jest.fn(() => Promise.resolve(true)),
+    delete: jest.fn(() => Promise.resolve()),
+  },
+  Paths: {
+    cache: '/mock/cache/path',
+    document: '/mock/document/path',
+  },
+}));
+
+// Mock expo-image
+jest.mock('expo-image', () => ({
+  Image: jest.fn().mockImplementation(({ source, style, ...props }) => null),
+}));
+
+// Mock CacheService
+jest.mock('./services/CacheService', () => ({
+  CacheService: {
+    get: jest.fn(),
+    set: jest.fn(),
+    delete: jest.fn(),
+    invalidateCachePattern: jest.fn(),
+    getMemoryStats: jest.fn(() => ({ used: 0, total: 1000 })),
+    getCachedResponse: jest.fn(() => Promise.resolve(null)), // Add missing method
+    setCachedResponse: jest.fn(() => Promise.resolve()),
+  }
+}));
+
+// Mock CacheInvalidationService  
+jest.mock('./services/CacheInvalidationService', () => ({
+  CacheInvalidationService: {
+    invalidate: jest.fn(),
+    batchInvalidate: jest.fn(),
+  }
 }));
 
 // Mock Date for consistent testing

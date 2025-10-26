@@ -357,8 +357,8 @@ describe('EventService', () => {
       });
 
       // Mock individual event queries
-      const lastWatered = { ...mockEvent, event_type: 'water', date: '2024-01-10T10:00:00.000Z' };
-      const lastFertilized = { ...mockEvent, event_type: 'fertilize', date: '2024-01-05T10:00:00.000Z' };
+      const lastWatered = { ...mockEvent, event_type: 'water' as const, date: '2024-01-10T10:00:00.000Z' };
+      const lastFertilized = { ...mockEvent, event_type: 'fertilize' as const, date: '2024-01-05T10:00:00.000Z' };
       const lastRepotted = null;
 
       jest.spyOn(EventService, 'getLastEventByType')

@@ -111,7 +111,7 @@ export type Database = {
         Row: {
           id: string;
           plant_id: string;
-          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
+          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
           date: string;
           notes?: string;
           fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
@@ -123,7 +123,7 @@ export type Database = {
         Insert: {
           id?: string;
           plant_id: string;
-          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
+          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
           date: string;
           notes?: string;
           fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
@@ -135,7 +135,7 @@ export type Database = {
         Update: {
           id?: string;
           plant_id?: string;
-          event_type?: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other';
+          event_type?: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
           date?: string;
           notes?: string;
           fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';

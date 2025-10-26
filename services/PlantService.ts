@@ -299,4 +299,89 @@ export class PlantService {
     
     return this.updatePlant(id, { pinned: !plant.pinned });
   }
+
+  static async getPlantsWithLastWateringEvents(): Promise<Array<Plant & { lastWateringDate?: string | null }>> {
+    try {
+      // Get current household session for filtering
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      const cacheKey = `plants-with-watering-${session.household_id}`;
+      
+      // Try to get from cache first
+      const cached = await CacheService.getCachedResponse<Array<Plant & { lastWateringDate?: string | null }>>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      // First get all plants
+      const plants = await this.getAllPlants();
+      
+      if (plants.length === 0) {
+        const result: Array<Plant & { lastWateringDate?: string | null }> = [];
+        await CacheService.cacheApiResponse(cacheKey, result, 5 * 60 * 1000);
+        return result;
+      }
+
+      // Get the most recent watering event for each plant in a single query
+      // This uses a window function to get the latest event per plant
+      const { data: lastWateringEvents, error } = await supabase
+        .from('events')
+        .select('plant_id, date, event_type')
+        .in('plant_id', plants.map(p => p.id))
+        .in('event_type', ['water', 'fertigate']) // Both count as watering
+        .eq('household_id', session.household_id)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching last watering events:', error);
+        // Return plants without watering data rather than failing
+        const result = plants.map(plant => ({ ...plant, lastWateringDate: null }));
+        await CacheService.cacheApiResponse(cacheKey, result, 5 * 60 * 1000);
+        return result;
+      }
+
+      // Create a map of plant ID to most recent watering date
+      const lastWateringMap = new Map<string, string>();
+      if (lastWateringEvents) {
+        // Group events by plant_id and take the most recent one
+        const eventsByPlant = new Map<string, { date: string; event_type: string }[]>();
+        
+        lastWateringEvents.forEach(event => {
+          if (!eventsByPlant.has(event.plant_id)) {
+            eventsByPlant.set(event.plant_id, []);
+          }
+          eventsByPlant.get(event.plant_id)!.push({
+            date: event.date,
+            event_type: event.event_type
+          });
+        });
+
+        // For each plant, find the most recent watering event
+        eventsByPlant.forEach((events, plantId) => {
+          // Sort by date descending and take the first one
+          const sortedEvents = events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          if (sortedEvents.length > 0) {
+            lastWateringMap.set(plantId, sortedEvents[0].date);
+          }
+        });
+      }
+
+      // Combine plants with their last watering dates
+      const result = plants.map(plant => ({
+        ...plant,
+        lastWateringDate: lastWateringMap.get(plant.id) || null
+      }));
+
+      // Cache the result for 5 minutes
+      await CacheService.cacheApiResponse(cacheKey, result, 5 * 60 * 1000);
+
+      return result;
+    } catch (error) {
+      console.error('Error fetching plants with last watering events:', error);
+      throw new Error(`Failed to fetch plants with watering data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

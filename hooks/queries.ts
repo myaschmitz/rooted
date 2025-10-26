@@ -13,30 +13,30 @@ export { queryKeys };
 // ============================================================================
 
 export const usePlants = () => {
-  return useQuery({
+  return useQuery<Plant[]>({
     queryKey: queryKeys.plants,
     queryFn: PlantService.getAllPlants,
     staleTime: 5 * 60 * 1000, // 5 minutes - plants don't change frequently
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 };
 
 export const usePlant = (id: string) => {
-  return useQuery({
+  return useQuery<Plant | null>({
     queryKey: queryKeys.plant(id),
     queryFn: () => PlantService.getPlantById(id),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!id,
   });
 };
 
 export const usePlantsByLocation = (location: string) => {
-  return useQuery({
+  return useQuery<Plant[]>({
     queryKey: queryKeys.plantsByLocation(location),
     queryFn: () => PlantService.getPlantsByLocation(location),
     staleTime: 10 * 60 * 1000, // 10 minutes - location-based queries are fairly stable
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     enabled: !!location,
   });
 };
@@ -46,54 +46,41 @@ export const usePlantsByLocation = (location: string) => {
 // ============================================================================
 
 export const usePlantPhotos = (plantId: string) => {
-  return useQuery({
+  return useQuery<PlantPhoto[]>({
     queryKey: queryKeys.plantPhotos(plantId),
     queryFn: () => PhotoService.getPhotosByPlantId(plantId),
     staleTime: 10 * 60 * 1000, // 10 minutes - photos don't change very frequently
-    cacheTime: 60 * 60 * 1000, // 1 hour - photos are valuable to cache longer
+    gcTime: 60 * 60 * 1000, // 1 hour - photos are valuable to cache longer
     enabled: !!plantId,
-    // Pre-cache thumbnails when photos are loaded
-    onSuccess: (photos: PlantPhoto[]) => {
-    },
   });
 };
 
 export const usePlantPhotosOldestFirst = (plantId: string) => {
-  return useQuery({
+  return useQuery<PlantPhoto[]>({
     queryKey: [...queryKeys.plantPhotos(plantId), 'oldest-first'],
     queryFn: () => PhotoService.getPhotosByPlantIdOldestFirst(plantId),
     staleTime: 10 * 60 * 1000, // 10 minutes
-    cacheTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 60 * 60 * 1000, // 1 hour
     enabled: !!plantId,
-    onSuccess: (photos: PlantPhoto[]) => {
-    },
   });
 };
 
 export const useAllPhotos = () => {
-  return useQuery({
+  return useQuery<PlantPhoto[]>({
     queryKey: queryKeys.allPhotos,
     queryFn: PhotoService.getAllPhotos,
     staleTime: 15 * 60 * 1000, // 15 minutes - all photos is expensive to fetch
-    cacheTime: 60 * 60 * 1000, // 1 hour
-    onSuccess: (photos: PlantPhoto[]) => {
-      if (photos?.length > 0) {
-      }
-    },
+    gcTime: 60 * 60 * 1000, // 1 hour
   });
 };
 
 export const useThumbnailPhoto = (plantId: string) => {
-  return useQuery({
+  return useQuery<PlantPhoto | null>({
     queryKey: queryKeys.thumbnailPhoto(plantId),
     queryFn: () => PhotoService.getThumbnailPhoto(plantId),
     staleTime: 30 * 60 * 1000, // 30 minutes - thumbnails rarely change
-    cacheTime: 2 * 60 * 60 * 1000, // 2 hours - thumbnails are very cacheable
+    gcTime: 2 * 60 * 60 * 1000, // 2 hours - thumbnails are very cacheable
     enabled: !!plantId,
-    onSuccess: (photo: PlantPhoto | null) => {
-      if (photo?.thumbnail_path) {
-      }
-    },
   });
 };
 
@@ -102,30 +89,30 @@ export const useThumbnailPhoto = (plantId: string) => {
 // ============================================================================
 
 export const usePlantEvents = (plantId: string) => {
-  return useQuery({
+  return useQuery<Event[]>({
     queryKey: queryKeys.plantEvents(plantId),
     queryFn: () => EventService.getEventsByPlantId(plantId),
     staleTime: 5 * 60 * 1000, // 5 minutes - events change more frequently
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!plantId,
   });
 };
 
 export const useRecentEvents = (limit: number = 10) => {
-  return useQuery({
+  return useQuery<Event[]>({
     queryKey: [...queryKeys.recentEvents, limit],
     queryFn: () => EventService.getRecentEvents(limit),
     staleTime: 2 * 60 * 1000, // 2 minutes - recent events should be relatively fresh
-    cacheTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 };
 
 export const usePlantStats = (plantId: string) => {
-  return useQuery({
+  return useQuery<any>({
     queryKey: queryKeys.plantStats(plantId),
     queryFn: () => EventService.getEventStats(plantId),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: !!plantId,
   });
 };

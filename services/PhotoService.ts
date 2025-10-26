@@ -1049,6 +1049,97 @@ export class PhotoService {
     }
   }
 
+  static async getBatchThumbnailPhotos(plantIds: string[]): Promise<{[plantId: string]: PlantPhoto | null}> {
+    try {
+      // Get current household session
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+
+      const cacheKey = `batch-thumbnails-${session.household_id}-${plantIds.sort().join(',')}`;
+      
+      // Try to get from cache first
+      const cached = await CacheService.getCachedResponse<{[plantId: string]: PlantPhoto | null}>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch plants with their thumbnail photo IDs in a single query
+      const { data: plants, error: plantsError } = await supabase
+        .from('plants')
+        .select('id, thumbnail_photo_id')
+        .in('id', plantIds)
+        .eq('household_id', session.household_id);
+
+      if (plantsError) {
+        console.error('Error fetching plants for thumbnails:', plantsError);
+        throw new Error(`Failed to fetch plants: ${plantsError.message}`);
+      }
+
+      const result: {[plantId: string]: PlantPhoto | null} = {};
+      
+      // Initialize all plant IDs with null
+      plantIds.forEach(id => {
+        result[id] = null;
+      });
+
+      if (!plants || plants.length === 0) {
+        await CacheService.cacheApiResponse(cacheKey, result, 10 * 60 * 1000); // Cache for 10 minutes
+        return result;
+      }
+
+      // Get all unique thumbnail photo IDs
+      const thumbnailPhotoIds = plants
+        .filter(plant => plant.thumbnail_photo_id)
+        .map(plant => plant.thumbnail_photo_id!)
+        .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
+
+      if (thumbnailPhotoIds.length === 0) {
+        await CacheService.cacheApiResponse(cacheKey, result, 10 * 60 * 1000);
+        return result;
+      }
+
+      // Fetch all thumbnail photos in a single query
+      const { data: thumbnailPhotos, error: photosError } = await supabase
+        .from('plant_photos')
+        .select('*')
+        .in('id', thumbnailPhotoIds)
+        .eq('household_id', session.household_id);
+
+      if (photosError) {
+        console.error('Error fetching thumbnail photos:', photosError);
+        // Don't throw error, just return empty results
+      } else if (thumbnailPhotos) {
+        // Create a map of photo ID to photo
+        const photoMap = new Map<string, PlantPhoto>();
+        thumbnailPhotos.forEach(photo => {
+          photoMap.set(photo.id, photo as PlantPhoto);
+        });
+
+        // Map plants to their thumbnail photos
+        plants.forEach(plant => {
+          if (plant.thumbnail_photo_id && photoMap.has(plant.thumbnail_photo_id)) {
+            result[plant.id] = photoMap.get(plant.thumbnail_photo_id)!;
+          }
+        });
+      }
+
+      // Cache the result for 10 minutes
+      await CacheService.cacheApiResponse(cacheKey, result, 10 * 60 * 1000);
+
+      return result;
+    } catch (error) {
+      console.error('Error getting batch thumbnail photos:', error);
+      // Return empty results for all requested plant IDs
+      const result: {[plantId: string]: PlantPhoto | null} = {};
+      plantIds.forEach(id => {
+        result[id] = null;
+      });
+      return result;
+    }
+  }
+
   static async generateThumbnailsForExistingPhotos(): Promise<{ success: number; failed: number; skipped: number }> {
     try {
       console.log('Starting thumbnail generation for existing photos...');

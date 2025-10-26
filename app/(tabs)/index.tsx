@@ -18,6 +18,7 @@ import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { PlantThumbnail } from '../../components/PlantThumbnail';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
+import { usePlants, useCreateEvent } from '../../hooks/queries';
 
 dayjs.extend(relativeTime);
 
@@ -36,13 +37,105 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [plantsGrouped, setPlantsGrouped] = useState<{title: string, data: Plant[]}[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // React Query hooks - these handle caching automatically
+  const { data: plants = [], isLoading: plantsLoading, refetch: refetchPlants } = usePlants();
+  const createEventMutation = useCreateEvent();
+  
+  // State declarations (must come before useMemo that depends on them)
+  const [globalSortPreference, setGlobalSortPreference] = useState<GlobalSortPreference>({ type: 'name', direction: 'asc' });
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [pinnedPlantIds, setPinnedPlantIds] = useState<Set<string>>(new Set());
+  
+  // Derived state
+  const loading = plantsLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
   const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
   const [plantLastPhotoData, setPlantLastPhotoData] = useState<{[plantId: string]: string | null}>({});
+  
+  // Helper function to sort plants based on global preferences (must come before useMemo)
+  const sortPlants = useCallback((plants: Plant[]): Plant[] => {
+    return [...plants].sort((a, b) => {
+      let comparison = 0;
+      
+      if (globalSortPreference.type === 'name') {
+        const nameA = (a.name || a.type).toLowerCase();
+        const nameB = (b.name || b.type).toLowerCase();
+        comparison = nameA.localeCompare(nameB);
+      } else if (globalSortPreference.type === 'lastWatered') {
+        const lastWateredA = plantWateringData[a.id];
+        const lastWateredB = plantWateringData[b.id];
+        
+        // Handle null values (never watered) - they should come last in ascending, first in descending
+        if (!lastWateredA && !lastWateredB) {
+          comparison = 0;
+        } else if (!lastWateredA) {
+          comparison = globalSortPreference.direction === 'asc' ? 1 : -1;
+        } else if (!lastWateredB) {
+          comparison = globalSortPreference.direction === 'asc' ? -1 : 1;
+        } else {
+          // Compare dates - more recent should come first in desc, last in asc
+          comparison = dayjs(lastWateredA).isBefore(dayjs(lastWateredB)) ? -1 : 1;
+        }
+      }
+      
+      return globalSortPreference.direction === 'desc' ? -comparison : comparison;
+    });
+  }, [globalSortPreference, plantWateringData]);
+  
+  // Grouped plants derived from plants data
+  const plantsGrouped = useMemo(() => {
+    if (!plants.length) return [];
+    
+    // Separate pinned and non-pinned plants
+    const pinnedPlants = plants.filter(plant => pinnedPlantIds.has(plant.id));
+    const unpinnedPlants = plants.filter(plant => !pinnedPlantIds.has(plant.id));
+    
+    // Create sections array
+    const sections: {title: string, data: Plant[]}[] = [];
+    
+    // Add Pinned Plants section if there are any pinned plants
+    if (pinnedPlants.length > 0) {
+      const sortedPinnedPlants = sortPlants(pinnedPlants);
+      sections.push({
+        title: 'Pinned Plants',
+        data: sortedPinnedPlants
+      });
+    }
+    
+    // Group unpinned plants by location
+    const groupedUnpinnedPlants = unpinnedPlants.reduce((acc, plant) => {
+      const location = plant.location || 'No Location';
+      if (!acc[location]) {
+        acc[location] = [];
+      }
+      acc[location].push(plant);
+      return acc;
+    }, {} as {[location: string]: Plant[]});
+    
+    const locationSections = Object.entries(groupedUnpinnedPlants).map(([location, locationPlants]) => {
+      // Sort plants using global preferences
+      const sortedPlants = sortPlants(locationPlants);
+      
+      return {
+        title: location,
+        data: sortedPlants
+      };
+    }).filter(section => section.data.length > 0); // Only include sections with plants
+    
+    // Sort location sections: "No Location" last, others alphabetically
+    locationSections.sort((a, b) => {
+      if (a.title === 'No Location') return 1;
+      if (b.title === 'No Location') return -1;
+      return a.title.localeCompare(b.title);
+    });
+    
+    // Add location sections after pinned section
+    sections.push(...locationSections);
+    
+    return sections;
+  }, [plants, pinnedPlantIds, sortPlants]);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,14 +154,6 @@ export default function HomeScreen() {
     pestSeverity: 1,
   });
   
-  // Global sorting state
-  const [globalSortPreference, setGlobalSortPreference] = useState<GlobalSortPreference>({ type: 'name', direction: 'asc' });
-  
-  // Sort dropdown state
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  
-  // Pinned plants state
-  const [pinnedPlantIds, setPinnedPlantIds] = useState<Set<string>>(new Set());
 
   const careTypes: Array<{
     type: 'water' | 'fertilize' | 'fertigate' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'repot' | 'other';
@@ -182,203 +267,143 @@ export default function HomeScreen() {
     await savePinnedPlants(newPinnedIds);
   }, [pinnedPlantIds, savePinnedPlants]);
 
-  // Helper function to sort plants based on global preferences
-  const sortPlants = useCallback((plants: Plant[]): Plant[] => {
-    return [...plants].sort((a, b) => {
-      let comparison = 0;
-      
-      if (globalSortPreference.type === 'name') {
-        const nameA = (a.name || a.type).toLowerCase();
-        const nameB = (b.name || b.type).toLowerCase();
-        comparison = nameA.localeCompare(nameB);
-      } else if (globalSortPreference.type === 'lastWatered') {
-        const lastWateredA = plantWateringData[a.id];
-        const lastWateredB = plantWateringData[b.id];
+
+  // Load auxiliary data for plants more efficiently
+  const loadPlantAuxiliaryData = useCallback(async () => {
+    if (!plants.length) return;
+    
+    // Load thumbnails efficiently using batch method
+    const loadThumbnails = async () => {
+      try {
+        const plantIds = plants.map(p => p.id);
+        const batchThumbnails = await PhotoService.getBatchThumbnailPhotos(plantIds);
         
-        // Handle null values (never watered) - they should come last in ascending, first in descending
-        if (!lastWateredA && !lastWateredB) {
-          comparison = 0;
-        } else if (!lastWateredA) {
-          comparison = globalSortPreference.direction === 'asc' ? 1 : -1;
-        } else if (!lastWateredB) {
-          comparison = globalSortPreference.direction === 'asc' ? -1 : 1;
-        } else {
-          // Compare dates - more recent should come first in desc, last in asc
-          comparison = dayjs(lastWateredA).isBefore(dayjs(lastWateredB)) ? -1 : 1;
+        const thumbnails: {[plantId: string]: string} = {};
+        Object.entries(batchThumbnails).forEach(([plantId, photo]) => {
+          if (photo) {
+            thumbnails[plantId] = PhotoService.getImageUrl(photo, true);
+          }
+        });
+        
+        // For plants without designated thumbnails, fall back to first photo
+        const plantsWithoutThumbnails = plants.filter(p => !thumbnails[p.id]);
+        if (plantsWithoutThumbnails.length > 0) {
+          // Process these in smaller batches to avoid overwhelming the API
+          const batchSize = 5;
+          for (let i = 0; i < plantsWithoutThumbnails.length; i += batchSize) {
+            const batch = plantsWithoutThumbnails.slice(i, i + batchSize);
+            const fallbackPromises = batch.map(async (plant) => {
+              try {
+                const photos = await PhotoService.getPhotosByPlantId(plant.id);
+                if (photos.length > 0) {
+                  return { plantId: plant.id, path: PhotoService.getImageUrl(photos[0], true) };
+                }
+              } catch (error) {
+                console.error(`Failed to load fallback thumbnail for plant ${plant.id}:`, error);
+              }
+              return null;
+            });
+            
+            const batchResults = await Promise.allSettled(fallbackPromises);
+            batchResults.forEach((result) => {
+              if (result.status === 'fulfilled' && result.value) {
+                thumbnails[result.value.plantId] = result.value.path;
+              }
+            });
+          }
         }
+        
+        setPlantThumbnails(thumbnails);
+      } catch (error) {
+        console.error('Failed to load thumbnails:', error);
+        setPlantThumbnails({});
       }
-      
-      return globalSortPreference.direction === 'desc' ? -comparison : comparison;
-    });
-  }, [globalSortPreference, plantWateringData]);
-
-  const loadPlants = useCallback(async () => {
-    try {
-      const allPlants = await PlantService.getAllPlants();
-      setPlants(allPlants);
-      
-      // Load thumbnails for each plant in parallel
-      const thumbnails: {[plantId: string]: string} = {};
-      const thumbnailPromises = allPlants.map(async (plant) => {
-        try {
-          if (plant.thumbnail_photo_id) {
-            // Use the designated thumbnail photo
-            const thumbnailPhoto = await PhotoService.getThumbnailPhoto(plant.id);
-            if (thumbnailPhoto) {
-              return { plantId: plant.id, path: PhotoService.getImageUrl(thumbnailPhoto, true) };
-            }
-          } else {
-            // Fall back to first photo if no thumbnail is set
-            const photos = await PhotoService.getPhotosByPlantId(plant.id);
-            if (photos.length > 0) {
-              return { plantId: plant.id, path: PhotoService.getImageUrl(photos[0], true) };
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to load photos for plant ${plant.id}:`, error);
-        }
-        return null;
-      });
-
-      const thumbnailResults = await Promise.allSettled(thumbnailPromises);
-      thumbnailResults.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value) {
-          thumbnails[result.value.plantId] = result.value.path;
-        }
-      });
-      setPlantThumbnails(thumbnails);
-
-      // Load last watering data for each plant in parallel (includes both water and fertigate)
+    };
+    
+    // Load watering and photo data more efficiently
+    const loadAdditionalData = async () => {
       const wateringData: {[plantId: string]: string | null} = {};
-      const wateringPromises = allPlants.map(async (plant) => {
-        try {
-          // Get both water and fertigate events (fertigate is water + fertilizer)
-          const [lastWatering, lastFertigate] = await Promise.all([
-            EventService.getLastEventByType(plant.id, 'water'),
-            EventService.getLastEventByType(plant.id, 'fertigate')
-          ]);
-
-          // Find the most recent between water and fertigate
-          let mostRecentWatering = null;
-          if (lastWatering && lastFertigate) {
-            mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date)) 
-              ? lastWatering 
-              : lastFertigate;
-          } else if (lastWatering) {
-            mostRecentWatering = lastWatering;
-          } else if (lastFertigate) {
-            mostRecentWatering = lastFertigate;
-          }
-
-          return { plantId: plant.id, lastWatered: mostRecentWatering?.date || null };
-        } catch (error) {
-          console.error(`Failed to load watering data for plant ${plant.id}:`, error);
-          return { plantId: plant.id, lastWatered: null };
-        }
-      });
-
-      const wateringResults = await Promise.allSettled(wateringPromises);
-      wateringResults.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value) {
-          wateringData[result.value.plantId] = result.value.lastWatered;
-        }
-      });
-      setPlantWateringData(wateringData);
-
-      // Load last photo data for each plant in parallel
       const lastPhotoData: {[plantId: string]: string | null} = {};
-      const photoPromises = allPlants.map(async (plant) => {
-        try {
-          const photos = await PhotoService.getPhotosByPlantId(plant.id);
-          const lastPhoto = photos.length > 0 ? photos[0] : null; // First photo is most recent due to order
-          return { plantId: plant.id, lastPhotoDate: lastPhoto?.taken_at || null };
-        } catch (error) {
-          console.error(`Failed to load photo data for plant ${plant.id}:`, error);
-          return { plantId: plant.id, lastPhotoDate: null };
-        }
-      });
-
-      const photoResults = await Promise.allSettled(photoPromises);
-      photoResults.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value) {
-          lastPhotoData[result.value.plantId] = result.value.lastPhotoDate;
-        }
-      });
-      setPlantLastPhotoData(lastPhotoData);
-
-      // Separate pinned and non-pinned plants
-      const pinnedPlants = allPlants.filter(plant => pinnedPlantIds.has(plant.id));
-      const unpinnedPlants = allPlants.filter(plant => !pinnedPlantIds.has(plant.id));
       
-      // Create sections array
-      const sections: {title: string, data: Plant[]}[] = [];
-      
-      // Add Pinned Plants section if there are any pinned plants
-      if (pinnedPlants.length > 0) {
-        const sortedPinnedPlants = sortPlants(pinnedPlants);
-        sections.push({
-          title: 'Pinned Plants',
-          data: sortedPinnedPlants
+      // Process plants in smaller batches to avoid overwhelming the API
+      const batchSize = 5;
+      for (let i = 0; i < plants.length; i += batchSize) {
+        const batch = plants.slice(i, i + batchSize);
+        
+        const batchPromises = batch.map(async (plant) => {
+          try {
+            // Load watering data and photo data for this plant
+            const [lastWatering, lastFertigate, photos] = await Promise.all([
+              EventService.getLastEventByType(plant.id, 'water'),
+              EventService.getLastEventByType(plant.id, 'fertigate'),
+              PhotoService.getPhotosByPlantId(plant.id)
+            ]);
+            
+            // Find the most recent watering
+            let mostRecentWatering = null;
+            if (lastWatering && lastFertigate) {
+              mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date)) 
+                ? lastWatering 
+                : lastFertigate;
+            } else if (lastWatering) {
+              mostRecentWatering = lastWatering;
+            } else if (lastFertigate) {
+              mostRecentWatering = lastFertigate;
+            }
+            
+            const lastPhoto = photos.length > 0 ? photos[0] : null;
+            
+            return {
+              plantId: plant.id,
+              lastWatered: mostRecentWatering?.date || null,
+              lastPhotoDate: lastPhoto?.taken_at || null
+            };
+          } catch (error) {
+            console.error(`Failed to load data for plant ${plant.id}:`, error);
+            return {
+              plantId: plant.id,
+              lastWatered: null,
+              lastPhotoDate: null
+            };
+          }
+        });
+        
+        const batchResults = await Promise.allSettled(batchPromises);
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value) {
+            const { plantId, lastWatered, lastPhotoDate } = result.value;
+            wateringData[plantId] = lastWatered;
+            lastPhotoData[plantId] = lastPhotoDate;
+          }
         });
       }
       
-      // Group unpinned plants by location
-      const groupedUnpinnedPlants = unpinnedPlants.reduce((acc, plant) => {
-        const location = plant.location || 'No Location';
-        if (!acc[location]) {
-          acc[location] = [];
-        }
-        acc[location].push(plant);
-        return acc;
-      }, {} as {[location: string]: Plant[]});
-      
-      const locationSections = Object.entries(groupedUnpinnedPlants).map(([location, plants]) => {
-        // Sort plants using global preferences
-        const sortedPlants = sortPlants(plants);
-        
-        return {
-          title: location,
-          data: sortedPlants
-        };
-      }).filter(section => section.data.length > 0); // Only include sections with plants
-      
-      // Sort location sections: "No Location" last, others alphabetically
-      locationSections.sort((a, b) => {
-        if (a.title === 'No Location') return 1;
-        if (b.title === 'No Location') return -1;
-        return a.title.localeCompare(b.title);
-      });
-      
-      // Add location sections after pinned section
-      sections.push(...locationSections);
-      
-      setPlantsGrouped(sections);
-    } catch (error) {
-      console.error('Failed to load plants:', error);
-      Alert.alert('Error', 'Failed to load plants');
-    } finally {
-      setLoading(false);
+      setPlantWateringData(wateringData);
+      setPlantLastPhotoData(lastPhotoData);
+    };
+    
+    // Load thumbnails first (more important for UI), then additional data
+    await loadThumbnails();
+    await loadAdditionalData();
+  }, [plants]);
+  
+  // Load auxiliary data when plants change
+  useEffect(() => {
+    if (plants.length > 0) {
+      loadPlantAuxiliaryData();
     }
-  }, [sortPlants, pinnedPlantIds]);
+  }, [plants, loadPlantAuxiliaryData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await loadPlants();
+      // Use React Query refetch instead of manual loading
+      await refetchPlants();
+      // Auxiliary data will be reloaded by the useEffect when plants change
     } finally {
       setRefreshing(false);
     }
-  }, [loadPlants]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadPlants();
-    }, [loadPlants])
-  );
-
-  useEffect(() => {
-    loadPlants();
-  }, []);
+  }, [refetchPlants]);
 
   // Load global sorting preference on app initialization
   useEffect(() => {
@@ -398,11 +423,8 @@ export default function HomeScreen() {
     initializePinnedPlants();
   }, [loadPinnedPlants]);
 
-  // Set up real-time subscriptions for automatic updates
-  useRealtimeUpdates({
-    onPlantsUpdate: loadPlants,
-    onPhotosUpdate: loadPlants, // Photos affect thumbnails, so reload plants
-  });
+  // Set up real-time subscriptions - React Query will handle invalidation
+  useRealtimeUpdates({});
 
 
   const formatTimeSinceWatering = (lastWateredDate?: string | null) => {
@@ -510,8 +532,8 @@ export default function HomeScreen() {
       const selectedPlantsList = Array.from(selectedPlants);
       const careTypeLabel = careTypes.find(ct => ct.type === selectedCareType)?.label || selectedCareType;
 
-      // Add events for all selected plants
-      for (const plantId of selectedPlantsList) {
+      // Add events for all selected plants using React Query mutations
+      const eventPromises = selectedPlantsList.map(async (plantId) => {
         const careEventData: any = {
           plant_id: plantId,
           event_type: selectedCareType,
@@ -526,8 +548,10 @@ export default function HomeScreen() {
           careEventData.pest_severity = careDetails.pestSeverity;
         }
 
-        await EventService.createEvent(careEventData);
-      }
+        return createEventMutation.mutateAsync(careEventData);
+      });
+      
+      await Promise.all(eventPromises);
       
       // Reset form and close modals
       setSelectedPlants(new Set());
@@ -538,7 +562,7 @@ export default function HomeScreen() {
         fertilizerStrength: '1x' as '1/4' | '1/2' | '1x' | '1.5x' | '2x',
         pestSeverity: 1,
       });
-      await loadPlants(); // Refresh plant data
+      // React Query mutations handle cache invalidation automatically
       Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
       console.error('Failed to add events:', error);
