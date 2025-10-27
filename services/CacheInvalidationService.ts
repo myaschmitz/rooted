@@ -14,6 +14,10 @@ export type InvalidationAction =
   | 'photo_updated'
   | 'photo_deleted'
   | 'thumbnail_changed'
+  | 'tag_added'
+  | 'tag_updated'
+  | 'tag_deleted'
+  | 'all_tags_deleted'
   | 'user_action'
   | 'household_changed';
 
@@ -339,6 +343,19 @@ export class CacheInvalidationService {
           }
           break;
 
+        case 'tag_added':
+        case 'tag_updated':
+        case 'tag_deleted':
+        case 'all_tags_deleted':
+          if (additionalData.plant_id) {
+            // Invalidate plant data as tags are part of plant display
+            await queryClient.invalidateQueries({ queryKey: queryKeys.plant(additionalData.plant_id) });
+            
+            // If there are tag-specific queries in the future, add them here
+            // await queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(additionalData.plant_id) });
+          }
+          break;
+
         case 'household_changed':
           // Nuclear option - invalidate everything for household changes
           await queryClient.invalidateQueries();
@@ -406,6 +423,15 @@ export class CacheInvalidationService {
         case 'thumbnail_changed':
           if (entityId) {
             patterns.push(`plant-${entityId}`, `thumbnail-${entityId}`, 'plants-list');
+          }
+          break;
+
+        case 'tag_added':
+        case 'tag_updated':
+        case 'tag_deleted':
+        case 'all_tags_deleted':
+          if (additionalData.plant_id) {
+            patterns.push(`plant-tags-${additionalData.plant_id}`, `plant-${additionalData.plant_id}`);
           }
           break;
 

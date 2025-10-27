@@ -45,3 +45,13 @@ export interface PlantNote {
   created_at: string;
   updated_at: string;
 }
+
+export interface PlantTag {
+  id: string;
+  plant_id: string;
+  name: string;
+  color: string; // Hex color code (e.g., '#FF5733')
+  household_id?: string;
+  created_at: string;
+  updated_at: string;
+}

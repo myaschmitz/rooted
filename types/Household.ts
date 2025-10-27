@@ -99,6 +99,9 @@ export type ActivityAction =
   | 'added note'
   | 'updated note'
   | 'deleted note'
+  | 'added tag'
+  | 'updated tag'
+  | 'deleted tag'
   | 'other care';
 
 export interface ActivityLogDetails {

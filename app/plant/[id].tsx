@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import ImageViewing from 'react-native-image-viewing';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { SquarePen, Trash2, X, Download } from 'lucide-react-native';
 import { Plant, Event, PlantPhoto } from '../../types/Plant';
 import { PlantService } from '../../services/PlantService';
@@ -21,6 +21,7 @@ import { PhotoService } from '../../services/PhotoService';
 import { DateTimeService } from '../../services/DateTimeService';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
+import TagsList from '../../components/TagsList';
 import { 
   usePlant, 
   usePlantEvents, 
@@ -70,6 +71,7 @@ export default function PlantDetailScreen() {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [eventPhotos, setEventPhotos] = useState<{[eventId: string]: PlantPhoto[]}>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [tagRefreshTrigger, setTagRefreshTrigger] = useState(0);
   
   // Derived current thumbnail ID from plant data
   const currentThumbnailId = plant?.thumbnail_photo_id || null;
@@ -139,6 +141,13 @@ export default function PlantDetailScreen() {
   // Set up real-time subscriptions - React Query will handle invalidation
   useRealtimeUpdates({});
 
+  // Refresh tags when screen comes back into focus (e.g., after adding a tag)
+  useFocusEffect(
+    useCallback(() => {
+      setTagRefreshTrigger(prev => prev + 1);
+    }, [])
+  );
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -154,6 +163,10 @@ export default function PlantDetailScreen() {
 
   const handleLogCare = () => {
     router.push(`/log-care?plantId=${id}`);
+  };
+
+  const handleAddTag = () => {
+    router.push(`/add-tag?plantId=${id}`);
   };
 
   const handleAddPhoto = () => {
@@ -556,6 +569,15 @@ export default function PlantDetailScreen() {
           </View>
         </View>
 
+        {/* Plant Tags */}
+        <View style={styles.tagSection}>
+          <TagsList
+            plantId={id!}
+            onAddTagPress={handleAddTag}
+            refreshTrigger={tagRefreshTrigger}
+          />
+        </View>
+
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLogCare}>
@@ -876,6 +898,14 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textTertiary,
     marginBottom: 10,
+  },
+  tagSection: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 10,
+    marginTop: 0,
+    marginBottom: 10,
+    padding: 15,
+    borderRadius: 8,
   },
   actionButtons: {
     flexDirection: 'row',
