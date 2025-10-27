@@ -166,7 +166,7 @@ export default function HomeScreen() {
     { type: 'fertigate', label: 'Fertigated', icon: Droplets, color: '#00BCD4' },
     { type: 'prune', label: 'Pruned', icon: Scissors, color: '#FF9800' },
     { type: 'pest_spotted', label: 'Pest Spotted', icon: Bug, color: '#F44336' },
-    { type: 'insecticide_spray', label: 'Insecticide Spray', icon: Sprout, color: '#9C27B0' },
+    { type: 'insecticide_spray', label: 'Insecticide', icon: Sprout, color: '#9C27B0' },
     { type: 'repot', label: 'Repotted', icon: Sprout, color: '#795548' },
     { type: 'other', label: 'Other', icon: MoreHorizontal, color: '#607D8B' },
   ];

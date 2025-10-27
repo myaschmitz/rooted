@@ -48,6 +48,7 @@ export default function LogCareScreen() {
   const [selectedExistingPhotoIds, setSelectedExistingPhotoIds] = useState<string[]>([]);
   const [takingPhoto, setTakingPhoto] = useState(false);
   const [pickingPhotos, setPickingPhotos] = useState(false);
+  const [photosExpanded, setPhotosExpanded] = useState(false);
 
   useEffect(() => {
     if (plantId) {
@@ -210,13 +211,13 @@ export default function LogCareScreen() {
       { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
       { value: 'repot', label: 'Repot', icon: '🪴' },
       { value: 'prune', label: 'Prune', icon: '✂️' },
-      { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
+      { value: 'insecticide_spray', label: 'Insecticide', icon: '🧴' },
     ],
     events: [
       { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
       { value: 'new_leaf', label: 'New Leaf', icon: '🍃' },
       { value: 'relocation', label: 'Relocation', icon: '📦' },
-      { value: 'new_roots_spotted', label: 'New Roots Spotted', icon: '🌿' },
+      { value: 'new_roots_spotted', label: 'New Roots', icon: '🌿' },
       { value: 'other', label: 'Other', icon: '📝' },
     ],
   } as const;
@@ -418,11 +419,21 @@ export default function LogCareScreen() {
           )}
 
           {/* Photos */}
-          <View style={globalStyles.inputGroup}>
-            <Text style={globalStyles.label}>Photos (Optional)</Text>
+          <View style={[globalStyles.inputGroup, styles.photosSection]}>
+            <TouchableOpacity 
+              style={styles.photosSectionHeader}
+              onPress={() => setPhotosExpanded(!photosExpanded)}
+            >
+              <Text style={globalStyles.label}>Photos (Optional)</Text>
+              <Text style={styles.expandIcon}>
+                {photosExpanded ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
             
-            {/* Photo Action Buttons */}
-            <View style={styles.photoActionContainer}>
+            {photosExpanded && (
+              <>
+                {/* Photo Action Buttons */}
+                <View style={styles.photoActionContainer}>
               <TouchableOpacity
                 style={[styles.photoActionButton, takingPhoto && styles.photoActionButtonDisabled]}
                 onPress={handleTakePhoto}
@@ -526,10 +537,12 @@ export default function LogCareScreen() {
                 </ScrollView>
               </View>
             )}
+              </>
+            )}
           </View>
 
           {/* Notes */}
-          <View style={globalStyles.inputGroup}>
+          <View style={[globalStyles.inputGroup, styles.notesSection]}>
             <Text style={globalStyles.label}>Notes</Text>
             <TextInput
               style={globalStyles.inputTextArea}
@@ -537,7 +550,7 @@ export default function LogCareScreen() {
               onChangeText={setNotes}
               placeholder="Additional notes about this event..."
               multiline
-              numberOfLines={4}
+              numberOfLines={2}
               textAlignVertical="top"
             />
           </View>
@@ -625,16 +638,16 @@ export default function LogCareScreen() {
 
 const createStyles = (theme) => StyleSheet.create({
   plantInfo: {
-    marginBottom: 24,
+    marginBottom: 20,
     alignItems: 'center',
   },
   plantName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: theme.colors.textPrimary,
   },
   plantType: {
-    fontSize: 18,
+    fontSize: 16,
     color: theme.colors.textSecondary,
   },
   careTypeGrid: {
@@ -658,10 +671,10 @@ const createStyles = (theme) => StyleSheet.create({
     backgroundColor: theme.colors.primaryLight,
   },
   careTypeIcon: {
-    fontSize: 32,
+    fontSize: 24,
   },
   careTypeText: {
-    fontSize: 14,
+    fontSize: 12,
     color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 8,
@@ -694,7 +707,7 @@ const createStyles = (theme) => StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 6,
     alignItems: 'center',
@@ -928,6 +941,23 @@ const createStyles = (theme) => StyleSheet.create({
   emptyPhotoText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
+  },
+  notesSection: {
+    marginTop: 6,
+  },
+  photosSection: {
+    marginBottom: 8,
+  },
+  photosSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  expandIcon: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: 'bold',
   },
 });
 

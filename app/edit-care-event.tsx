@@ -237,14 +237,14 @@ export default function EditCareEventScreen() {
       { value: 'fertigate', label: 'Fertigate', icon: '💧🌱' },
       { value: 'repot', label: 'Repot', icon: '🪴' },
       { value: 'prune', label: 'Prune', icon: '✂️' },
-      { value: 'insecticide_spray', label: 'Insecticide Spray', icon: '🧴' },
+      { value: 'insecticide_spray', label: 'Insecticide', icon: '🧴' },
       { value: 'other', label: 'Other', icon: '📝' },
     ],
     events: [
       { value: 'pest_spotted', label: 'Pest Spotted', icon: '🐛' },
       { value: 'new_leaf', label: 'New Leaf', icon: '🍃' },
       { value: 'relocation', label: 'Relocation', icon: '📦' },
-      { value: 'new_roots_spotted', label: 'New Roots Spotted', icon: '🌿' },
+      { value: 'new_roots_spotted', label: 'New Roots', icon: '🌿' },
     ],
   } as const;
 
@@ -859,10 +859,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.colors.primaryLight,
   },
   careTypeIcon: {
-    fontSize: 32,
+    fontSize: 24,
   },
   careTypeText: {
-    fontSize: 14,
+    fontSize: 12,
     color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 8,
