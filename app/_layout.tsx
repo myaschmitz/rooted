@@ -90,6 +90,13 @@ function ThemedStack() {
             headerBackTitle: 'Back'
           }} 
         />
+        <Stack.Screen 
+          name="add-tag" 
+          options={{ 
+            title: 'Add Tag',
+            headerBackTitle: 'Plant Details'
+          }} 
+        />
       </Stack>
     </>
   );

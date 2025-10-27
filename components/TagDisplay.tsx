@@ -7,7 +7,6 @@ interface TagDisplayProps {
   tag: PlantTag;
   onPress?: (tag: PlantTag) => void;
   onLongPress?: (tag: PlantTag) => void;
-  size?: 'small' | 'medium' | 'large';
   showRemoveButton?: boolean;
   onRemove?: (tag: PlantTag) => void;
 }
@@ -16,7 +15,6 @@ export default function TagDisplay({
   tag, 
   onPress, 
   onLongPress,
-  size = 'medium',
   showRemoveButton = false,
   onRemove 
 }: TagDisplayProps) {
@@ -36,7 +34,7 @@ export default function TagDisplay({
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   };
 
-  const styles = createStyles(theme, tag.color, getTextColor(tag.color), size);
+  const styles = createStyles(theme, tag.color, getTextColor(tag.color));
 
   const handlePress = () => {
     if (onPress) {
@@ -80,58 +78,25 @@ export default function TagDisplay({
   );
 }
 
-const createStyles = (theme: any, backgroundColor: string, textColor: string, size: 'small' | 'medium' | 'large') => {
-  const getSizeStyles = () => {
-    switch (size) {
-      case 'small':
-        return {
-          paddingHorizontal: 8,
-          paddingVertical: 4,
-          fontSize: 12,
-          borderRadius: 12,
-          minHeight: 24,
-        };
-      case 'large':
-        return {
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          fontSize: 16,
-          borderRadius: 20,
-          minHeight: 36,
-        };
-      default: // medium
-        return {
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          fontSize: 14,
-          borderRadius: 16,
-          minHeight: 28,
-        };
-    }
-  };
-
-  const sizeStyles = getSizeStyles();
+const createStyles = (theme: any, backgroundColor: string, textColor: string) => {
 
   return StyleSheet.create({
     container: {
       backgroundColor: backgroundColor,
-      paddingHorizontal: sizeStyles.paddingHorizontal,
-      paddingVertical: sizeStyles.paddingVertical,
-      borderRadius: sizeStyles.borderRadius,
-      minHeight: sizeStyles.minHeight,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      minHeight: 28,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 8,
       marginBottom: 8,
-      maxWidth: 120,
     },
     text: {
       color: textColor,
-      fontSize: sizeStyles.fontSize,
+      fontSize: 14,
       fontWeight: '600',
-      textAlign: 'center',
-      flex: 1,
     },
     removeButton: {
       marginLeft: 6,

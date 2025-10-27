@@ -120,7 +120,6 @@ export default function TagsList({
             tag={tag}
             onPress={onTagPress}
             onLongPress={handleTagLongPress}
-            size="medium"
           />
         ))}
         <TouchableOpacity
