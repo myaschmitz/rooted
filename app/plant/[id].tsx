@@ -446,20 +446,24 @@ export default function PlantDetailScreen() {
     return await DateTimeService.formatDate(dateString);
   };
 
-  const [formattedDates, setFormattedDates] = useState<{[key: string]: string}>({});
+  const [formattedDates, setFormattedDates] = useState<{[key: string]: {date: string, timeAgo: string}}>({});
 
   useEffect(() => {
     const updateFormattedDates = async () => {
-      const dateMap: {[key: string]: string} = {};
+      const dateMap: {[key: string]: {date: string, timeAgo: string}} = {};
       
       // Format event dates
       for (const event of typedEvents) {
-        dateMap[event.id] = await DateTimeService.formatDate(event.date);
+        const formattedDate = await DateTimeService.formatDate(event.date);
+        const timeAgo = DateTimeService.formatTimeAgo(event.date);
+        dateMap[event.id] = { date: formattedDate, timeAgo };
       }
       
       // Format photo dates
       for (const photo of typedPhotos) {
-        dateMap[photo.id] = await DateTimeService.formatDate(photo.taken_at);
+        const formattedDate = await DateTimeService.formatDate(photo.taken_at);
+        const timeAgo = DateTimeService.formatTimeAgo(photo.taken_at);
+        dateMap[photo.id] = { date: formattedDate, timeAgo };
       }
       
       setFormattedDates(dateMap);
@@ -660,7 +664,9 @@ export default function PlantDetailScreen() {
                       </View>
                     </View>
                   )}
-                  <Text style={styles.photoDate}>{formattedDates[photo.id] || 'Loading...'}</Text>
+                  <Text style={styles.photoDate}>
+                    {formattedDates[photo.id] ? `${formattedDates[photo.id].date} (${formattedDates[photo.id].timeAgo})` : 'Loading...'}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -681,7 +687,9 @@ export default function PlantDetailScreen() {
                     <Text style={styles.careEventType}>
                       {formatEventTypeTitle(event.event_type)}
                     </Text>
-                    <Text style={styles.careEventDate}>{formattedDates[event.id] || 'Loading...'}</Text>
+                    <Text style={styles.careEventDate}>
+                      {formattedDates[event.id] ? `${formattedDates[event.id].date} (${formattedDates[event.id].timeAgo})` : 'Loading...'}
+                    </Text>
                   </View>
                   <View style={styles.careEventActions}>
                     <TouchableOpacity
@@ -796,7 +804,7 @@ export default function PlantDetailScreen() {
             <View style={styles.imageViewerFooter}>
               <View style={styles.photoInfo}>
                 <Text style={styles.photoInfoText}>
-                  {formattedDates[currentPhoto.id] || 'Loading...'}
+                  {formattedDates[currentPhoto.id] ? `${formattedDates[currentPhoto.id].date} (${formattedDates[currentPhoto.id].timeAgo})` : 'Loading...'}
                 </Text>
                 {allPhotos.length > 1 && (
                   <Text style={styles.photoCounter}>
@@ -1019,6 +1027,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginBottom: 2,
+    textAlign: 'center',
   },
   photoCaption: {
     fontSize: 14,
