@@ -673,9 +673,16 @@ export default function PlantDetailScreen() {
                       </View>
                     </View>
                   )}
-                  <Text style={styles.photoDate}>
-                    {formattedDates[photo.id] ? `${formattedDates[photo.id].date} (${formattedDates[photo.id].timeAgo})` : 'Loading...'}
-                  </Text>
+                  <View style={styles.photoDateContainer}>
+                    {formattedDates[photo.id] ? (
+                      <>
+                        <Text style={styles.photoDate}>{formattedDates[photo.id].date}</Text>
+                        <Text style={styles.photoTimeAgo}>({formattedDates[photo.id].timeAgo})</Text>
+                      </>
+                    ) : (
+                      <Text style={styles.photoDate}>Loading...</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1040,11 +1047,20 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  photoDateContainer: {
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   photoDate: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    marginBottom: 2,
     textAlign: 'center',
+  },
+  photoTimeAgo: {
+    fontSize: 11,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    marginTop: 1,
   },
   photoCaption: {
     fontSize: 14,
