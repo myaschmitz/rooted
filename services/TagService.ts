@@ -10,6 +10,25 @@ type PlantTagInsert = Database['public']['Tables']['plant_tags']['Insert'];
 type PlantTagUpdate = Database['public']['Tables']['plant_tags']['Update'];
 
 export class TagService {
+  static async getTagById(tagId: string): Promise<PlantTag> {
+    const { data, error } = await supabase
+      .from('plant_tags')
+      .select('*')
+      .eq('id', tagId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching tag by ID:', error);
+      throw new Error(`Failed to fetch tag: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('Tag not found');
+    }
+
+    return data as PlantTag;
+  }
+
   static async getTagsByPlantId(plantId: string, bypassCache = false): Promise<PlantTag[]> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();

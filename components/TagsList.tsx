@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { Edit } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { PlantTag } from '../types/Plant';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
@@ -24,6 +26,7 @@ export default function TagsList({
   const [tags, setTags] = useState<PlantTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const loadTags = async (bypassCache = false) => {
     try {
@@ -58,7 +61,14 @@ export default function TagsList({
             try {
               await TagService.deleteTag(tag.id);
               // Remove the tag from local state for immediate UI update
-              setTags(prevTags => prevTags.filter(t => t.id !== tag.id));
+              setTags(prevTags => {
+                const newTags = prevTags.filter(t => t.id !== tag.id);
+                // Exit edit mode if this was the last tag
+                if (newTags.length === 0 && isEditMode) {
+                  setIsEditMode(false);
+                }
+                return newTags;
+              });
             } catch (err) {
               console.error('Failed to delete tag:', err);
               Alert.alert('Error', 'Failed to delete tag');
@@ -70,30 +80,45 @@ export default function TagsList({
   };
 
   const handleTagLongPress = (tag: PlantTag) => {
-    if (onTagLongPress) {
-      onTagLongPress(tag);
-    } else {
-      // Default action: show delete option
-      Alert.alert(
-        'Tag Options',
-        `What would you like to do with "${tag.name}"?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => handleDeleteTag(tag),
-          },
-        ]
-      );
+    // Only handle long press when not in edit mode
+    if (!isEditMode) {
+      if (onTagLongPress) {
+        onTagLongPress(tag);
+      } else {
+        // Default action: show delete option
+        Alert.alert(
+          'Tag Options',
+          `What would you like to do with "${tag.name}"?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => handleDeleteTag(tag),
+            },
+          ]
+        );
+      }
     }
+  };
+
+  const handleRemoveTag = (tag: PlantTag) => {
+    handleDeleteTag(tag);
+  };
+
+  const handleEditTag = (tag: PlantTag) => {
+    router.push(`/edit-tag?tagId=${tag.id}`);
+  };
+
+  const toggleEditMode = () => {
+    setIsEditMode(!isEditMode);
   };
 
   const styles = createStyles(theme);
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={styles.tagsContainer}>
         <ActivityIndicator size="small" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading tags...</Text>
       </View>
@@ -104,7 +129,7 @@ export default function TagsList({
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>Error loading tags</Text>
-        <TouchableOpacity onPress={loadTags} style={styles.retryButton}>
+        <TouchableOpacity onPress={() => loadTags()} style={styles.retryButton}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -118,25 +143,46 @@ export default function TagsList({
           <TagDisplay
             key={tag.id}
             tag={tag}
-            onPress={onTagPress}
+            onPress={isEditMode ? undefined : onTagPress}
             onLongPress={handleTagLongPress}
+            showEditMode={isEditMode}
+            onRemove={handleRemoveTag}
+            onEdit={handleEditTag}
           />
         ))}
-        <TouchableOpacity
-          style={[
-            styles.addButton,
-            tags.length === 0 && styles.addButtonEmpty
-          ]}
-          onPress={onAddTagPress}
-          activeOpacity={0.7}
-        >
-          <Text style={[
-            styles.addButtonText,
-            tags.length === 0 && styles.addButtonTextEmpty
-          ]}>
-            {tags.length === 0 ? 'Add tags +' : '+'}
-          </Text>
-        </TouchableOpacity>
+        {!isEditMode && (
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              tags.length === 0 && styles.addButtonEmpty
+            ]}
+            onPress={onAddTagPress}
+            activeOpacity={0.7}
+          >
+            <Text style={[
+              styles.addButtonText,
+              tags.length === 0 && styles.addButtonTextEmpty
+            ]}>
+              {tags.length === 0 ? 'Add tags +' : '+'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {tags.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.editButton,
+              isEditMode && styles.editButtonActive
+            ]}
+            onPress={toggleEditMode}
+            activeOpacity={0.7}
+          >
+            {isEditMode ? (
+              <Text style={styles.editButtonText}>Done</Text>
+            ) : (
+              <Edit size={16} color={theme.colors.textSecondary} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -145,6 +191,12 @@ export default function TagsList({
 const createStyles = (theme: any) => StyleSheet.create({
   container: {
     marginVertical: 8,
+  },
+  tagsContainer: {
+    marginVertical: 8,
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   tagsRow: {
     flexDirection: 'row',
@@ -190,12 +242,34 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   retryButton: {
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   retryButtonText: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editButton: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  editButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  editButtonText: {
     color: theme.colors.textOnPrimary,
     fontSize: 14,
     fontWeight: '600',

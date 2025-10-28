@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,19 +13,48 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
+import { PlantTag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function AddTagScreen() {
+export default function EditTagScreen() {
   const { theme } = useTheme();
-  const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const { tagId } = useLocalSearchParams<{ tagId: string }>();
   
+  const [originalTag, setOriginalTag] = useState<PlantTag | null>(null);
   const [tagName, setTagName] = useState('');
   const [selectedColor, setSelectedColor] = useState(TagService.getDefaultTagColors()[0]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const styles = createStyles(theme);
+
+  useEffect(() => {
+    loadTag();
+  }, [tagId]);
+
+  const loadTag = async () => {
+    if (!tagId) {
+      Alert.alert('Error', 'Tag ID is required');
+      router.back();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const tag = await TagService.getTagById(tagId);
+      setOriginalTag(tag);
+      setTagName(tag.name);
+      setSelectedColor(tag.color);
+    } catch (error) {
+      console.error('Failed to load tag:', error);
+      Alert.alert('Error', 'Failed to load tag details');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     const validation = TagService.validateTagName(tagName);
@@ -39,18 +68,27 @@ export default function AddTagScreen() {
       return;
     }
 
-    if (!plantId) {
-      Alert.alert('Error', 'Plant ID is required');
+    if (!originalTag) {
+      Alert.alert('Error', 'Tag data not loaded');
+      return;
+    }
+
+    // Check if anything actually changed
+    if (tagName.trim() === originalTag.name && selectedColor === originalTag.color) {
+      router.back();
       return;
     }
 
     setSaving(true);
     try {
-      await TagService.createTag(plantId, tagName.trim(), selectedColor);
+      await TagService.updateTag(originalTag.id, {
+        name: tagName.trim(),
+        color: selectedColor,
+      });
       router.back();
     } catch (error) {
-      console.error('Failed to create tag:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to create tag');
+      console.error('Failed to update tag:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update tag');
     } finally {
       setSaving(false);
     }
@@ -76,10 +114,18 @@ export default function AddTagScreen() {
 
   const defaultColors = TagService.getDefaultTagColors();
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>Loading tag...</Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAwareScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Add New Tag</Text>
+        <Text style={styles.title}>Edit Tag</Text>
         
         {/* Tag Name Input */}
         <View style={styles.section}>
@@ -195,7 +241,7 @@ export default function AddTagScreen() {
             disabled={saving || !tagName.trim()}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? 'Creating...' : 'Create Tag'}
+              {saving ? 'Updating...' : 'Update Tag'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -208,6 +254,14 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
   },
   content: {
     padding: 20,

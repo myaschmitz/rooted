@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { PlantTag } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
+import { X, Edit } from 'lucide-react-native';
 
 interface TagDisplayProps {
   tag: PlantTag;
@@ -9,6 +10,8 @@ interface TagDisplayProps {
   onLongPress?: (tag: PlantTag) => void;
   showRemoveButton?: boolean;
   onRemove?: (tag: PlantTag) => void;
+  showEditMode?: boolean;
+  onEdit?: (tag: PlantTag) => void;
 }
 
 export default function TagDisplay({ 
@@ -16,7 +19,9 @@ export default function TagDisplay({
   onPress, 
   onLongPress,
   showRemoveButton = false,
-  onRemove 
+  onRemove,
+  showEditMode = false,
+  onEdit
 }: TagDisplayProps) {
   const { theme } = useTheme();
 
@@ -54,6 +59,12 @@ export default function TagDisplay({
     }
   };
 
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(tag);
+    }
+  };
+
   return (
     <TouchableOpacity
       style={styles.container}
@@ -62,16 +73,25 @@ export default function TagDisplay({
       activeOpacity={0.7}
       disabled={!onPress && !onLongPress}
     >
-      <Text style={styles.text} numberOfLines={1}>
+      {showEditMode && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={handleEdit}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Edit size={12} color={getTextColor(tag.color)} />
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.text, showEditMode && styles.textWithIcons]} numberOfLines={1}>
         {tag.name}
       </Text>
-      {showRemoveButton && (
+      {(showRemoveButton || showEditMode) && (
         <TouchableOpacity
           style={styles.removeButton}
           onPress={handleRemove}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.removeButtonText}>×</Text>
+          <X size={12} color={getTextColor(tag.color)} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -100,18 +120,24 @@ const createStyles = (theme: any, backgroundColor: string, textColor: string) =>
     },
     removeButton: {
       marginLeft: 6,
-      width: 16,
-      height: 16,
-      borderRadius: 8,
-      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: 'rgba(0, 0, 0, 0.15)',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    removeButtonText: {
-      color: textColor,
-      fontSize: 12,
-      fontWeight: 'bold',
-      lineHeight: 14,
+    editButton: {
+      marginRight: 6,
+      width: 18,
+      height: 18,
+      borderRadius: 4,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    textWithIcons: {
+      marginHorizontal: 4,
     },
   });
 };
