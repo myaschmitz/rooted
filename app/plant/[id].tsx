@@ -293,7 +293,6 @@ export default function PlantDetailScreen() {
       { plantId: id!, photoId },
       {
         onSuccess: () => {
-          Alert.alert('Success', 'Thumbnail photo updated');
           // React Query automatically updates the cache
         },
         onError: (error) => {
@@ -354,8 +353,6 @@ export default function PlantDetailScreen() {
               // Reset multiselect mode - React Query mutations handle cache invalidation automatically
               setIsMultiSelectMode(false);
               setSelectedPhotos(new Set());
-              
-              Alert.alert('Success', `${selectedCount} photo${selectedCount > 1 ? 's' : ''} deleted successfully`);
             } catch (error) {
               console.error('Failed to delete photos:', error);
               Alert.alert('Error', 'Failed to delete photos');
@@ -382,15 +379,8 @@ export default function PlantDetailScreen() {
               // Delete the plant using React Query mutation
               await deletePlantMutation.mutateAsync(id);
               
-              Alert.alert('Success', 'Plant deleted successfully', [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    // Navigate back to the main plants screen
-                    router.back();
-                  },
-                },
-              ]);
+              // Navigate back to the main plants screen
+              router.back();
             } catch (error) {
               console.error('Failed to delete plant:', error);
               Alert.alert('Error', 'Failed to delete plant');
@@ -414,7 +404,6 @@ export default function PlantDetailScreen() {
           onPress: async () => {
             try {
               await deleteEventMutation.mutateAsync({ id: eventId, plantId: id! });
-              Alert.alert('Success', 'Event deleted successfully');
             } catch (error) {
               console.error('Failed to delete event:', error);
               Alert.alert('Error', 'Failed to delete event');
@@ -444,9 +433,7 @@ export default function PlantDetailScreen() {
       
       const result = await PhotoService.downloadPhotoToDevice(photoUrl, filename);
       
-      if (result.success) {
-        Alert.alert('Success', 'Photo downloaded to your photo library!');
-      } else {
+      if (!result.success) {
         Alert.alert('Error', result.error || 'Failed to download photo');
       }
     } catch (error) {

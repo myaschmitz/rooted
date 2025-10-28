@@ -563,7 +563,6 @@ export default function HomeScreen() {
         pestSeverity: 1,
       });
       // React Query mutations handle cache invalidation automatically
-      Alert.alert('Success', `Added ${careTypeLabel} event for ${selectedPlantsList.length} plant(s)`);
     } catch (error) {
       console.error('Failed to add events:', error);
       Alert.alert('Error', 'Failed to add events');

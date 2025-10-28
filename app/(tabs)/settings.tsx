@@ -145,7 +145,6 @@ export default function SettingsScreen() {
       await HouseholdService.updateHouseholdName(newHouseholdName.trim());
       await loadHouseholdInfo();
       setEditHouseholdNameVisible(false);
-      Alert.alert('Success', 'Household name updated successfully');
     } catch (error) {
       console.error('Error updating household name:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update household name');
@@ -198,7 +197,6 @@ export default function SettingsScreen() {
             try {
               await HouseholdService.removeMember(member.id);
               await loadHouseholdInfo();
-              Alert.alert('Success', `${member.user_name} has been removed from the household`);
             } catch (error) {
               console.error('Error removing member:', error);
               Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove member');
@@ -227,7 +225,6 @@ export default function SettingsScreen() {
             try {
               await HouseholdService.updateMemberRole(member.id, newRole);
               await loadHouseholdInfo();
-              Alert.alert('Success', `${member.user_name} has been ${action}d`);
             } catch (error) {
               console.error('Error updating member role:', error);
               Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update member role');
