@@ -66,8 +66,8 @@ export default function AddPlantScreen() {
         }
       }
 
-      // Navigate back and refresh the home screen
-      router.back();
+      // Navigate to the new plant's detail page
+      router.replace(`/plant/${newPlant.id}`);
     } catch (error) {
       console.error('Failed to create plant:', error);
       Alert.alert('Error', 'Failed to add plant');

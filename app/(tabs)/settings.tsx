@@ -70,6 +70,7 @@ export default function SettingsScreen() {
   const [newHouseholdName, setNewHouseholdName] = useState('');
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [thumbnailConfirmVisible, setThumbnailConfirmVisible] = useState(false);
 
   // Load saved preferences
   useEffect(() => {
@@ -283,32 +284,25 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleGenerateThumbnails = async () => {
-    Alert.alert(
-      'Generate Thumbnails',
-      'This will create optimized thumbnail versions of existing photos to reduce data usage. This may take a few minutes.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Generate',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              const result = await PhotoService.generateThumbnailsForExistingPhotos();
-              Alert.alert(
-                'Thumbnails Generated',
-                `Successfully created ${result.success} thumbnails.\n${result.failed} failed, ${result.skipped} skipped.\n\nYour app will now use less data when loading photos!`
-              );
-            } catch (error) {
-              console.error('Error generating thumbnails:', error);
-              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleGenerateThumbnails = () => {
+    setThumbnailConfirmVisible(true);
+  };
+
+  const handleConfirmGenerateThumbnails = async () => {
+    setThumbnailConfirmVisible(false);
+    setLoading(true);
+    try {
+      const result = await PhotoService.generateThumbnailsForExistingPhotos();
+      Alert.alert(
+        'Thumbnails Generated',
+        `Successfully created ${result.success} thumbnails.\n${result.failed} failed, ${result.skipped} skipped.\n\nYour app will now use less data when loading photos!`
+      );
+    } catch (error) {
+      console.error('Error generating thumbnails:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteAllData = () => {
@@ -758,6 +752,45 @@ export default function SettingsScreen() {
                   : theme.colors.textSecondary 
               }]}>
                 {loading ? 'Deleting...' : 'Delete Everything'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+
+    {/* Thumbnail Generation Confirmation Modal */}
+    <Modal
+      visible={thumbnailConfirmVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setThumbnailConfirmVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.editModal, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+            Generate Photo Thumbnails
+          </Text>
+          
+          <Text style={[styles.deleteWarningText, { color: theme.colors.text }]}>
+            This will create optimized thumbnail versions of existing photos to reduce data usage. This may take a few minutes.
+          </Text>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
+              onPress={() => setThumbnailConfirmVisible(false)}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleConfirmGenerateThumbnails}
+              disabled={loading}
+            >
+              <Text style={[styles.modalButtonText, { color: theme.colors.textOnPrimary }]}>
+                {loading ? 'Generating...' : 'Generate'}
               </Text>
             </TouchableOpacity>
           </View>
