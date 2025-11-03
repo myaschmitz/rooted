@@ -153,13 +153,13 @@ export const useGlobalStyles = () => {
       padding: Spacing.base,
       fontSize: Typography.base,
       color: colors.text,
-      minHeight: 100,
+      minHeight: 75,
       textAlignVertical: 'top',
     },
     
     // ========== FORM ELEMENTS ==========
     inputGroup: {
-      marginBottom: Spacing.lg,
+      marginBottom: Spacing.sm,
     },
     
     label: {

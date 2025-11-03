@@ -732,6 +732,7 @@ const createStyles = (theme) => StyleSheet.create({
   dateTimeSection: {
     flex: 1,
     marginHorizontal: 4,
+    marginBottom: 8
   },
   dateTimeLabel: {
     fontSize: 14,
@@ -946,7 +947,7 @@ const createStyles = (theme) => StyleSheet.create({
     marginTop: 6,
   },
   photosSection: {
-    marginBottom: 8,
+    marginBottom: 2,
   },
   photosSectionHeader: {
     flexDirection: 'row',
