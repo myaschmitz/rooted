@@ -351,6 +351,9 @@ export class CacheInvalidationService {
             // Invalidate plant data as tags are part of plant display
             await queryClient.invalidateQueries({ queryKey: queryKeys.plant(additionalData.plant_id) });
             
+            // Invalidate plants list to ensure filtering works with fresh data
+            await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+            
             // If there are tag-specific queries in the future, add them here
             // await queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(additionalData.plant_id) });
           }
@@ -430,9 +433,15 @@ export class CacheInvalidationService {
         case 'tag_updated':
         case 'tag_deleted':
         case 'all_tags_deleted':
-          if (additionalData.plant_id) {
-            patterns.push(`plant-tags-${additionalData.plant_id}`, `plant-${additionalData.plant_id}`);
+          if (additionalData.plant_id && additionalData.household_id) {
+            patterns.push(`plant-tags-${additionalData.plant_id}-${additionalData.household_id}`, `plant-${additionalData.plant_id}`);
           }
+          // Also invalidate global tags cache to ensure getAllTags() returns fresh data
+          if (additionalData.household_id) {
+            patterns.push(`all-tags-${additionalData.household_id}`);
+          }
+          // Invalidate plants list to ensure filtering works with fresh data
+          patterns.push('plants-list', 'plants-all');
           break;
 
         case 'household_changed':

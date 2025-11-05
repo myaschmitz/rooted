@@ -1,18 +1,60 @@
-import { PlantTag } from '../types/Plant';
+import { Tag, PlantTag, PlantTagWithDetails } from '../types/Plant';
 import { supabase } from './SupabaseService';
 import { HouseholdService } from './HouseholdService';
 import { CacheService } from './CacheService';
 import { CacheInvalidationService } from './CacheInvalidationService';
 import type { Database } from '../types/Database';
 
+type TagRow = Database['public']['Tables']['tags']['Row'];
+type TagInsert = Database['public']['Tables']['tags']['Insert'];
+type TagUpdate = Database['public']['Tables']['tags']['Update'];
 type PlantTagRow = Database['public']['Tables']['plant_tags']['Row'];
 type PlantTagInsert = Database['public']['Tables']['plant_tags']['Insert'];
-type PlantTagUpdate = Database['public']['Tables']['plant_tags']['Update'];
 
 export class TagService {
-  static async getTagById(tagId: string): Promise<PlantTag> {
+  // ============================================================================
+  // TAG MANAGEMENT METHODS
+  // ============================================================================
+
+  static async getAllTags(bypassCache = false): Promise<Tag[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const cacheKey = `all-tags-${session.household_id}`;
+    
+    // Try to get from cache first (unless bypassing cache)
+    if (!bypassCache) {
+      const cached = await CacheService.getCachedResponse<Tag[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const { data, error } = await supabase
-      .from('plant_tags')
+      .from('tags')
+      .select('*')
+      .eq('household_id', session.household_id)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tags:', error);
+      throw new Error(`Failed to fetch tags: ${error.message}`);
+    }
+
+    const tags = (data || []) as Tag[];
+        
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, tags, 10 * 60 * 1000);
+
+    return tags;
+  }
+
+  static async getTagById(tagId: string): Promise<Tag> {
+    const { data, error } = await supabase
+      .from('tags')
       .select('*')
       .eq('id', tagId)
       .single();
@@ -26,48 +68,10 @@ export class TagService {
       throw new Error('Tag not found');
     }
 
-    return data as PlantTag;
+    return data as Tag;
   }
 
-  static async getTagsByPlantId(plantId: string, bypassCache = false): Promise<PlantTag[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error('No household session found');
-    }
-
-    const cacheKey = `plant-tags-${plantId}-${session.household_id}`;
-    
-    // Try to get from cache first (unless bypassing cache)
-    if (!bypassCache) {
-      const cached = await CacheService.getCachedResponse<PlantTag[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-    }
-
-    // If not in cache, fetch from database
-    const { data, error } = await supabase
-      .from('plant_tags')
-      .select('*')
-      .eq('plant_id', plantId)
-      .eq('household_id', session.household_id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching plant tags:', error);
-      throw new Error(`Failed to fetch plant tags: ${error.message}`);
-    }
-
-    const tags = (data || []) as PlantTag[];
-    
-    // Cache the result for 10 minutes
-    await CacheService.cacheApiResponse(cacheKey, tags, 10 * 60 * 1000);
-
-    return tags;
-  }
-
-  static async createTag(plantId: string, name: string, color: string): Promise<PlantTag> {
+  static async createTag(name: string, color: string): Promise<Tag> {
     // Get current household session
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
@@ -88,32 +92,31 @@ export class TagService {
       throw new Error('Tag name cannot exceed 50 characters');
     }
 
-    const tagInsert: PlantTagInsert = {
-      plant_id: plantId,
+    const tagInsert: TagInsert = {
       name: trimmedName,
       color: color.toUpperCase(),
       household_id: session.household_id,
     };
 
     const { data, error } = await supabase
-      .from('plant_tags')
+      .from('tags')
       .insert(tagInsert)
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating plant tag:', error);
+      console.error('Error creating tag:', error);
       if (error.code === '23505') { // Unique constraint violation
-        throw new Error('A tag with this name already exists for this plant');
+        throw new Error('A tag with this name and color already exists in your household');
       }
-      throw new Error(`Failed to create plant tag: ${error.message}`);
+      throw new Error(`Failed to create tag: ${error.message}`);
     }
 
-    const tag = data as PlantTag;
+    const tag = data as Tag;
 
     // Log activity
     await HouseholdService.logActivity('added tag', {
-      plant_id: plantId,
+      tag_id: tag.id,
       tag_name: tag.name,
       tag_color: tag.color,
     }, `"${tag.name}" tag`);
@@ -121,13 +124,12 @@ export class TagService {
     // Invalidate relevant caches
     await CacheInvalidationService.invalidateOnUserAction('tag_added', {
       entityId: tag.id,
-      additionalData: { plant_id: plantId }
     });
 
     return tag;
   }
 
-  static async updateTag(tagId: string, updates: { name?: string; color?: string }): Promise<PlantTag | null> {
+  static async updateTag(tagId: string, updates: { name?: string; color?: string }): Promise<Tag | null> {
     // Validate updates
     if (updates.name !== undefined) {
       const trimmedName = updates.name.trim();
@@ -147,13 +149,13 @@ export class TagService {
       updates.color = updates.color.toUpperCase();
     }
 
-    const tagUpdate: PlantTagUpdate = {
+    const tagUpdate: TagUpdate = {
       ...updates,
       updated_at: new Date().toISOString()
     };
 
     const { data, error } = await supabase
-      .from('plant_tags')
+      .from('tags')
       .update(tagUpdate)
       .eq('id', tagId)
       .select()
@@ -163,26 +165,24 @@ export class TagService {
       if (error.code === 'PGRST116') {
         return null; // No rows found
       }
-      console.error('Error updating plant tag:', error);
+      console.error('Error updating tag:', error);
       if (error.code === '23505') { // Unique constraint violation
-        throw new Error('A tag with this name already exists for this plant');
+        throw new Error('A tag with this name and color already exists in your household');
       }
-      throw new Error(`Failed to update plant tag: ${error.message}`);
+      throw new Error(`Failed to update tag: ${error.message}`);
     }
 
-    const tag = data as PlantTag;
+    const tag = data as Tag;
 
     // Log activity
     await HouseholdService.logActivity('updated tag', {
       tag_id: tag.id,
-      plant_id: tag.plant_id,
       updated_fields: Object.keys(updates),
     }, `"${tag.name}" tag`);
 
     // Invalidate relevant caches
     await CacheInvalidationService.invalidateOnUserAction('tag_updated', {
       entityId: tag.id,
-      additionalData: { plant_id: tag.plant_id }
     });
 
     return tag;
@@ -191,7 +191,7 @@ export class TagService {
   static async deleteTag(tagId: string): Promise<boolean> {
     // Get tag info before deleting for activity log
     const { data: tag, error: fetchError } = await supabase
-      .from('plant_tags')
+      .from('tags')
       .select('*')
       .eq('id', tagId)
       .single();
@@ -201,21 +201,21 @@ export class TagService {
       throw new Error(`Failed to fetch tag: ${fetchError.message}`);
     }
 
+    // Delete the tag (this will cascade delete all plant_tags relationships)
     const { error } = await supabase
-      .from('plant_tags')
+      .from('tags')
       .delete()
       .eq('id', tagId);
 
     if (error) {
-      console.error('Error deleting plant tag:', error);
-      throw new Error(`Failed to delete plant tag: ${error.message}`);
+      console.error('Error deleting tag:', error);
+      throw new Error(`Failed to delete tag: ${error.message}`);
     }
 
     // Log activity
     if (tag) {
       await HouseholdService.logActivity('deleted tag', {
         tag_id: tag.id,
-        plant_id: tag.plant_id,
         tag_name: tag.name,
         tag_color: tag.color,
       }, `"${tag.name}" tag`);
@@ -223,14 +223,193 @@ export class TagService {
       // Invalidate relevant caches
       await CacheInvalidationService.invalidateOnUserAction('tag_deleted', {
         entityId: tag.id,
-        additionalData: { plant_id: tag.plant_id }
       });
     }
 
     return true;
   }
 
-  static async deleteAllTagsForPlant(plantId: string): Promise<void> {
+  static async findExistingTag(name: string, color: string): Promise<Tag | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const trimmedName = name.trim();
+    
+    // Find any tag with the same name and color in the household
+    const { data, error } = await supabase
+      .from('tags')
+      .select('*')
+      .eq('household_id', session.household_id)
+      .ilike('name', trimmedName) // Case-insensitive match
+      .eq('color', color.toUpperCase())
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No matching tag found
+      }
+      console.error('Error finding existing tag:', error);
+      throw new Error(`Failed to find existing tag: ${error.message}`);
+    }
+
+    return data as Tag;
+  }
+
+  static async createOrFindTag(name: string, color: string): Promise<{ tag: Tag; isNew: boolean }> {
+    // First try to find an existing tag with the same name and color
+    const existingTag = await this.findExistingTag(name, color);
+    
+    if (existingTag) {
+      return { tag: existingTag, isNew: false };
+    } else {
+      // Create a new tag
+      const tag = await this.createTag(name, color);
+      return { tag, isNew: true };
+    }
+  }
+
+  // ============================================================================
+  // PLANT-TAG RELATIONSHIP METHODS
+  // ============================================================================
+
+  static async getTagsByPlantId(plantId: string, bypassCache = false): Promise<Tag[]> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    const cacheKey = `plant-tags-${plantId}-${session.household_id}`;
+    
+    // Try to get from cache first (unless bypassing cache)
+    if (!bypassCache) {
+      const cached = await CacheService.getCachedResponse<Tag[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Join plant_tags with tags to get full tag details
+    const { data, error } = await supabase
+      .from('plant_tags')
+      .select(`
+        *,
+        tag:tags(*)
+      `)
+      .eq('plant_id', plantId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching plant tags:', error);
+      throw new Error(`Failed to fetch plant tags: ${error.message}`);
+    }
+
+    const plantTagsWithDetails = (data || []) as (PlantTagRow & { tag: TagRow })[];
+    const tags = plantTagsWithDetails.map(pt => pt.tag as Tag);
+        
+    // Cache the result for 10 minutes
+    await CacheService.cacheApiResponse(cacheKey, tags, 10 * 60 * 1000);
+
+    return tags;
+  }
+
+  static async addTagToPlant(plantId: string, tagId: string): Promise<PlantTag> {
+    // Check if this plant already has this tag
+    const existingRelation = await supabase
+      .from('plant_tags')
+      .select('*')
+      .eq('plant_id', plantId)
+      .eq('tag_id', tagId)
+      .single();
+
+    if (existingRelation.data) {
+      throw new Error('This plant already has this tag');
+    }
+
+    // Create the relationship
+    const plantTagInsert: PlantTagInsert = {
+      plant_id: plantId,
+      tag_id: tagId,
+    };
+
+    const { data, error } = await supabase
+      .from('plant_tags')
+      .insert(plantTagInsert)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding tag to plant:', error);
+      throw new Error(`Failed to add tag to plant: ${error.message}`);
+    }
+
+    const plantTag = data as PlantTag;
+
+    // Get tag details for activity log
+    const tag = await this.getTagById(tagId);
+
+    // Log activity
+    await HouseholdService.logActivity('added tag', {
+      plant_id: plantId,
+      tag_id: tagId,
+      tag_name: tag.name,
+      tag_color: tag.color,
+    }, `"${tag.name}" tag`);
+
+    // Get household_id for cache invalidation
+    const session = await HouseholdService.getUserSession();
+    
+    // Invalidate relevant caches immediately for better UX
+    await CacheInvalidationService.invalidateOnUserAction('tag_added', {
+      entityId: plantTag.id,
+      additionalData: { plant_id: plantId, tag_id: tagId, household_id: session?.household_id },
+      immediate: true
+    });
+
+    return plantTag;
+  }
+
+  static async removeTagFromPlant(plantId: string, tagId: string): Promise<boolean> {
+    // Get tag details for activity log before deletion
+    const tag = await this.getTagById(tagId);
+
+    const { error } = await supabase
+      .from('plant_tags')
+      .delete()
+      .eq('plant_id', plantId)
+      .eq('tag_id', tagId);
+
+    if (error) {
+      console.error('Error removing tag from plant:', error);
+      throw new Error(`Failed to remove tag from plant: ${error.message}`);
+    }
+
+    // Log activity
+    await HouseholdService.logActivity('deleted tag', {
+      plant_id: plantId,
+      tag_id: tagId,
+      tag_name: tag.name,
+      tag_color: tag.color,
+    }, `"${tag.name}" tag`);
+
+    // Get household_id for cache invalidation
+    const session = await HouseholdService.getUserSession();
+    
+    // Invalidate relevant caches immediately for better UX
+    await CacheInvalidationService.invalidateOnUserAction('tag_deleted', {
+      entityId: `${plantId}-${tagId}`,
+      additionalData: { plant_id: plantId, tag_id: tagId, household_id: session?.household_id },
+      immediate: true
+    });
+
+    return true;
+  }
+
+  static async removeAllTagsFromPlant(plantId: string): Promise<void> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
@@ -240,22 +419,70 @@ export class TagService {
     const { error } = await supabase
       .from('plant_tags')
       .delete()
-      .eq('plant_id', plantId)
-      .eq('household_id', session.household_id);
+      .eq('plant_id', plantId);
 
     if (error) {
-      console.error('Error deleting all plant tags:', error);
-      throw new Error(`Failed to delete all plant tags: ${error.message}`);
+      console.error('Error removing all tags from plant:', error);
+      throw new Error(`Failed to remove all tags from plant: ${error.message}`);
     }
 
     // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction('all_tags_deleted', {
+    await CacheInvalidationService.invalidateOnUserAction('tag_deleted', {
       entityId: plantId,
       additionalData: { plant_id: plantId }
     });
   }
 
-  // Default color palette for tags
+  static async getAvailableTagsForPlant(plantId: string, bypassCache = false): Promise<Tag[]> {
+    try {
+      // Get all tags in household
+      const allTags = await this.getAllTags(bypassCache);
+      
+      // Get tags already on this plant
+      const plantTags = await this.getTagsByPlantId(plantId, bypassCache);
+      
+      // Create a set of tag IDs already on this plant
+      const existingTagIds = new Set(plantTags.map(tag => tag.id));
+      
+      // Filter out tags that are already on this plant
+      const availableTags = allTags.filter(tag => !existingTagIds.has(tag.id));
+            
+      return availableTags;
+    } catch (error) {
+      console.error('Error in getAvailableTagsForPlant:', error);
+      // If there's an error with cached data, try without cache
+      if (!bypassCache) {
+        console.log('[TagService] Retrying getAvailableTagsForPlant without cache');
+        return this.getAvailableTagsForPlant(plantId, true);
+      }
+      // If still failing, return empty array to allow tag creation
+      console.log('[TagService] Falling back to empty available tags array');
+      return [];
+    }
+  }
+
+  // ============================================================================
+  // CONVENIENCE METHODS
+  // ============================================================================
+
+  static async createTagAndAddToPlant(plantId: string, name: string, color: string): Promise<{ tag: Tag; plantTag: PlantTag; isNew: boolean }> {
+    // Create or find the tag
+    const result = await this.createOrFindTag(name, color);
+    
+    // Add it to the plant
+    const plantTag = await this.addTagToPlant(plantId, result.tag.id);
+    
+    return {
+      tag: result.tag,
+      plantTag,
+      isNew: result.isNew
+    };
+  }
+
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+
   static getDefaultTagColors(): string[] {
     return [
       '#B22222', // FireBrick

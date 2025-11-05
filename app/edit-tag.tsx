@@ -13,7 +13,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
-import { PlantTag } from '../types/Plant';
+import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -22,7 +22,7 @@ export default function EditTagScreen() {
   const { theme } = useTheme();
   const { tagId } = useLocalSearchParams<{ tagId: string }>();
   
-  const [originalTag, setOriginalTag] = useState<PlantTag | null>(null);
+  const [originalTag, setOriginalTag] = useState<Tag | null>(null);
   const [tagName, setTagName] = useState('');
   const [selectedColor, setSelectedColor] = useState(TagService.getDefaultTagColors()[0]);
   const [saving, setSaving] = useState(false);

@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { PlantTag } from '../types/Plant';
+import { Tag } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import { X, Edit } from 'lucide-react-native';
 
 interface TagDisplayProps {
-  tag: PlantTag;
-  onPress?: (tag: PlantTag) => void;
-  onLongPress?: (tag: PlantTag) => void;
+  tag: Tag;
+  onPress?: (tag: Tag) => void;
+  onLongPress?: (tag: Tag) => void;
   showRemoveButton?: boolean;
-  onRemove?: (tag: PlantTag) => void;
+  onRemove?: (tag: Tag) => void;
   showEditMode?: boolean;
-  onEdit?: (tag: PlantTag) => void;
+  onEdit?: (tag: Tag) => void;
 }
 
 export default function TagDisplay({ 

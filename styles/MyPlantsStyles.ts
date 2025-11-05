@@ -280,10 +280,12 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     minWidth: 100,
   },
   sortDropdownItem: {
-    paddingVertical: 12,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingHorizontal: 16,
     minHeight: 44,
-    justifyContent: 'center',
   },
   sortDropdownItemWithBorder: {
     borderBottomWidth: 1,
@@ -308,5 +310,32 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     right: -1000,
     bottom: -1000,
     zIndex: 999,
+  },
+  // Filter styles
+  filterBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  filterDropdownTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+  },
+  tagColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
 }); 

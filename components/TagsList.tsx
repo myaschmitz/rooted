@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Edit } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { PlantTag } from '../types/Plant';
+import { Tag, PlantTag } from '../types/Plant';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
@@ -10,8 +10,8 @@ import TagDisplay from './TagDisplay';
 interface TagsListProps {
   plantId: string;
   onAddTagPress: () => void;
-  onTagPress?: (tag: PlantTag) => void;
-  onTagLongPress?: (tag: PlantTag) => void;
+  onTagPress?: (tag: Tag) => void;
+  onTagLongPress?: (tag: Tag) => void;
   refreshTrigger?: number; // Used to trigger refresh from parent
 }
 
@@ -23,7 +23,7 @@ export default function TagsList({
   refreshTrigger = 0
 }: TagsListProps) {
   const { theme } = useTheme();
-  const [tags, setTags] = useState<PlantTag[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -48,18 +48,18 @@ export default function TagsList({
     loadTags(shouldBypassCache);
   }, [plantId, refreshTrigger]);
 
-  const handleDeleteTag = async (tag: PlantTag) => {
+  const handleRemoveTagFromPlant = async (tag: Tag) => {
     Alert.alert(
-      'Delete Tag',
-      `Are you sure you want to delete the "${tag.name}" tag?`,
+      'Remove Tag',
+      `Are you sure you want to remove the "${tag.name}" tag from this plant?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             try {
-              await TagService.deleteTag(tag.id);
+              await TagService.removeTagFromPlant(plantId, tag.id);
               // Remove the tag from local state for immediate UI update
               setTags(prevTags => {
                 const newTags = prevTags.filter(t => t.id !== tag.id);
@@ -70,8 +70,8 @@ export default function TagsList({
                 return newTags;
               });
             } catch (err) {
-              console.error('Failed to delete tag:', err);
-              Alert.alert('Error', 'Failed to delete tag');
+              console.error('Failed to remove tag from plant:', err);
+              Alert.alert('Error', 'Failed to remove tag from plant');
             }
           },
         },
@@ -79,22 +79,22 @@ export default function TagsList({
     );
   };
 
-  const handleTagLongPress = (tag: PlantTag) => {
+  const handleTagLongPress = (tag: Tag) => {
     // Only handle long press when not in edit mode
     if (!isEditMode) {
       if (onTagLongPress) {
         onTagLongPress(tag);
       } else {
-        // Default action: show delete option
+        // Default action: show remove option
         Alert.alert(
           'Tag Options',
           `What would you like to do with "${tag.name}"?`,
           [
             { text: 'Cancel', style: 'cancel' },
             {
-              text: 'Delete',
+              text: 'Remove',
               style: 'destructive',
-              onPress: () => handleDeleteTag(tag),
+              onPress: () => handleRemoveTagFromPlant(tag),
             },
           ]
         );
@@ -102,11 +102,11 @@ export default function TagsList({
     }
   };
 
-  const handleRemoveTag = (tag: PlantTag) => {
-    handleDeleteTag(tag);
+  const handleRemoveTag = (tag: Tag) => {
+    handleRemoveTagFromPlant(tag);
   };
 
-  const handleEditTag = (tag: PlantTag) => {
+  const handleEditTag = (tag: Tag) => {
     router.push(`/edit-tag?tagId=${tag.id}`);
   };
 

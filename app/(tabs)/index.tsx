@@ -12,7 +12,8 @@ import { PhotoService } from '../../services/PhotoService';
 import { LocationService } from '../../services/LocationService';
 import { EventService } from '../../services/EventService';
 import { DateTimeService } from '../../services/DateTimeService';
-import { Plant } from '../../types/Plant';
+import { TagService } from '../../services/TagService';
+import { Plant, Tag } from '../../types/Plant';
 import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
@@ -47,12 +48,18 @@ export default function HomeScreen() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [pinnedPlantIds, setPinnedPlantIds] = useState<Set<string>>(new Set());
   
+  // Filtering state
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [selectedTagsForFilter, setSelectedTagsForFilter] = useState<Set<string>>(new Set()); // Stores tag IDs
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  
   // Derived state
   const loading = plantsLoading;
   const [refreshing, setRefreshing] = useState(false);
   const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
   const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
   const [plantLastPhotoData, setPlantLastPhotoData] = useState<{[plantId: string]: string | null}>({});
+  const [plantTagsData, setPlantTagsData] = useState<{[plantId: string]: Tag[]}>({});
   
   // Helper function to sort plants based on global preferences (must come before useMemo)
   const sortPlants = useCallback((plants: Plant[]): Plant[] => {
@@ -84,13 +91,60 @@ export default function HomeScreen() {
     });
   }, [globalSortPreference, plantWateringData]);
   
+  // Load all available tags for filtering using global tags service
+  const loadAvailableTags = useCallback(async () => {
+    try {
+      // Bypass cache to ensure fresh data for filtering
+      const allTags = await TagService.getAllTags(true);
+      setAvailableTags(allTags);
+    } catch (error) {
+      console.error('Failed to load tags for filtering:', error);
+      // Fallback: create tags from current plant data
+      const allTags: Tag[] = [];
+      const seenTagIds = new Set<string>();
+      
+      Object.values(plantTagsData).forEach(plantTags => {
+        plantTags.forEach(tag => {
+          if (!seenTagIds.has(tag.id)) {
+            seenTagIds.add(tag.id);
+            allTags.push(tag);
+          }
+        });
+      });
+      
+      allTags.sort((a, b) => a.name.localeCompare(b.name));
+      setAvailableTags(allTags);
+    }
+  }, [plantTagsData]);
+
+  // Filter plants based on selected tags (using tag IDs with OR logic)
+  const filterPlantsByTags = useCallback((plants: Plant[]): Plant[] => {
+    if (selectedTagsForFilter.size === 0) {
+      return plants;
+    }
+    
+    return plants.filter(plant => {
+      const plantTags = plantTagsData[plant.id] || [];
+      
+      // Create set of plant's tag IDs
+      const plantTagIds = new Set(plantTags.map(tag => tag.id));
+      
+      // Check if plant has ANY of the selected tag IDs (OR logic)
+      const selectedTagIds = Array.from(selectedTagsForFilter);
+      return selectedTagIds.some(tagId => plantTagIds.has(tagId));
+    });
+  }, [selectedTagsForFilter, plantTagsData]);
+  
   // Grouped plants derived from plants data
   const plantsGrouped = useMemo(() => {
     if (!plants.length) return [];
     
+    // Apply tag filtering first
+    const filteredPlants = filterPlantsByTags(plants);
+    
     // Separate pinned and non-pinned plants
-    const pinnedPlants = plants.filter(plant => pinnedPlantIds.has(plant.id));
-    const unpinnedPlants = plants.filter(plant => !pinnedPlantIds.has(plant.id));
+    const pinnedPlants = filteredPlants.filter(plant => pinnedPlantIds.has(plant.id));
+    const unpinnedPlants = filteredPlants.filter(plant => !pinnedPlantIds.has(plant.id));
     
     // Create sections array
     const sections: {title: string, data: Plant[]}[] = [];
@@ -135,7 +189,7 @@ export default function HomeScreen() {
     sections.push(...locationSections);
     
     return sections;
-  }, [plants, pinnedPlantIds, sortPlants]);
+  }, [plants, pinnedPlantIds, sortPlants, filterPlantsByTags]);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -324,6 +378,7 @@ export default function HomeScreen() {
     const loadAdditionalData = async () => {
       const wateringData: {[plantId: string]: string | null} = {};
       const lastPhotoData: {[plantId: string]: string | null} = {};
+      const tagsData: {[plantId: string]: Tag[]} = {};
       
       // Process plants in smaller batches to avoid overwhelming the API
       const batchSize = 5;
@@ -332,11 +387,12 @@ export default function HomeScreen() {
         
         const batchPromises = batch.map(async (plant) => {
           try {
-            // Load watering data and photo data for this plant
-            const [lastWatering, lastFertigate, photos] = await Promise.all([
+            // Load watering data, photo data, and tags for this plant
+            const [lastWatering, lastFertigate, photos, tags] = await Promise.all([
               EventService.getLastEventByType(plant.id, 'water'),
               EventService.getLastEventByType(plant.id, 'fertigate'),
-              PhotoService.getPhotosByPlantId(plant.id)
+              PhotoService.getPhotosByPlantId(plant.id),
+              TagService.getTagsByPlantId(plant.id)
             ]);
             
             // Find the most recent watering
@@ -356,14 +412,16 @@ export default function HomeScreen() {
             return {
               plantId: plant.id,
               lastWatered: mostRecentWatering?.date || null,
-              lastPhotoDate: lastPhoto?.taken_at || null
+              lastPhotoDate: lastPhoto?.taken_at || null,
+              tags: tags || []
             };
           } catch (error) {
             console.error(`Failed to load data for plant ${plant.id}:`, error);
             return {
               plantId: plant.id,
               lastWatered: null,
-              lastPhotoDate: null
+              lastPhotoDate: null,
+              tags: []
             };
           }
         });
@@ -371,15 +429,17 @@ export default function HomeScreen() {
         const batchResults = await Promise.allSettled(batchPromises);
         batchResults.forEach((result) => {
           if (result.status === 'fulfilled' && result.value) {
-            const { plantId, lastWatered, lastPhotoDate } = result.value;
+            const { plantId, lastWatered, lastPhotoDate, tags } = result.value;
             wateringData[plantId] = lastWatered;
             lastPhotoData[plantId] = lastPhotoDate;
+            tagsData[plantId] = tags;
           }
         });
       }
       
       setPlantWateringData(wateringData);
       setPlantLastPhotoData(lastPhotoData);
+      setPlantTagsData(tagsData);
     };
     
     // Load thumbnails first (more important for UI), then additional data
@@ -393,6 +453,13 @@ export default function HomeScreen() {
       loadPlantAuxiliaryData();
     }
   }, [plants, loadPlantAuxiliaryData]);
+
+  // Load available tags when plant tags data changes
+  useEffect(() => {
+    loadAvailableTags().catch(error => {
+      console.error('Error loading available tags:', error);
+    });
+  }, [loadAvailableTags]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -425,6 +492,15 @@ export default function HomeScreen() {
 
   // Set up real-time subscriptions - React Query will handle invalidation
   useRealtimeUpdates({});
+
+  // Reload auxiliary data when screen comes into focus (handles tag updates)
+  useFocusEffect(
+    useCallback(() => {
+      if (plants.length > 0) {
+        loadPlantAuxiliaryData();
+      }
+    }, [plants.length, loadPlantAuxiliaryData])
+  );
 
 
   const formatTimeSinceWatering = (lastWateredDate?: string | null) => {
@@ -733,6 +809,17 @@ export default function HomeScreen() {
               <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
                 <TouchableOpacity
                   style={[styles.sortDropdownButton, { marginRight: 8 }]}
+                  onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+                >
+                  <Filter size={18} color={selectedTagsForFilter.size > 0 ? theme.colors.primary : theme.colors.textSecondary} />
+                  {selectedTagsForFilter.size > 0 && (
+                    <View style={styles.filterBadge}>
+                      <Text style={styles.filterBadgeText}>{selectedTagsForFilter.size}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sortDropdownButton, { marginRight: 8 }]}
                   onPress={() => setShowSortDropdown(!showSortDropdown)}
                 >
                   <ArrowDownUp size={18} color={theme.colors.textSecondary} />
@@ -775,6 +862,63 @@ export default function HomeScreen() {
                           Last Watered
                         </Text>
                       </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+                {showFilterDropdown && (
+                  <>
+                    <TouchableOpacity 
+                      style={styles.dropdownOverlay}
+                      onPress={() => setShowFilterDropdown(false)}
+                      activeOpacity={1}
+                    />
+                    <View style={[styles.sortDropdown, { width: 200 }]}>
+                      <Text style={[styles.filterDropdownTitle, { padding: 12, fontWeight: 'bold' }]}>
+                        Filter by Tags
+                      </Text>
+                      {availableTags.length === 0 ? (
+                        <Text style={[styles.sortDropdownText, { padding: 12, fontStyle: 'italic' }]}>
+                          No tags available
+                        </Text>
+                      ) : (
+                        availableTags.map((tag) => {
+                          const isSelected = selectedTagsForFilter.has(tag.id);
+                          return (
+                            <TouchableOpacity
+                              key={tag.id}
+                              style={[
+                                styles.sortDropdownItem,
+                                isSelected && styles.sortDropdownItemSelected
+                              ]}
+                              onPress={() => {
+                                const newSelected = new Set(selectedTagsForFilter);
+                                if (isSelected) {
+                                  newSelected.delete(tag.id);
+                                } else {
+                                  newSelected.add(tag.id);
+                                }
+                                setSelectedTagsForFilter(newSelected);
+                              }}
+                            >
+                              <View style={[styles.tagColorDot, { backgroundColor: tag.color }]} />
+                              <Text style={[styles.sortDropdownText, isSelected && styles.sortDropdownTextSelected]}>
+                                {tag.name}
+                              </Text>
+                              {isSelected && <Check size={16} color={theme.colors.primary} />}
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                      {selectedTagsForFilter.size > 0 && (
+                        <TouchableOpacity
+                          style={[styles.sortDropdownItem, { borderTopWidth: 1, borderTopColor: theme.colors.border }]}
+                          onPress={() => setSelectedTagsForFilter(new Set())}
+                        >
+                          <Text style={[styles.sortDropdownText, { color: theme.colors.error }]}>
+                            Clear All Filters
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </>
                 )}

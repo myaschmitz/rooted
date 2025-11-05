@@ -206,10 +206,9 @@ export type Database = {
           updated_at?: string;
         };
       };
-      plant_tags: {
+      tags: {
         Row: {
           id: string;
-          plant_id: string;
           name: string;
           color: string;
           household_id: string;
@@ -218,7 +217,6 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          plant_id: string;
           name: string;
           color: string;
           household_id: string;
@@ -227,11 +225,29 @@ export type Database = {
         };
         Update: {
           id?: string;
-          plant_id?: string;
           name?: string;
           color?: string;
           household_id?: string;
           updated_at?: string;
+        };
+      };
+      plant_tags: {
+        Row: {
+          id: string;
+          plant_id: string;
+          tag_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plant_id: string;
+          tag_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          plant_id?: string;
+          tag_id?: string;
         };
       };
     };

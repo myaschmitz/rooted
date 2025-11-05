@@ -46,12 +46,23 @@ export interface PlantNote {
   updated_at: string;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string; // Hex color code (e.g., '#FF5733')
+  household_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PlantTag {
   id: string;
   plant_id: string;
-  name: string;
-  color: string; // Hex color code (e.g., '#FF5733')
-  household_id?: string;
+  tag_id: string;
   created_at: string;
-  updated_at: string;
+}
+
+// For convenience when working with plant tags with full tag details
+export interface PlantTagWithDetails extends PlantTag {
+  tag: Tag;
 }
