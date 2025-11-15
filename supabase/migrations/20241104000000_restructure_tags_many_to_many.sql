@@ -10,14 +10,42 @@ CREATE TABLE IF NOT EXISTS tags (
     color TEXT NOT NULL, -- Hex color code (e.g., '#FF5733')
     household_id TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    -- Constraints
-    CONSTRAINT check_tag_name_not_empty CHECK (LENGTH(TRIM(name)) > 0),
-    CONSTRAINT check_tag_name_length CHECK (LENGTH(TRIM(name)) <= 50),
-    CONSTRAINT check_color_hex_format CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
-    CONSTRAINT tags_household_id_fkey FOREIGN KEY (household_id) REFERENCES households(id)
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add constraints to tags table only if they don't already exist
+DO $$
+BEGIN
+    -- Add check constraints if they don't exist (using table_constraints for all)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_tag_name_not_empty' 
+                   AND table_schema = 'public'
+                   AND table_name = 'tags') THEN
+        ALTER TABLE tags ADD CONSTRAINT check_tag_name_not_empty CHECK (LENGTH(TRIM(name)) > 0);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_tag_name_length' 
+                   AND table_schema = 'public'
+                   AND table_name = 'tags') THEN
+        ALTER TABLE tags ADD CONSTRAINT check_tag_name_length CHECK (LENGTH(TRIM(name)) <= 50);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_color_hex_format' 
+                   AND table_schema = 'public'
+                   AND table_name = 'tags') THEN
+        ALTER TABLE tags ADD CONSTRAINT check_color_hex_format CHECK (color ~ '^#[0-9A-Fa-f]{6}$');
+    END IF;
+    
+    -- Add foreign key constraint if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'tags_household_id_fkey' 
+                   AND table_schema = 'public'
+                   AND table_name = 'tags') THEN
+        ALTER TABLE tags ADD CONSTRAINT tags_household_id_fkey FOREIGN KEY (household_id) REFERENCES households(id);
+    END IF;
+END $$;
 
 -- Step 2: Create indexes for the tags table (drop first to avoid conflicts)
 DROP INDEX IF EXISTS idx_tags_household_id;
@@ -140,8 +168,11 @@ END $$;
 -- Step 7: Rename the current plant_tags table to plant_tags_old for backup (only if not already renamed)
 DO $$
 BEGIN
+    -- Only rename if we have the old structure (with name/color columns) and not the new junction structure
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'plant_tags' AND table_schema = 'public') 
-       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'plant_tags_old' AND table_schema = 'public') THEN
+       AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'plant_tags_old' AND table_schema = 'public')
+       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plant_tags' AND column_name = 'name' AND table_schema = 'public')
+       AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plant_tags' AND column_name = 'color' AND table_schema = 'public') THEN
         ALTER TABLE plant_tags RENAME TO plant_tags_old;
     END IF;
 END $$;
@@ -151,15 +182,35 @@ CREATE TABLE IF NOT EXISTS plant_tags (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     plant_id UUID NOT NULL,
     tag_id UUID NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    -- Foreign key constraints
-    CONSTRAINT plant_tags_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE,
-    CONSTRAINT plant_tags_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
-    
-    -- Ensure a plant can't have the same tag twice
-    CONSTRAINT plant_tags_unique_assignment UNIQUE (plant_id, tag_id)
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add constraints to plant_tags junction table only if they don't already exist
+DO $$
+BEGIN
+    -- Add foreign key constraints if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'plant_tags_junction_plant_id_fkey' 
+                   AND table_schema = 'public'
+                   AND table_name = 'plant_tags') THEN
+        ALTER TABLE plant_tags ADD CONSTRAINT plant_tags_junction_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES plants(id) ON DELETE CASCADE;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'plant_tags_junction_tag_id_fkey' 
+                   AND table_schema = 'public'
+                   AND table_name = 'plant_tags') THEN
+        ALTER TABLE plant_tags ADD CONSTRAINT plant_tags_junction_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE;
+    END IF;
+    
+    -- Add unique constraint if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'plant_tags_unique_assignment' 
+                   AND table_schema = 'public'
+                   AND table_name = 'plant_tags') THEN
+        ALTER TABLE plant_tags ADD CONSTRAINT plant_tags_unique_assignment UNIQUE (plant_id, tag_id);
+    END IF;
+END $$;
 
 -- Step 9: Create indexes for the junction table (drop first to avoid conflicts)
 DROP INDEX IF EXISTS idx_plant_tags_plant_id;

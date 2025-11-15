@@ -94,7 +94,6 @@ export default function HomeScreen() {
   // Load all available tags for filtering using global tags service
   const loadAvailableTags = useCallback(async () => {
     try {
-      // Bypass cache to ensure fresh data for filtering
       const allTags = await TagService.getAllTags(true);
       setAvailableTags(allTags);
     } catch (error) {
@@ -392,7 +391,7 @@ export default function HomeScreen() {
               EventService.getLastEventByType(plant.id, 'water'),
               EventService.getLastEventByType(plant.id, 'fertigate'),
               PhotoService.getPhotosByPlantId(plant.id),
-              TagService.getTagsByPlantId(plant.id)
+              TagService.getPlantTags(plant.id)
             ]);
             
             // Find the most recent watering
@@ -979,6 +978,7 @@ export default function HomeScreen() {
           )}
         </View>
       )}
+
 
       {plants.length === 0 ? (
         <View style={styles.emptyState}>
