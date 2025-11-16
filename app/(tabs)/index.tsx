@@ -379,20 +379,22 @@ export default function HomeScreen() {
       const lastPhotoData: {[plantId: string]: string | null} = {};
       const tagsData: {[plantId: string]: Tag[]} = {};
       
-      // Process plants in smaller batches to avoid overwhelming the API
-      const batchSize = 5;
-      for (let i = 0; i < plants.length; i += batchSize) {
-        const batch = plants.slice(i, i + batchSize);
+      try {
+        // Batch load all event data in a single query - this reduces API calls dramatically
+        const plantIds = plants.map(p => p.id);
+        const [eventsData, photoPromises, tagPromises] = await Promise.all([
+          EventService.getLastEventsByTypeForPlants(plantIds, ['water', 'fertigate']),
+          Promise.all(plants.map(plant => PhotoService.getPhotosByPlantId(plant.id))),
+          Promise.all(plants.map(plant => TagService.getTagsByPlantId(plant.id)))
+        ]);
         
-        const batchPromises = batch.map(async (plant) => {
+        // Process the batched data
+        plants.forEach((plant, index) => {
           try {
-            // Load watering data, photo data, and tags for this plant
-            const [lastWatering, lastFertigate, photos, tags] = await Promise.all([
-              EventService.getLastEventByType(plant.id, 'water'),
-              EventService.getLastEventByType(plant.id, 'fertigate'),
-              PhotoService.getPhotosByPlantId(plant.id),
-              TagService.getPlantTags(plant.id)
-            ]);
+            // Get the last watering events for this plant
+            const plantEvents = eventsData[plant.id] || {};
+            const lastWatering = plantEvents['water'];
+            const lastFertigate = plantEvents['fertigate'];
             
             // Find the most recent watering
             let mostRecentWatering = null;
@@ -406,33 +408,29 @@ export default function HomeScreen() {
               mostRecentWatering = lastFertigate;
             }
             
+            // Get photo and tag data from the parallel promises
+            const photos = photoPromises[index] || [];
+            const tags = tagPromises[index] || [];
             const lastPhoto = photos.length > 0 ? photos[0] : null;
             
-            return {
-              plantId: plant.id,
-              lastWatered: mostRecentWatering?.date || null,
-              lastPhotoDate: lastPhoto?.taken_at || null,
-              tags: tags || []
-            };
+            wateringData[plant.id] = mostRecentWatering?.date || null;
+            lastPhotoData[plant.id] = lastPhoto?.taken_at || null;
+            tagsData[plant.id] = tags;
           } catch (error) {
-            console.error(`Failed to load data for plant ${plant.id}:`, error);
-            return {
-              plantId: plant.id,
-              lastWatered: null,
-              lastPhotoDate: null,
-              tags: []
-            };
+            console.error(`Failed to process data for plant ${plant.id}:`, error);
+            wateringData[plant.id] = null;
+            lastPhotoData[plant.id] = null;
+            tagsData[plant.id] = [];
           }
         });
         
-        const batchResults = await Promise.allSettled(batchPromises);
-        batchResults.forEach((result) => {
-          if (result.status === 'fulfilled' && result.value) {
-            const { plantId, lastWatered, lastPhotoDate, tags } = result.value;
-            wateringData[plantId] = lastWatered;
-            lastPhotoData[plantId] = lastPhotoDate;
-            tagsData[plantId] = tags;
-          }
+      } catch (error) {
+        console.error('Failed to load additional plant data:', error);
+        // Initialize empty data on error
+        plants.forEach(plant => {
+          wateringData[plant.id] = null;
+          lastPhotoData[plant.id] = null;
+          tagsData[plant.id] = [];
         });
       }
       

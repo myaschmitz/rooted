@@ -188,18 +188,15 @@ export class EventService {
       .eq('event_type', eventType)
       .eq('household_id', session.household_id)
       .order('date', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // No rows found
-      }
       console.error('Error fetching last event by type:', error);
       throw new Error(`Failed to fetch last event by type: ${error.message}`);
     }
 
-    return data as Event;
+    // Return the first result if any, otherwise null
+    return data && data.length > 0 ? (data[0] as Event) : null;
   }
 
   static async getEventStats(plantId: string): Promise<{
@@ -261,6 +258,75 @@ export class EventService {
     if (error) {
       console.error('Error deleting all events:', error);
       throw new Error(`Failed to delete all events: ${error.message}`);
+    }
+  }
+
+  static async getLastEventsByTypeForPlants(
+    plantIds: string[], 
+    eventTypes: string[]
+  ): Promise<{ [plantId: string]: { [eventType: string]: Event | null } }> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error('No household session found');
+    }
+
+    if (plantIds.length === 0) {
+      return {};
+    }
+
+    try {
+      // Fetch all relevant events in one query
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .in('plant_id', plantIds)
+        .in('event_type', eventTypes)
+        .eq('household_id', session.household_id)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching last events by type for plants:', error);
+        throw new Error(`Failed to fetch last events: ${error.message}`);
+      }
+
+      // Group events by plant and type, keeping only the most recent for each combination
+      const result: { [plantId: string]: { [eventType: string]: Event | null } } = {};
+      
+      // Initialize result structure
+      plantIds.forEach(plantId => {
+        result[plantId] = {};
+        eventTypes.forEach(eventType => {
+          result[plantId][eventType] = null;
+        });
+      });
+
+      // Process events to find the most recent for each plant/type combination
+      if (data) {
+        const eventsByPlantAndType = new Map<string, Event>();
+        
+        data.forEach((event: any) => {
+          const key = `${event.plant_id}-${event.event_type}`;
+          const existingEvent = eventsByPlantAndType.get(key);
+          
+          if (!existingEvent || new Date(event.date) > new Date(existingEvent.date)) {
+            eventsByPlantAndType.set(key, event as Event);
+          }
+        });
+
+        // Populate result with the most recent events
+        eventsByPlantAndType.forEach((event, key) => {
+          const [plantId, eventType] = key.split('-');
+          if (result[plantId]) {
+            result[plantId][eventType] = event;
+          }
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in getLastEventsByTypeForPlants:', error);
+      throw error;
     }
   }
 }

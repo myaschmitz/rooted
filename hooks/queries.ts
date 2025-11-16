@@ -117,6 +117,16 @@ export const usePlantStats = (plantId: string) => {
   });
 };
 
+export const useBatchLastEvents = (plantIds: string[], eventTypes: string[] = ['water', 'fertigate']) => {
+  return useQuery<{ [plantId: string]: { [eventType: string]: Event | null } }>({
+    queryKey: ['batch-last-events', plantIds.sort().join(','), eventTypes.sort().join(',')],
+    queryFn: () => EventService.getLastEventsByTypeForPlants(plantIds, eventTypes),
+    staleTime: 3 * 60 * 1000, // 3 minutes - batch queries can be cached for shorter time
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    enabled: plantIds.length > 0,
+  });
+};
+
 // ============================================================================
 // MUTATIONS WITH CACHE INVALIDATION
 // ============================================================================
