@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, SectionList, ActivityIndicator, RefreshControl, Modal, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
@@ -19,7 +19,7 @@ import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { PlantThumbnail } from '../../components/PlantThumbnail';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
-import { usePlants, useCreateEvent } from '../../hooks/queries';
+import { usePlants, useCreateEvent, useBatchThumbnails, useBatchLastEvents, useAllTags, useBatchPlantTags } from '../../hooks/queries';
 
 dayjs.extend(relativeTime);
 
@@ -43,6 +43,15 @@ export default function HomeScreen() {
   const { data: plants = [], isLoading: plantsLoading, refetch: refetchPlants } = usePlants();
   const createEventMutation = useCreateEvent();
   
+  // Use batch queries to reduce API calls - stabilize plantIds to prevent unnecessary re-queries
+  const plantIds = useMemo(() => plants.map(p => p.id), [plants]);
+  const { data: batchThumbnailData = {} } = useBatchThumbnails(plantIds);
+  const { data: batchTagsData = {} } = useBatchPlantTags(plantIds);
+  const { data: availableTags = [] } = useAllTags();
+  
+  // Use the proper batch last events hook for efficient caching
+  const { data: rawEventData, isLoading: eventsLoading } = useBatchLastEvents(plantIds, ['water', 'fertigate']);
+  
   // State declarations (must come before useMemo that depends on them)
   const [globalSortPreference, setGlobalSortPreference] = useState<GlobalSortPreference>({ type: 'name', direction: 'asc' });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -51,15 +60,62 @@ export default function HomeScreen() {
   // Filtering state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedTagsForFilter, setSelectedTagsForFilter] = useState<Set<string>>(new Set()); // Stores tag IDs
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   
   // Derived state
   const loading = plantsLoading;
   const [refreshing, setRefreshing] = useState(false);
-  const [plantThumbnails, setPlantThumbnails] = useState<{[plantId: string]: string}>({});
-  const [plantWateringData, setPlantWateringData] = useState<{[plantId: string]: string | null}>({});
   const [plantLastPhotoData, setPlantLastPhotoData] = useState<{[plantId: string]: string | null}>({});
-  const [plantTagsData, setPlantTagsData] = useState<{[plantId: string]: Tag[]}>({});
+
+  // Extract watering data from the event data
+  const plantWateringData = useMemo(() => {
+    const result: {[plantId: string]: string | null} = {};
+    
+    if (eventsLoading || !rawEventData) {
+      plantIds.forEach(plantId => {
+        result[plantId] = null;
+      });
+      return result;
+    }
+    
+    Object.entries(rawEventData).forEach(([plantId, events]) => {
+      const lastWatering = events['water'];
+      const lastFertigate = events['fertigate'];
+      
+      // Find the most recent watering
+      let mostRecentWatering = null;
+      if (lastWatering && lastFertigate) {
+        mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date)) 
+          ? lastWatering 
+          : lastFertigate;
+      } else if (lastWatering) {
+        mostRecentWatering = lastWatering;
+      } else if (lastFertigate) {
+        mostRecentWatering = lastFertigate;
+      }
+      
+      result[plantId] = mostRecentWatering?.date || null;
+    });
+    
+    // For any plants not in the raw data, set them to null
+    plantIds.forEach(plantId => {
+      if (!(plantId in result)) {
+        result[plantId] = null;
+      }
+    });
+    
+    return result;
+  }, [rawEventData, eventsLoading, plantIds]);
+  
+  // Extract thumbnail data from batch query instead of local state
+  const plantThumbnails = useMemo(() => {
+    const result: {[plantId: string]: string} = {};
+    Object.entries(batchThumbnailData).forEach(([plantId, photo]) => {
+      if (photo) {
+        result[plantId] = PhotoService.getImageUrl(photo, true);
+      }
+    });
+    return result;
+  }, [batchThumbnailData]);
   
   // Helper function to sort plants based on global preferences (must come before useMemo)
   const sortPlants = useCallback((plants: Plant[]): Plant[] => {
@@ -91,30 +147,6 @@ export default function HomeScreen() {
     });
   }, [globalSortPreference, plantWateringData]);
   
-  // Load all available tags for filtering using global tags service
-  const loadAvailableTags = useCallback(async () => {
-    try {
-      const allTags = await TagService.getAllTags(true);
-      setAvailableTags(allTags);
-    } catch (error) {
-      console.error('Failed to load tags for filtering:', error);
-      // Fallback: create tags from current plant data
-      const allTags: Tag[] = [];
-      const seenTagIds = new Set<string>();
-      
-      Object.values(plantTagsData).forEach(plantTags => {
-        plantTags.forEach(tag => {
-          if (!seenTagIds.has(tag.id)) {
-            seenTagIds.add(tag.id);
-            allTags.push(tag);
-          }
-        });
-      });
-      
-      allTags.sort((a, b) => a.name.localeCompare(b.name));
-      setAvailableTags(allTags);
-    }
-  }, [plantTagsData]);
 
   // Filter plants based on selected tags (using tag IDs with OR logic)
   const filterPlantsByTags = useCallback((plants: Plant[]): Plant[] => {
@@ -122,17 +154,24 @@ export default function HomeScreen() {
       return plants;
     }
     
-    return plants.filter(plant => {
-      const plantTags = plantTagsData[plant.id] || [];
+    const filtered = plants.filter(plant => {
+      const plantTags = batchTagsData[plant.id] || [];
       
       // Create set of plant's tag IDs
       const plantTagIds = new Set(plantTags.map(tag => tag.id));
       
       // Check if plant has ANY of the selected tag IDs (OR logic)
       const selectedTagIds = Array.from(selectedTagsForFilter);
-      return selectedTagIds.some(tagId => plantTagIds.has(tagId));
+      const hasSelectedTag = selectedTagIds.some(tagId => {
+        const hasTag = plantTagIds.has(tagId);
+        return hasTag;
+      });
+      
+      return hasSelectedTag;
     });
-  }, [selectedTagsForFilter, plantTagsData]);
+    
+    return filtered;
+  }, [selectedTagsForFilter, batchTagsData]);
   
   // Grouped plants derived from plants data
   const plantsGrouped = useMemo(() => {
@@ -321,142 +360,55 @@ export default function HomeScreen() {
   }, [pinnedPlantIds, savePinnedPlants]);
 
 
-  // Load auxiliary data for plants more efficiently
+  // Load remaining auxiliary data more efficiently with larger batches and less frequency
   const loadPlantAuxiliaryData = useCallback(async () => {
     if (!plants.length) return;
     
-    // Load thumbnails efficiently using batch method
-    const loadThumbnails = async () => {
-      try {
-        const plantIds = plants.map(p => p.id);
-        const batchThumbnails = await PhotoService.getBatchThumbnailPhotos(plantIds);
-        
-        const thumbnails: {[plantId: string]: string} = {};
-        Object.entries(batchThumbnails).forEach(([plantId, photo]) => {
-          if (photo) {
-            thumbnails[plantId] = PhotoService.getImageUrl(photo, true);
-          }
-        });
-        
-        // For plants without designated thumbnails, fall back to first photo
-        const plantsWithoutThumbnails = plants.filter(p => !thumbnails[p.id]);
-        if (plantsWithoutThumbnails.length > 0) {
-          // Process these in smaller batches to avoid overwhelming the API
-          const batchSize = 5;
-          for (let i = 0; i < plantsWithoutThumbnails.length; i += batchSize) {
-            const batch = plantsWithoutThumbnails.slice(i, i + batchSize);
-            const fallbackPromises = batch.map(async (plant) => {
-              try {
-                const photos = await PhotoService.getPhotosByPlantId(plant.id);
-                if (photos.length > 0) {
-                  return { plantId: plant.id, path: PhotoService.getImageUrl(photos[0], true) };
-                }
-              } catch (error) {
-                console.error(`Failed to load fallback thumbnail for plant ${plant.id}:`, error);
-              }
-              return null;
-            });
-            
-            const batchResults = await Promise.allSettled(fallbackPromises);
-            batchResults.forEach((result) => {
-              if (result.status === 'fulfilled' && result.value) {
-                thumbnails[result.value.plantId] = result.value.path;
-              }
-            });
-          }
-        }
-        
-        setPlantThumbnails(thumbnails);
-      } catch (error) {
-        console.error('Failed to load thumbnails:', error);
-        setPlantThumbnails({});
-      }
-    };
-    
-    // Load watering and photo data more efficiently
-    const loadAdditionalData = async () => {
-      const wateringData: {[plantId: string]: string | null} = {};
+    try {
+      // Only load photo timestamps - tags and thumbnails now handled by React Query
       const lastPhotoData: {[plantId: string]: string | null} = {};
-      const tagsData: {[plantId: string]: Tag[]} = {};
       
-      try {
-        // Batch load all event data in a single query - this reduces API calls dramatically
-        const plantIds = plants.map(p => p.id);
-        const [eventsData, photoPromises, tagPromises] = await Promise.all([
-          EventService.getLastEventsByTypeForPlants(plantIds, ['water', 'fertigate']),
-          Promise.all(plants.map(plant => PhotoService.getPhotosByPlantId(plant.id))),
-          Promise.all(plants.map(plant => TagService.getTagsByPlantId(plant.id)))
-        ]);
+      // Use larger batches to reduce API overhead, but less frequent updates
+      const batchSize = 20; // Increased from 10 to reduce total API calls
+      for (let i = 0; i < plants.length; i += batchSize) {
+        const batch = plants.slice(i, i + batchSize);
         
-        // Process the batched data
-        plants.forEach((plant, index) => {
+        // Only load first photo timestamp (not all photos) to reduce data transfer
+        const photoPromises = await Promise.all(batch.map(async (plant) => {
           try {
-            // Get the last watering events for this plant
-            const plantEvents = eventsData[plant.id] || {};
-            const lastWatering = plantEvents['water'];
-            const lastFertigate = plantEvents['fertigate'];
-            
-            // Find the most recent watering
-            let mostRecentWatering = null;
-            if (lastWatering && lastFertigate) {
-              mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date)) 
-                ? lastWatering 
-                : lastFertigate;
-            } else if (lastWatering) {
-              mostRecentWatering = lastWatering;
-            } else if (lastFertigate) {
-              mostRecentWatering = lastFertigate;
-            }
-            
-            // Get photo and tag data from the parallel promises
-            const photos = photoPromises[index] || [];
-            const tags = tagPromises[index] || [];
-            const lastPhoto = photos.length > 0 ? photos[0] : null;
-            
-            wateringData[plant.id] = mostRecentWatering?.date || null;
-            lastPhotoData[plant.id] = lastPhoto?.taken_at || null;
-            tagsData[plant.id] = tags;
+            const photos = await PhotoService.getPhotosByPlantId(plant.id);
+            return photos.length > 0 ? photos[0] : null;
           } catch (error) {
-            console.error(`Failed to process data for plant ${plant.id}:`, error);
-            wateringData[plant.id] = null;
-            lastPhotoData[plant.id] = null;
-            tagsData[plant.id] = [];
+            console.error(`Failed to load photos for plant ${plant.id}:`, error);
+            return null;
           }
+        }));
+        
+        batch.forEach((plant, index) => {
+          const firstPhoto = photoPromises[index];
+          lastPhotoData[plant.id] = firstPhoto?.taken_at || null;
         });
         
-      } catch (error) {
-        console.error('Failed to load additional plant data:', error);
-        // Initialize empty data on error
-        plants.forEach(plant => {
-          wateringData[plant.id] = null;
-          lastPhotoData[plant.id] = null;
-          tagsData[plant.id] = [];
-        });
+        // Add small delay between batches to prevent overwhelming the API
+        if (i + batchSize < plants.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
       
-      setPlantWateringData(wateringData);
       setPlantLastPhotoData(lastPhotoData);
-      setPlantTagsData(tagsData);
-    };
-    
-    // Load thumbnails first (more important for UI), then additional data
-    await loadThumbnails();
-    await loadAdditionalData();
+      
+    } catch (error) {
+      console.error('Failed to load plant auxiliary data:', error);
+      setPlantLastPhotoData({});
+    }
   }, [plants]);
   
-  // Load auxiliary data when plants change
+  // Load auxiliary data when plants change - but only when the plant list actually changes
   useEffect(() => {
     if (plants.length > 0) {
       loadPlantAuxiliaryData();
     }
-  }, [plants, loadPlantAuxiliaryData]);
-
-  // Load available tags when plant tags data changes
-  useEffect(() => {
-    loadAvailableTags().catch(error => {
-      console.error('Error loading available tags:', error);
-    });
-  }, [loadAvailableTags]);
+  }, [plants.length]); // Only depend on length, not the entire plants array
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -490,10 +442,14 @@ export default function HomeScreen() {
   // Set up real-time subscriptions - React Query will handle invalidation
   useRealtimeUpdates({});
 
-  // Reload auxiliary data when screen comes into focus (handles tag updates)
+  // Reload auxiliary data when screen comes into focus - but less frequently
+  const lastFocusTime = useRef<number>(0);
   useFocusEffect(
     useCallback(() => {
-      if (plants.length > 0) {
+      // Only reload if it's been more than 2 minutes since last focus load
+      const now = Date.now();
+      if (plants.length > 0 && now - lastFocusTime.current > 2 * 60 * 1000) {
+        lastFocusTime.current = now;
         loadPlantAuxiliaryData();
       }
     }, [plants.length, loadPlantAuxiliaryData])

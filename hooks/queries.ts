@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
 import { EventService } from '../services/EventService';
-import { Plant, PlantPhoto, Event } from '../types/Plant';
+import { TagService } from '../services/TagService';
+import { Plant, PlantPhoto, Event, Tag } from '../types/Plant';
 import { queryKeys } from '../constants/queryKeys';
 
 // Re-export queryKeys for backward compatibility
@@ -121,8 +122,18 @@ export const useBatchLastEvents = (plantIds: string[], eventTypes: string[] = ['
   return useQuery<{ [plantId: string]: { [eventType: string]: Event | null } }>({
     queryKey: ['batch-last-events', plantIds.sort().join(','), eventTypes.sort().join(',')],
     queryFn: () => EventService.getLastEventsByTypeForPlants(plantIds, eventTypes),
-    staleTime: 3 * 60 * 1000, // 3 minutes - batch queries can be cached for shorter time
+    staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
+    enabled: plantIds.length > 0,
+  });
+};
+
+export const useBatchThumbnails = (plantIds: string[]) => {
+  return useQuery<{ [plantId: string]: PlantPhoto | null }>({
+    queryKey: ['batch-thumbnails', plantIds.sort().join(',')],
+    queryFn: () => PhotoService.getBatchThumbnailPhotos(plantIds),
+    staleTime: 10 * 60 * 1000, // 10 minutes - thumbnails don't change often
+    gcTime: 60 * 60 * 1000, // 1 hour
     enabled: plantIds.length > 0,
   });
 };
@@ -219,6 +230,12 @@ export const useCreateEvent = () => {
       
       // Invalidate plant stats
       queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(newEvent.plant_id) });
+      
+      // Invalidate batch last events (for home page)
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-last-events'],
+        exact: false 
+      });
     },
     onError: (error) => {
       console.error('Failed to create event:', error);
@@ -242,6 +259,12 @@ export const useUpdateEvent = () => {
         
         // Invalidate plant stats
         queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(updatedEvent.plant_id) });
+        
+        // Invalidate batch last events (for home page)
+        queryClient.invalidateQueries({ 
+          queryKey: ['batch-last-events'],
+          exact: false 
+        });
       }
     },
     onError: (error) => {
@@ -265,6 +288,12 @@ export const useDeleteEvent = () => {
       
       // Invalidate plant stats
       queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(plantId) });
+      
+      // Invalidate batch last events (for home page)
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-last-events'],
+        exact: false 
+      });
     },
     onError: (error) => {
       console.error('Failed to delete event:', error);
@@ -292,6 +321,176 @@ export const useSavePhoto = () => {
     },
     onError: (error) => {
       console.error('Failed to save photo:', error);
+    },
+  });
+};
+
+// ============================================================================
+// TAG QUERIES
+// ============================================================================
+
+export const useAllTags = () => {
+  return useQuery<Tag[]>({
+    queryKey: ['all-tags'],
+    queryFn: () => TagService.getAllTags(),
+    staleTime: 10 * 60 * 1000, // 10 minutes - tags don't change very frequently
+    gcTime: 30 * 60 * 1000, // 30 minutes
+  });
+};
+
+export const usePlantTags = (plantId: string) => {
+  return useQuery<Tag[]>({
+    queryKey: ['plant-tags', plantId],
+    queryFn: () => TagService.getTagsByPlantId(plantId),
+    staleTime: 10 * 60 * 1000, // 10 minutes - tags don't change very frequently
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    enabled: !!plantId,
+  });
+};
+
+export const useBatchPlantTags = (plantIds: string[]) => {
+  return useQuery<{ [plantId: string]: Tag[] }>({
+    queryKey: ['batch-plant-tags', plantIds.sort().join(',')],
+    queryFn: async () => {
+      if (plantIds.length === 0) return {};
+      
+      const result: { [plantId: string]: Tag[] } = {};
+      
+      // Batch the requests to reduce API overhead
+      const batchSize = 20;
+      for (let i = 0; i < plantIds.length; i += batchSize) {
+        const batch = plantIds.slice(i, i + batchSize);
+        
+        const tagPromises = batch.map(async (plantId) => {
+          try {
+            const tags = await TagService.getTagsByPlantId(plantId);
+            return { plantId, tags };
+          } catch (error) {
+            console.error(`Failed to load tags for plant ${plantId}:`, error);
+            return { plantId, tags: [] };
+          }
+        });
+        
+        const batchResults = await Promise.all(tagPromises);
+        batchResults.forEach(({ plantId, tags }) => {
+          result[plantId] = tags;
+        });
+      }
+      
+      return result;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    enabled: plantIds.length > 0,
+  });
+};
+
+export const useAddTagToPlant = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ plantId, tagId }: { plantId: string; tagId: string }) => {
+      return TagService.addTagToPlant(plantId, tagId);
+    },
+    onSuccess: (result, { plantId, tagId }) => {
+      
+      // Invalidate plant tags
+      queryClient.invalidateQueries({ queryKey: ['plant-tags', plantId] });
+      
+      // Invalidate batch plant tags
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-plant-tags'],
+        exact: false 
+      });
+      
+      // Invalidate all tags (in case a new tag was created)
+      queryClient.invalidateQueries({ queryKey: ['all-tags'] });
+      
+      // Invalidate plant data to reflect tags
+      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
+      
+      // Invalidate plants list to ensure filtering works
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+    },
+    onError: (error) => {
+      console.error('Failed to add tag to plant:', error);
+    },
+  });
+};
+
+export const useRemoveTagFromPlant = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ plantId, tagId }: { plantId: string; tagId: string }) => 
+      TagService.removeTagFromPlant(plantId, tagId),
+    onSuccess: (_, { plantId, tagId }) => {
+      // Invalidate plant tags
+      queryClient.invalidateQueries({ queryKey: ['plant-tags', plantId] });
+      
+      // Invalidate batch plant tags
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-plant-tags'],
+        exact: false 
+      });
+      
+      // Invalidate plant data to reflect tags
+      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
+      
+      // Invalidate plants list to ensure filtering works
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+    },
+    onError: (error) => {
+      console.error('Failed to remove tag from plant:', error);
+    },
+  });
+};
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ name, color }: { name: string; color: string }) => 
+      TagService.createTag(name, color),
+    onSuccess: () => {
+      // Invalidate all tags
+      queryClient.invalidateQueries({ queryKey: ['all-tags'] });
+    },
+    onError: (error) => {
+      console.error('Failed to create tag:', error);
+    },
+  });
+};
+
+export const useCreateTagAndAddToPlant = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ plantId, name, color }: { plantId: string; name: string; color: string }) => {
+      return TagService.createTagAndAddToPlant(plantId, name, color);
+    },
+    onSuccess: (result, { plantId }) => {
+      
+      // Invalidate plant tags
+      queryClient.invalidateQueries({ queryKey: ['plant-tags', plantId] });
+      
+      // Invalidate batch plant tags
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-plant-tags'],
+        exact: false 
+      });
+      
+      // Invalidate all tags (new tag was created)
+      queryClient.invalidateQueries({ queryKey: ['all-tags'] });
+      
+      // Invalidate plant data to reflect tags
+      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
+      
+      // Invalidate plants list to ensure filtering works
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+    },
+    onError: (error) => {
+      console.error('Failed to create tag and add to plant:', error);
     },
   });
 };

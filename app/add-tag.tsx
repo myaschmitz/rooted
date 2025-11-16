@@ -16,6 +16,7 @@ import { TagService } from '../services/TagService';
 import { Tag } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { useAddTagToPlant, useCreateTagAndAddToPlant } from '../hooks/queries';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -23,10 +24,14 @@ export default function AddTagScreen() {
   const { theme } = useTheme();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   
+  // React Query mutations
+  const addTagMutation = useAddTagToPlant();
+  const createTagMutation = useCreateTagAndAddToPlant();
+  
   // UI state
   const [mode, setMode] = useState<'select' | 'create'>('select'); // Start with select mode
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const saving = addTagMutation.isPending || createTagMutation.isPending;
   
   // Available tags state
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -71,7 +76,6 @@ export default function AddTagScreen() {
       return;
     }
 
-    setSaving(true);
     try {
       if (mode === 'select') {
         // Adding an existing tag
@@ -79,23 +83,21 @@ export default function AddTagScreen() {
           Alert.alert('Error', 'Please select a tag');
           return;
         }
-        await TagService.addTagToPlant(plantId, selectedExistingTag.id);
+        await addTagMutation.mutateAsync({ plantId, tagId: selectedExistingTag.id });
       } else {
         // Creating a new tag
         const validation = TagService.validateTagName(tagName);
         if (!validation.isValid) {
           Alert.alert('Error', validation.error);
-          setSaving(false);
           return;
         }
 
         if (!TagService.validateTagColor(selectedColor)) {
           Alert.alert('Error', 'Please select a valid color');
-          setSaving(false);
           return;
         }
 
-        const result = await TagService.createTagAndAddToPlant(plantId, tagName.trim(), selectedColor);
+        const result = await createTagMutation.mutateAsync({ plantId, name: tagName.trim(), color: selectedColor });
         
         if (!result.isNew) {
           // Inform user that an existing tag was used
@@ -107,8 +109,6 @@ export default function AddTagScreen() {
     } catch (error) {
       console.error('Failed to add tag:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add tag');
-    } finally {
-      setSaving(false);
     }
   };
 

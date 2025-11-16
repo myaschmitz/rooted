@@ -316,7 +316,10 @@ export class EventService {
 
         // Populate result with the most recent events
         eventsByPlantAndType.forEach((event, key) => {
-          const [plantId, eventType] = key.split('-');
+          const lastDashIndex = key.lastIndexOf('-');
+          const plantId = key.substring(0, lastDashIndex);
+          const eventType = key.substring(lastDashIndex + 1);
+          
           if (result[plantId]) {
             result[plantId][eventType] = event;
           }
