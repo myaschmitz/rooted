@@ -37,6 +37,7 @@ import { HouseholdService } from '../../services/HouseholdService';
 import { HouseholdContext, HouseholdMember } from '../../types/Household';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useColorScheme } from 'react-native';
+import { TextSkeleton } from '../../components/Skeleton';
 
 const DATE_FORMATS = [
   { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
@@ -359,8 +360,13 @@ export default function SettingsScreen() {
   if (householdLoading) {
     return (
       <View style={[styles.container, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Loading...</Text>
+        <View style={{ alignItems: 'center', padding: 32 }}>
+          <TextSkeleton width={200} height={24} style={{ marginBottom: 20 }} />
+          <TextSkeleton width={150} height={18} style={{ marginBottom: 16 }} />
+          <TextSkeleton width={180} height={16} style={{ marginBottom: 12 }} />
+          <TextSkeleton width={120} height={16} style={{ marginBottom: 12 }} />
+          <TextSkeleton width={160} height={16} />
+        </View>
       </View>
     );
   }

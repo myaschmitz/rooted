@@ -33,6 +33,7 @@ import {
   useDeletePhoto,
   useDeleteEvent
 } from '../../hooks/queries';
+import { TextSkeleton } from '../../components/Skeleton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -680,7 +681,7 @@ export default function PlantDetailScreen() {
                         <Text style={styles.photoTimeAgo}>({formattedDates[photo.id].timeAgo})</Text>
                       </>
                     ) : (
-                      <Text style={styles.photoDate}>Loading...</Text>
+                      <TextSkeleton width={120} height={14} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -704,7 +705,7 @@ export default function PlantDetailScreen() {
                       {formatEventTypeTitle(event.event_type)}
                     </Text>
                     <Text style={styles.careEventDate}>
-                      {formattedDates[event.id] ? `${formattedDates[event.id].date} (${formattedDates[event.id].timeAgo})` : 'Loading...'}
+                      {formattedDates[event.id] ? `${formattedDates[event.id].date} (${formattedDates[event.id].timeAgo})` : <TextSkeleton width={180} height={14} />}
                     </Text>
                   </View>
                   <View style={styles.careEventActions}>
@@ -806,7 +807,7 @@ export default function PlantDetailScreen() {
             return (
               <View style={styles.imageViewerFooter}>
                 <View style={styles.photoInfo}>
-                  <Text style={styles.photoInfoText}>Loading...</Text>
+                  <TextSkeleton width={100} height={14} />
                   {allPhotos.length > 1 && (
                     <Text style={styles.photoCounter}>
                       {imageIndex + 1} of {allPhotos.length}
@@ -820,7 +821,7 @@ export default function PlantDetailScreen() {
             <View style={styles.imageViewerFooter}>
               <View style={styles.photoInfo}>
                 <Text style={styles.photoInfoText}>
-                  {formattedDates[currentPhoto.id] ? `${formattedDates[currentPhoto.id].date} (${formattedDates[currentPhoto.id].timeAgo})` : 'Loading...'}
+                  {formattedDates[currentPhoto.id] ? `${formattedDates[currentPhoto.id].date} (${formattedDates[currentPhoto.id].timeAgo})` : <TextSkeleton width={180} height={14} />}
                 </Text>
                 {allPhotos.length > 1 && (
                   <Text style={styles.photoCounter}>

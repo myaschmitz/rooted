@@ -6,6 +6,7 @@ import { Tag, PlantTag } from '../types/Plant';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
+import { TextSkeleton } from './Skeleton';
 
 interface TagsListProps {
   plantId: string;
@@ -119,8 +120,8 @@ export default function TagsList({
   if (loading) {
     return (
       <View style={styles.tagsContainer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading tags...</Text>
+        <TextSkeleton width={100} height={16} style={{ marginBottom: 4 }} />
+        <TextSkeleton width={80} height={14} />
       </View>
     );
   }

@@ -20,6 +20,7 @@ import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { PlantThumbnail } from '../../components/PlantThumbnail';
 import { useGlobalStyles, ButtonStyles, InputStyles } from '../../styles';
 import { usePlants, useCreateEvent, useBatchThumbnails, useBatchLastEvents, useAllTags, useBatchPlantTags } from '../../hooks/queries';
+import { TextSkeleton, PlantCardSkeleton } from '../../components/Skeleton';
 
 dayjs.extend(relativeTime);
 
@@ -634,9 +635,13 @@ export default function HomeScreen() {
               <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
               <Text style={styles.plantType}>{item.type}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
-                <Text style={[styles.wateringStatus, { color: wateringColor }]}>
-                  Last watered: {wateringDisplay.timeAgo}
-                </Text>
+                {eventsLoading ? (
+                  <TextSkeleton width={120} height={14} />
+                ) : (
+                  <Text style={[styles.wateringStatus, { color: wateringColor }]}>
+                    Last watered: {wateringDisplay.timeAgo}
+                  </Text>
+                )}
               </View>
             </View>
           </View>
@@ -657,9 +662,13 @@ export default function HomeScreen() {
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
             <Text style={styles.plantType}>{item.type}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
-              <Text style={[styles.wateringStatus, { color: wateringColor }]}>
-                Last watered: {wateringDisplay.timeAgo}
-              </Text>
+              {eventsLoading ? (
+                <TextSkeleton width={120} height={14} />
+              ) : (
+                <Text style={[styles.wateringStatus, { color: wateringColor }]}>
+                  Last watered: {wateringDisplay.timeAgo}
+                </Text>
+              )}
             </View>
           </View>
           <View style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 32 }}>
@@ -726,8 +735,53 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.container}>
+        <View style={globalStyles.flexRowBetween}>
+          <View style={[
+            globalStyles.flexRowCenter,
+            { margin: 16, padding: 8, borderRadius: 8, backgroundColor: theme.colors.surface }
+          ]}>
+            <Square size={20} color={theme.colors.textSecondary} />
+            <Text style={[globalStyles.buttonTextSecondary, { 
+              marginLeft: 8, 
+              color: theme.colors.textPrimary 
+            }]}>
+              Batch Mode
+            </Text>
+          </View>
+          
+          <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
+            <TextSkeleton width={32} style={{ marginRight: 8 }} />
+            <TextSkeleton width={80} style={{ marginRight: 8 }} />
+            <TextSkeleton width={20} />
+          </View>
+        </View>
+
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginHorizontal: 16,
+          marginBottom: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          backgroundColor: theme.colors.surface,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+        }}>
+          <Search size={20} color={theme.colors.textSecondary} />
+          <TextSkeleton width="60%" style={{ marginLeft: 8 }} />
+        </View>
+
+        <ScrollView style={styles.list}>
+          <View style={styles.sectionHeader}>
+            <TextSkeleton width={120} height={20} />
+            <TextSkeleton width={60} height={16} />
+          </View>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <PlantCardSkeleton key={index} />
+          ))}
+        </ScrollView>
       </View>
     );
   }

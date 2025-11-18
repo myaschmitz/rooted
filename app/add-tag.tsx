@@ -17,6 +17,7 @@ import { Tag } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useAddTagToPlant, useCreateTagAndAddToPlant } from '../hooks/queries';
+import { TextSkeleton } from '../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -135,8 +136,12 @@ export default function AddTagScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading available tags...</Text>
+        <View style={{ alignItems: 'center' }}>
+          <TextSkeleton width={200} height={20} style={{ marginBottom: 16 }} />
+          <TextSkeleton width={160} height={16} style={{ marginBottom: 12 }} />
+          <TextSkeleton width={180} height={16} style={{ marginBottom: 12 }} />
+          <TextSkeleton width={140} height={16} />
+        </View>
       </View>
     );
   }

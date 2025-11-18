@@ -15,6 +15,7 @@ import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { TextSkeleton } from '../components/Skeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -117,7 +118,11 @@ export default function EditTagScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
-        <Text style={styles.loadingText}>Loading tag...</Text>
+        <View style={{ alignItems: 'center' }}>
+          <TextSkeleton width={150} height={20} style={{ marginBottom: 16 }} />
+          <TextSkeleton width={100} height={16} style={{ marginBottom: 12 }} />
+          <TextSkeleton width={120} height={16} />
+        </View>
       </View>
     );
   }
