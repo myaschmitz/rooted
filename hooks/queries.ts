@@ -462,6 +462,31 @@ export const useCreateTag = () => {
   });
 };
 
+export const useUpdateTag = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: { name?: string; color?: string } }) => 
+      TagService.updateTag(id, updates),
+    onSuccess: () => {
+      // Invalidate all tags
+      queryClient.invalidateQueries({ queryKey: ['all-tags'] });
+      
+      // Invalidate batch plant tags to reflect name/color changes
+      queryClient.invalidateQueries({ 
+        queryKey: ['batch-plant-tags'],
+        exact: false 
+      });
+      
+      // Invalidate plants list to ensure filtering works with updated tag name
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+    },
+    onError: (error) => {
+      console.error('Failed to update tag:', error);
+    },
+  });
+};
+
 export const useCreateTagAndAddToPlant = () => {
   const queryClient = useQueryClient();
   
@@ -535,6 +560,28 @@ export const useSetThumbnailPhoto = () => {
     },
     onError: (error) => {
       console.error('Failed to set thumbnail photo:', error);
+    },
+  });
+};
+
+export const useClearThumbnailPhoto = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (plantId: string) => 
+      PhotoService.clearThumbnailPhoto(plantId),
+    onSuccess: (_, plantId) => {
+      // Invalidate plant data to reflect cleared thumbnail
+      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
+      
+      // Invalidate thumbnail photo
+      queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(plantId) });
+      
+      // Invalidate plants list to update thumbnail display
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+    },
+    onError: (error) => {
+      console.error('Failed to clear thumbnail photo:', error);
     },
   });
 };

@@ -9,16 +9,19 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
-import { EventService } from '../services/EventService';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { Camera } from 'lucide-react-native';
+import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
 
 export default function AddPlantScreen() {
   const { theme } = useTheme();
+  const createPlantMutation = useCreatePlant();
+  const savePhotoMutation = useSavePhoto();
+  const createEventMutation = useCreateEvent();
+  
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
@@ -36,7 +39,7 @@ export default function AddPlantScreen() {
 
     setSaving(true);
     try {
-      const newPlant = await PlantService.createPlant({
+      const newPlant = await createPlantMutation.mutateAsync({
         name: name.trim() || undefined,
         type: type.trim(),
         location: location.trim() || undefined,
@@ -46,7 +49,11 @@ export default function AddPlantScreen() {
       // If there's a photo, save it
       if (plantPhoto && newPlant) {
         try {
-          await PhotoService.savePhoto(newPlant.id, plantPhoto, 'Initial photo');
+          await savePhotoMutation.mutateAsync({
+            plantId: newPlant.id,
+            sourceUri: plantPhoto,
+            caption: 'Initial photo'
+          });
         } catch (photoError) {
           console.warn('Failed to save photo, but plant was created:', photoError);
         }
@@ -55,7 +62,7 @@ export default function AddPlantScreen() {
       // Create a "plant added" event to track when the plant was added
       if (newPlant) {
         try {
-          await EventService.createEvent({
+          await createEventMutation.mutateAsync({
             plant_id: newPlant.id,
             event_type: 'other',
             date: new Date().toISOString(),

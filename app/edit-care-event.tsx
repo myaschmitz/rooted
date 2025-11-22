@@ -21,11 +21,13 @@ import { Event, PlantPhoto } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { useUpdateEvent } from '../hooks/queries';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
   const careStyles = useCareStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const updateEventMutation = useUpdateEvent();
   const [event, setEvent] = useState<Event | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other'>('water');
   const [eventDate, setEventDate] = useState(new Date());
@@ -179,12 +181,15 @@ export default function EditCareEventScreen() {
     setSaving(true);
     try {
       // Update the event
-      await EventService.updateEvent(id, {
-        event_type: eventType,
-        date: eventDate.toISOString(),
-        notes: notes.trim() || undefined,
-        fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
-        pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
+      await updateEventMutation.mutateAsync({
+        id,
+        updates: {
+          event_type: eventType,
+          date: eventDate.toISOString(),
+          notes: notes.trim() || undefined,
+          fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
+          pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
+        }
       });
 
       // Handle new photos and existing photos separately

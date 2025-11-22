@@ -9,48 +9,34 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { PlantService } from '../services/PlantService';
 import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePlant, useUpdatePlant } from '../hooks/queries';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [plant, setPlant] = useState<Plant | null>(null);
+  const { data: plant, isLoading: loading } = usePlant(id!);
+  const updatePlantMutation = useUpdatePlant();
+  
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
   
   const styles = createStyles(theme);
 
   useEffect(() => {
-    loadPlantData();
-  }, [id]);
-
-  const loadPlantData = async () => {
-    if (!id) return;
-    
-    try {
-      const plantData = await PlantService.getPlantById(id);
-      if (plantData) {
-        setPlant(plantData);
-        setName(plantData.name || '');
-        setType(plantData.type);
-        setLocation(plantData.location || '');
-        setNotes(plantData.notes || '');
-      }
-    } catch (error) {
-      console.error('Failed to load plant:', error);
-      Alert.alert('Error', 'Failed to load plant data');
-    } finally {
-      setLoading(false);
+    if (plant) {
+      setName(plant.name || '');
+      setType(plant.type);
+      setLocation(plant.location || '');
+      setNotes(plant.notes || '');
     }
-  };
+  }, [plant]);
 
   const handleSave = async () => {
     if (!type.trim()) {
@@ -62,13 +48,15 @@ export default function EditPlantScreen() {
 
     setSaving(true);
     try {
-      await PlantService.updatePlant(id, {
-        name: name.trim() || undefined,
-        type: type.trim(),
-        location: location.trim() || undefined,
-        notes: notes.trim() || undefined,
+      await updatePlantMutation.mutateAsync({
+        id,
+        updates: {
+          name: name.trim() || undefined,
+          type: type.trim(),
+          location: location.trim() || undefined,
+          notes: notes.trim() || undefined,
+        }
       });
-
 
       router.back();
     } catch (error) {

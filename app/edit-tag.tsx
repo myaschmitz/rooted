@@ -16,18 +16,21 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { TextSkeleton } from '../components/Skeleton';
+import { useUpdateTag } from '../hooks/queries';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function EditTagScreen() {
   const { theme } = useTheme();
   const { tagId } = useLocalSearchParams<{ tagId: string }>();
+  const updateTagMutation = useUpdateTag();
   
   const [originalTag, setOriginalTag] = useState<Tag | null>(null);
   const [tagName, setTagName] = useState('');
   const [selectedColor, setSelectedColor] = useState(TagService.getDefaultTagColors()[0]);
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  const saving = updateTagMutation.isPending;
   
   const styles = createStyles(theme);
 
@@ -80,18 +83,18 @@ export default function EditTagScreen() {
       return;
     }
 
-    setSaving(true);
     try {
-      await TagService.updateTag(originalTag.id, {
-        name: tagName.trim(),
-        color: selectedColor,
+      await updateTagMutation.mutateAsync({
+        id: originalTag.id,
+        updates: {
+          name: tagName.trim(),
+          color: selectedColor,
+        }
       });
       router.back();
     } catch (error) {
       console.error('Failed to update tag:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update tag');
-    } finally {
-      setSaving(false);
     }
   };
 

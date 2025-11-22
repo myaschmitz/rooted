@@ -28,6 +28,7 @@ import {
   usePlantPhotos, 
   useThumbnailPhoto,
   useSetThumbnailPhoto,
+  useClearThumbnailPhoto,
   useDeletePlant,
   useSavePhoto,
   useDeletePhoto,
@@ -57,6 +58,7 @@ export default function PlantDetailScreen() {
   
   // Mutations
   const setThumbnailMutation = useSetThumbnailPhoto();
+  const clearThumbnailMutation = useClearThumbnailPhoto();
   const deletePlantMutation = useDeletePlant();
   const savePhotoMutation = useSavePhoto();
   const deletePhotoMutation = useDeletePhoto();
@@ -328,13 +330,17 @@ export default function PlantDetailScreen() {
 
               // Delete all selected photos
               await Promise.all(
-                selectedPhotoIds.map(photoId => PhotoService.deletePhoto(photoId))
+                selectedPhotoIds.map(photoId => 
+                  deletePhotoMutation.mutateAsync({ photoId, plantId: id! })
+                )
               );
 
               // If we deleted the thumbnail photo, we need to set a new one
               if (wasThumbnailDeleted && id) {
-                // Get remaining photos
-                const remainingPhotos = await PhotoService.getPhotosByPlantId(id);
+                // Get remaining photos from React Query cache (will be updated after mutations)
+                const remainingPhotos = typedPhotos.filter(photo => 
+                  !selectedPhotoIds.includes(photo.id)
+                );
                 
                 if (remainingPhotos.length > 0) {
                   // Sort photos by taken_at ascending to get the oldest first
@@ -344,10 +350,10 @@ export default function PlantDetailScreen() {
                   const newThumbnail = sortedPhotos[0];
                   
                   // Set the oldest remaining photo as the new thumbnail
-                  await PhotoService.setThumbnailPhoto(id, newThumbnail.id);
+                  await setThumbnailMutation.mutateAsync({ plantId: id, photoId: newThumbnail.id });
                 } else {
                   // No photos left, clear the thumbnail
-                  await PhotoService.clearThumbnailPhoto(id);
+                  await clearThumbnailMutation.mutateAsync(id);
                 }
               }
 

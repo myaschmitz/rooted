@@ -24,6 +24,7 @@ import { useGlobalStyles } from '../styles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
+import { useCreateEvent } from '../hooks/queries';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
@@ -31,6 +32,7 @@ export default function LogCareScreen() {
   const styles = createStyles(theme);
   const careStyles = useCareStyles();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const createEventMutation = useCreateEvent();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [activeTab, setActiveTab] = useState<'care' | 'events'>('care');
@@ -151,8 +153,8 @@ export default function LogCareScreen() {
 
     setSaving(true);
     try {
-      // First create the event
-      const event = await EventService.createEvent({
+      // First create the event using React Query mutation for cache invalidation
+      const event = await createEventMutation.mutateAsync({
         plant_id: plantId,
         event_type: eventType,
         date: careDateTime.toISOString(),
