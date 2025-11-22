@@ -35,8 +35,8 @@ export default function AddTagScreen() {
   const saving = addTagMutation.isPending || createTagMutation.isPending;
   
   // Available tags state
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [selectedExistingTag, setSelectedExistingTag] = useState<Tag | null>(null);
+  const [availableTags, setAvailableTags] = useState<(Tag & { isAlreadyAdded: boolean })[]>([]);
+  const [selectedExistingTags, setSelectedExistingTags] = useState<Tag[]>([]);
   
   // New tag creation state
   const [tagName, setTagName] = useState('');
@@ -55,11 +55,12 @@ export default function AddTagScreen() {
     setLoading(true);
     try {
       // Bypass cache to ensure fresh data and avoid inconsistencies
-      const tags = await TagService.getAvailableTagsForPlant(plantId, true);
+      const tags = await TagService.getAllTagsWithPlantStatus(plantId, true);
       setAvailableTags(tags);
             
-      // If no available tags, switch to create mode
-      if (tags.length === 0) {
+      // If no tags at all, or all tags are already added, switch to create mode
+      const availableToAdd = tags.filter(tag => !tag.isAlreadyAdded);
+      if (tags.length === 0 || availableToAdd.length === 0) {
         setMode('create');
       }
     } catch (error) {
@@ -79,12 +80,14 @@ export default function AddTagScreen() {
 
     try {
       if (mode === 'select') {
-        // Adding an existing tag
-        if (!selectedExistingTag) {
-          Alert.alert('Error', 'Please select a tag');
+        // Adding existing tags
+        if (selectedExistingTags.length === 0) {
+          Alert.alert('Error', 'Please select at least one tag');
           return;
         }
-        await addTagMutation.mutateAsync({ plantId, tagId: selectedExistingTag.id });
+        // Use the new multiple tags method from TagService
+        const tagIds = selectedExistingTags.map(tag => tag.id);
+        await TagService.addMultipleTagsToPlant(plantId, tagIds);
       } else {
         // Creating a new tag
         const validation = TagService.validateTagName(tagName);
@@ -198,28 +201,55 @@ export default function AddTagScreen() {
               </View>
             ) : (
               <View style={styles.tagsGrid}>
-                {availableTags.map((tag) => (
-                  <TouchableOpacity
-                    key={tag.id}
-                    style={[
-                      styles.existingTagOption,
-                      selectedExistingTag?.id === tag.id && styles.selectedTagOption
-                    ]}
-                    onPress={() => setSelectedExistingTag(tag)}
-                  >
+                {availableTags.map((tag) => {
+                  const isSelected = selectedExistingTags.some(t => t.id === tag.id);
+                  const isAlreadyAdded = tag.isAlreadyAdded;
+                  return (
+                    <TouchableOpacity
+                      key={tag.id}
+                      style={[
+                        styles.existingTagOption,
+                        isAlreadyAdded && styles.alreadyAddedTagOption
+                      ]}
+                      onPress={() => {
+                        // Prevent selection if already added
+                        if (isAlreadyAdded) return;
+                        
+                        if (isSelected) {
+                          // Remove tag from selection
+                          setSelectedExistingTags(prev => prev.filter(t => t.id !== tag.id));
+                        } else {
+                          // Add tag to selection
+                          setSelectedExistingTags(prev => [...prev, tag]);
+                        }
+                      }}
+                      disabled={isAlreadyAdded}
+                    >
                     <View style={[
                       styles.tagPreview,
-                      { backgroundColor: tag.color }
+                      { backgroundColor: tag.color },
+                      isSelected && styles.selectedTagPreview,
+                      isAlreadyAdded && styles.alreadyAddedTagPreview
                     ]}>
                       <Text style={[
                         styles.tagPreviewText,
-                        { color: getTextColor(tag.color) }
+                        { color: getTextColor(tag.color) },
+                        isAlreadyAdded && styles.alreadyAddedTagText
                       ]}>
                         {tag.name}
                       </Text>
+                      {isAlreadyAdded && (
+                        <Text style={[
+                          styles.alreadyAddedLabel,
+                          { color: getTextColor(tag.color) }
+                        ]}>
+                          Already added
+                        </Text>
+                      )}
                     </View>
                   </TouchableOpacity>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
@@ -339,19 +369,21 @@ export default function AddTagScreen() {
               styles.button, 
               styles.saveButton,
               saving && styles.buttonDisabled,
-              (mode === 'select' && !selectedExistingTag) && styles.buttonDisabled,
+              (mode === 'select' && selectedExistingTags.length === 0) && styles.buttonDisabled,
               (mode === 'create' && !tagName.trim()) && styles.buttonDisabled
             ]}
             onPress={handleSave}
             disabled={
               saving || 
-              (mode === 'select' && !selectedExistingTag) ||
+              (mode === 'select' && selectedExistingTags.length === 0) ||
               (mode === 'create' && !tagName.trim())
             }
           >
             <Text style={styles.saveButtonText}>
               {saving ? (mode === 'select' ? 'Adding...' : 'Creating...') : 
-               (mode === 'select' ? 'Add Tag' : 'Create Tag')}
+               (mode === 'select' ? 
+                 (selectedExistingTags.length === 1 ? 'Add Tag' : `Add ${selectedExistingTags.length} Tags`) : 
+                 'Create Tag')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -432,6 +464,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   tagsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 12,
   },
   existingTagOption: {
@@ -442,7 +475,23 @@ const createStyles = (theme: any) => StyleSheet.create({
     overflow: 'hidden',
   },
   selectedTagOption: {
-    borderColor: theme.colors.primary,
+    // Border moved to selectedTagPreview for better visual alignment
+  },
+  alreadyAddedTagOption: {
+    opacity: 0.5,
+    borderColor: 'transparent',
+  },
+  alreadyAddedTagPreview: {
+    opacity: 0.7,
+  },
+  alreadyAddedTagText: {
+    opacity: 0.8,
+  },
+  alreadyAddedLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 2,
+    opacity: 0.9,
   },
   section: {
     marginBottom: 25,
@@ -478,6 +527,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     minHeight: 28,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  selectedTagPreview: {
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
   },
   tagPreviewText: {
     fontSize: 14,

@@ -373,6 +373,84 @@ export class TagService {
     return plantTag;
   }
 
+  static async addMultipleTagsToPlant(plantId: string, tagIds: string[]): Promise<PlantTag[]> {
+    if (tagIds.length === 0) {
+      return [];
+    }
+
+    // Get existing plant tags to check for duplicates
+    const existingRelations = await supabase
+      .from('plant_tags')
+      .select('tag_id')
+      .eq('plant_id', plantId)
+      .in('tag_id', tagIds);
+
+    if (existingRelations.error) {
+      console.error('Error checking existing plant tags:', existingRelations.error);
+      throw new Error(`Failed to check existing tags: ${existingRelations.error.message}`);
+    }
+
+    const existingTagIds = new Set(existingRelations.data?.map(pt => pt.tag_id) || []);
+    const newTagIds = tagIds.filter(tagId => !existingTagIds.has(tagId));
+
+    if (newTagIds.length === 0) {
+      throw new Error('All selected tags are already added to this plant');
+    }
+
+    // Create plant tag relationships for new tags
+    const plantTagInserts: PlantTagInsert[] = newTagIds.map(tagId => ({
+      plant_id: plantId,
+      tag_id: tagId,
+    }));
+
+    const { data, error } = await supabase
+      .from('plant_tags')
+      .insert(plantTagInserts)
+      .select();
+
+    if (error) {
+      console.error('Error adding multiple tags to plant:', error);
+      throw new Error(`Failed to add tags to plant: ${error.message}`);
+    }
+
+    const plantTags = data as PlantTag[];
+
+    // Get tag details for activity logging
+    const { data: tagDetails, error: tagError } = await supabase
+      .from('tags')
+      .select('*')
+      .in('id', newTagIds);
+
+    if (tagError) {
+      console.error('Error fetching tag details for logging:', tagError);
+    }
+
+    const tags = (tagDetails || []) as Tag[];
+
+    // Log activity for each added tag
+    if (tags.length > 0) {
+      const tagNames = tags.map(tag => tag.name).join(', ');
+      await HouseholdService.logActivity('added multiple tags', {
+        plant_id: plantId,
+        tag_ids: newTagIds,
+        tag_names: tagNames,
+        tag_count: newTagIds.length,
+      }, `${newTagIds.length} tags: ${tagNames}`);
+    }
+
+    // Get household_id for cache invalidation
+    const session = await HouseholdService.getUserSession();
+    
+    // Invalidate relevant caches immediately for better UX
+    await CacheInvalidationService.invalidateOnUserAction('tag_added', {
+      entityId: `${plantId}-multiple`,
+      additionalData: { plant_id: plantId, tag_ids: newTagIds, household_id: session?.household_id },
+      immediate: true
+    });
+
+    return plantTags;
+  }
+
   static async removeTagFromPlant(plantId: string, tagId: string): Promise<boolean> {
     // Get tag details for activity log before deletion
     const tag = await this.getTagById(tagId);
@@ -457,6 +535,37 @@ export class TagService {
       }
       // If still failing, return empty array to allow tag creation
       console.log('[TagService] Falling back to empty available tags array');
+      return [];
+    }
+  }
+
+  static async getAllTagsWithPlantStatus(plantId: string, bypassCache = false): Promise<(Tag & { isAlreadyAdded: boolean })[]> {
+    try {
+      // Get all tags in household
+      const allTags = await this.getAllTags(bypassCache);
+      
+      // Get tags already on this plant
+      const plantTags = await this.getTagsByPlantId(plantId, bypassCache);
+      
+      // Create a set of tag IDs already on this plant
+      const existingTagIds = new Set(plantTags.map(tag => tag.id));
+      
+      // Add isAlreadyAdded status to each tag
+      const tagsWithStatus = allTags.map(tag => ({
+        ...tag,
+        isAlreadyAdded: existingTagIds.has(tag.id)
+      }));
+            
+      return tagsWithStatus;
+    } catch (error) {
+      console.error('Error in getAllTagsWithPlantStatus:', error);
+      // If there's an error with cached data, try without cache
+      if (!bypassCache) {
+        console.log('[TagService] Retrying getAllTagsWithPlantStatus without cache');
+        return this.getAllTagsWithPlantStatus(plantId, true);
+      }
+      // If still failing, return empty array to allow tag creation
+      console.log('[TagService] Falling back to empty tags array');
       return [];
     }
   }
