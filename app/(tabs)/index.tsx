@@ -615,6 +615,17 @@ export default function HomeScreen() {
     const isSelected = selectedPlants.has(item.id);
     const lastPhotoDate = plantLastPhotoData[item.id];
     const showCameraIcon = needsPhoto(lastPhotoDate);
+    const plantTags = batchTagsData[item.id] || [];
+    
+    // Function to calculate text color based on background color
+    const getTextColor = (backgroundColor: string): string => {
+      const hex = backgroundColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance > 0.5 ? '#000000' : '#FFFFFF';
+    };
     
     if (batchModeEnabled) {
       return (
@@ -633,7 +644,37 @@ export default function HomeScreen() {
             
             <View style={styles.plantInfo}>
               <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
-              <Text style={styles.plantType}>{item.type}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', marginBottom: 4 }}>
+                {plantTags.length > 0 ? (
+                  plantTags.map((tag, index) => (
+                    <View
+                      key={`${tag.id}-${index}`}
+                      style={{
+                        backgroundColor: tag.color,
+                        opacity: 0.8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 12,
+                        marginRight: 4,
+                        marginBottom: 2,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: getTextColor(tag.color),
+                          fontSize: 12,
+                          fontWeight: '600',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {tag.name}
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.plantType, { fontSize: 12, fontStyle: 'italic' }]}>No tags</Text>
+                )}
+              </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
                 {eventsLoading ? (
                   <TextSkeleton width={120} height={14} />
@@ -660,7 +701,37 @@ export default function HomeScreen() {
           </View>
           <View style={styles.plantInfo}>
             <Text style={styles.plantName}>{item.name || `${item.type}`}</Text>
-            <Text style={styles.plantType}>{item.type}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', marginBottom: 4 }}>
+              {plantTags.length > 0 ? (
+                plantTags.map((tag, index) => (
+                  <View
+                    key={`${tag.id}-${index}`}
+                    style={{
+                      backgroundColor: tag.color,
+                      opacity: 0.8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 12,
+                      marginRight: 4,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: getTextColor(tag.color),
+                        fontSize: 12,
+                        fontWeight: '600',
+                      }}
+                      numberOfLines={1}
+                    >
+                      {tag.name}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={[styles.plantType, { fontSize: 12, fontStyle: 'italic' }]}>No tags</Text>
+              )}
+            </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }}>
               {eventsLoading ? (
                 <TextSkeleton width={120} height={14} />
