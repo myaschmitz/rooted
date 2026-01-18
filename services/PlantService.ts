@@ -84,7 +84,7 @@ export class PlantService {
     return plant;
   }
 
-  static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at'>): Promise<Plant> {
+  static async createPlant(plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'pinned'>): Promise<Plant> {
     // Get current household session
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
@@ -94,6 +94,7 @@ export class PlantService {
     const plantInsert: PlantInsert = {
       ...plantData,
       household_id: session.household_id,
+      pinned: false,
     };
 
     const { data, error } = await supabase

@@ -139,6 +139,7 @@ describe('PlantService', () => {
       expect(mockSupabase.insert).toHaveBeenCalledWith({
         ...newPlantData,
         household_id: 'household-123',
+        pinned: false,
       });
       expect(mockSupabase.select).toHaveBeenCalled();
       expect(mockSupabase.single).toHaveBeenCalled();

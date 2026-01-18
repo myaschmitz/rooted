@@ -37,7 +37,7 @@ export class EventService {
     return (data || []) as Event[];
   }
 
-  static async createEvent(eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>): Promise<Event> {
+  static async createEvent(eventData: Omit<Event, 'id' | 'created_at' | 'updated_at' | 'household_id'>): Promise<Event> {
     // Get current household session
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {

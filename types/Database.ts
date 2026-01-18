@@ -81,7 +81,8 @@ export type Database = {
           location?: string;
           notes?: string;
           thumbnail_photo_id?: string;
-          household_id?: string;
+          pinned: boolean;
+          household_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -92,7 +93,8 @@ export type Database = {
           location?: string;
           notes?: string;
           thumbnail_photo_id?: string;
-          household_id?: string;
+          pinned?: boolean;
+          household_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -103,6 +105,7 @@ export type Database = {
           location?: string;
           notes?: string;
           thumbnail_photo_id?: string;
+          pinned?: boolean;
           household_id?: string;
           updated_at?: string;
         };
@@ -116,7 +119,7 @@ export type Database = {
           notes?: string;
           fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
           pest_severity?: number;
-          household_id?: string;
+          household_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -128,7 +131,7 @@ export type Database = {
           notes?: string;
           fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
           pest_severity?: number;
-          household_id?: string;
+          household_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -153,7 +156,7 @@ export type Database = {
           caption?: string;
           taken_at: string;
           event_id?: string;
-          household_id?: string;
+          household_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -165,7 +168,7 @@ export type Database = {
           caption?: string;
           taken_at: string;
           event_id?: string;
-          household_id?: string;
+          household_id: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -186,7 +189,7 @@ export type Database = {
           id: string;
           plant_id: string;
           content: string;
-          household_id?: string;
+          household_id: string;
           created_at: string;
           updated_at: string;
         };
@@ -194,7 +197,7 @@ export type Database = {
           id?: string;
           plant_id: string;
           content: string;
-          household_id?: string;
+          household_id: string;
           created_at?: string;
           updated_at?: string;
         };

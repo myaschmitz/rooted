@@ -144,9 +144,9 @@ export const useBatchThumbnails = (plantIds: string[]) => {
 
 export const useCreatePlant = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at'>) => 
+    mutationFn: (plantData: Omit<Plant, 'id' | 'created_at' | 'updated_at' | 'household_id' | 'pinned'>) =>
       PlantService.createPlant(plantData),
     onSuccess: () => {
       // Invalidate and refetch plants list
@@ -217,9 +217,9 @@ export const useDeletePlant = () => {
 
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (eventData: Omit<Event, 'id' | 'created_at' | 'updated_at'>) => 
+    mutationFn: (eventData: Omit<Event, 'id' | 'created_at' | 'updated_at' | 'household_id'>) =>
       EventService.createEvent(eventData),
     onSuccess: (newEvent) => {
       // Invalidate plant events
