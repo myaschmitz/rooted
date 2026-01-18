@@ -34,6 +34,7 @@ interface GlobalSortPreference {
 
 const SORT_PREFERENCES_KEY = 'global_plant_sort_preferences';
 const PINNED_PLANTS_KEY = 'pinned_plants';
+const FILTER_TAGS_KEY = 'filter_selected_tags';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -360,6 +361,31 @@ export default function HomeScreen() {
     await savePinnedPlants(newPinnedIds);
   }, [pinnedPlantIds, savePinnedPlants]);
 
+  // AsyncStorage operations for filter tags
+  const saveFilterTags = useCallback(async (tagIds: Set<string>) => {
+    try {
+      await AsyncStorage.setItem(FILTER_TAGS_KEY, JSON.stringify(Array.from(tagIds)));
+    } catch (error) {
+      console.error('Failed to save filter tags:', error);
+    }
+  }, []);
+
+  const loadFilterTags = useCallback(async (): Promise<Set<string>> => {
+    try {
+      const stored = await AsyncStorage.getItem(FILTER_TAGS_KEY);
+      if (stored) {
+        return new Set(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Failed to load filter tags:', error);
+    }
+    return new Set();
+  }, []);
+
+  const updateFilterTags = useCallback(async (tagIds: Set<string>) => {
+    setSelectedTagsForFilter(tagIds);
+    await saveFilterTags(tagIds);
+  }, [saveFilterTags]);
 
   // Load remaining auxiliary data more efficiently with larger batches and less frequency
   const loadPlantAuxiliaryData = useCallback(async () => {
@@ -439,6 +465,15 @@ export default function HomeScreen() {
     };
     initializePinnedPlants();
   }, [loadPinnedPlants]);
+
+  // Load filter tags on app initialization
+  useEffect(() => {
+    const initializeFilterTags = async () => {
+      const tagIds = await loadFilterTags();
+      setSelectedTagsForFilter(tagIds);
+    };
+    initializeFilterTags();
+  }, [loadFilterTags]);
 
   // Set up real-time subscriptions - React Query will handle invalidation
   useRealtimeUpdates({});
@@ -975,7 +1010,7 @@ export default function HomeScreen() {
                                 } else {
                                   newSelected.add(tag.id);
                                 }
-                                setSelectedTagsForFilter(newSelected);
+                                updateFilterTags(newSelected);
                               }}
                             >
                               <View style={[styles.tagColorDot, { backgroundColor: tag.color }]} />
@@ -990,7 +1025,7 @@ export default function HomeScreen() {
                       {selectedTagsForFilter.size > 0 && (
                         <TouchableOpacity
                           style={[styles.sortDropdownItem, { borderTopWidth: 1, borderTopColor: theme.colors.border }]}
-                          onPress={() => setSelectedTagsForFilter(new Set())}
+                          onPress={() => updateFilterTags(new Set())}
                         >
                           <Text style={[styles.sortDropdownText, { color: theme.colors.error }]}>
                             Clear All Filters
