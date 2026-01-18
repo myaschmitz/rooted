@@ -19,6 +19,11 @@
 - [x] Create NotesService for plant notes
 - [x] Add UUID-based primary keys for future cloud sync
 - [x] Made plant names optional (can be unnamed plants)
+- [x] Implement TagService for tag management
+- [x] Create HouseholdService for multi-user support
+- [x] Add LocationService for location data handling
+- [x] Implement DateTimeService for date/time formatting
+- [x] Build CacheService and CacheInvalidationService
 
 ### Core Screens
 - [x] Home screen with plant list and empty state
@@ -27,56 +32,93 @@
 - [x] Log Event screen with backdating support
 - [x] Navigation setup between all screens
 - [x] Updated UI to handle optional plant names
+- [x] Edit Plant screen
+- [x] Edit Care Event screen
+- [x] Add Tag screen with color picker
+- [x] Edit Tag screen
+- [x] Settings screen
+- [x] Theme Settings screen
+- [x] Welcome/onboarding screen
 
 ### TypeScript Integration
 - [x] Define core data types (Plant, Event, PlantPhoto, PlantNote)
 - [x] Type all service methods and responses
 - [x] Implement proper error handling throughout
 - [x] Updated Plant interface to make name optional
+- [x] Add Tag and PlantTag types
 
-## 🚧 In Progress Tasks
+### Core Functionality
+- [x] Add plant editing functionality
+- [x] Implement plant deletion with confirmation
+- [x] Add photo viewing/gallery screen
+- [x] Add search functionality for plants (fuzzy search with Fuse.js)
+- [x] Create event editing/deletion
 
-### Testing & Debugging
-- [ ] Test app on physical iOS device
-- [ ] Verify all database operations work correctly
-- [ ] Test photo capture and storage functionality
-- [ ] Validate form inputs and error handling
+### UI/UX Improvements
+- [x] Add plant icons or default images
+- [x] Implement photo thumbnails in plant list with caching
+- [x] Add loading states and skeleton screens
+- [x] Improve error messaging and user feedback
+- [x] Add confirmation dialogs for destructive actions
+- [x] Implement pull-to-refresh on all list screens
+
+### Photo Features
+- [x] Implement photo deletion functionality
+- [x] Create photo gallery view with image viewer
+- [x] Multi-select mode for batch photo deletion
+- [x] Event-associated photo support
+
+### Event Enhancements
+- [x] Add event editing capability
+- [x] Implement event deletion
+- [x] Multiple event types (water, fertilize, fertigate, prune, pest spotted, insecticide spray, repot, other)
+- [x] Event-specific metadata (fertilizer strength, pest severity)
+- [x] Backdating support with date/time picker
+
+### Tagging System
+- [x] Create tags with custom colors
+- [x] Add tags to plants (multi-select)
+- [x] Edit and delete tags
+- [x] Filter plants by tags
+- [x] Tag display on plant cards
+
+### Home Screen Features
+- [x] Section grouping by location
+- [x] Pinned plants section
+- [x] Sorting (by name, last watered, ascending/descending)
+- [x] Filtering by tags with persistent selection
+- [x] Batch care mode (select multiple plants, log events for all)
+- [x] Visual indicators (camera icon for plants needing photos, watering status colors)
+
+### Settings & Preferences
+- [x] Create app settings screen
+- [x] Implement app theme selection (light/dark/system)
+- [x] Date format preferences (MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD)
+- [x] Time format preferences (12-hour/24-hour)
+- [x] Household management (name, code sharing, member management)
+
+### Backend & State Management
+- [x] Supabase integration for cloud backend
+- [x] React Query for server state with caching
+- [x] AsyncStorage for local preferences
+- [x] Real-time updates subscription setup
+- [x] Cache invalidation on user actions
 
 ## 📋 Pending Tasks
 
-### Core Functionality Completion
-- [ ] Add plant editing functionality
-- [ ] Implement plant deletion with confirmation
-- [ ] Add photo viewing/gallery screen
-- [ ] Implement note editing and deletion
-- [ ] Add search functionality for plants? (Unsure)
-- [ ] Create event editing/deletion
-
-### UI/UX Improvements
-- [ ] Add plant icons or default images
-- [ ] Implement photo thumbnails in plant list
-- [ ] Add loading states and skeleton screens
-- [ ] Improve error messaging and user feedback
-- [ ] Add confirmation dialogs for destructive actions
-- [ ] Implement pull-to-refresh on all list screens
-
 ### Photo Features
 - [ ] Add photo caption editing
-- [ ] Implement photo deletion functionality
-- [ ] Create photo gallery/carousel view
 - [ ] Add photo cropping/editing options
 - [ ] Implement photo sharing functionality
+- [ ] Create photo carousel/swipe view
 
 ### Event Enhancements
-- [ ] Add event editing capability
-- [ ] Implement event deletion
 - [ ] Create event history filtering (by type, date range)
 - [ ] Add care statistics and insights
 - [ ] Implement care streaks and patterns
 
 ### Advanced Features
 - [ ] Add plant health status history tracking
-- [ ] Implement location-based plant grouping
 - [ ] Create care reminders based on patterns
 - [ ] Add plant growth tracking features
 - [ ] Implement data export functionality
@@ -89,9 +131,7 @@
 - [ ] Add background sync preparation
 
 ### Settings & Preferences
-- [ ] Create app settings screen
 - [ ] Add data backup/restore functionality
-- [ ] Implement app theme selection
 - [ ] Add notification preferences
 - [ ] Create about/help screen
 
