@@ -118,7 +118,6 @@
 - [ ] Implement care streaks and patterns
 
 ### Advanced Features
-- [ ] Add plant health status history tracking
 - [ ] Create care reminders based on patterns
 - [ ] Add plant growth tracking features
 - [ ] Implement data export functionality

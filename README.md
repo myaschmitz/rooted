@@ -1,168 +1,84 @@
-# Rooted 🌱
+# Rooted
 
-A personal plant care tracking app for iPhone built with React Native and Expo. Track your plants' care history, photos, and notes with a simple, intuitive interface.
+A full-featured plant care tracking app for iOS built with React Native and Expo. Designed for plant enthusiasts to document care history, organize collections, and collaborate with household members.
 
-## Features
+## Key Features
 
-### Core Functionality
-- **Plant Management**: Add, edit, and organize your plant collection
-- **Event Logging**: Track watering, fertilizing, repotting, and pruning with easy backdating
-- **Event Editing**: Modify event history entries, including notes and fertilizer details
-- **Photo Documentation**: Take and store photos to document plant progress with full-screen viewing
-- **Plant Data Editing**: Update plant names, types, locations, health status, and notes
-- **Health Status Tracking**: Monitor plant health (excellent/good/okay/poor/concerning/critical)
-- **Location Tracking**: Keep track of which room each plant is in
-- **Fertilizer Details**: Log concentration and amount used
+**Plant Management**
+- Full CRUD operations with optional naming and custom locations
+- Tagging system with custom colors for organizing collections
+- Pin favorite plants, search with fuzzy matching, sort and filter by multiple criteria
+- Batch care mode for logging events across multiple plants simultaneously
 
-### Smart Features
-- **Full-Screen Photo Viewing**: Click any photo for full-screen view with swipe to close
-- **Simplified Photo Management**: Delete photos with a single tap (red X button)
-- **Auto-Refresh**: Plant lists update automatically when adding new plants or photos
-- **Flexible Reminders**: Gentle nudges based on your actual care patterns (not rigid scheduling)
-- **Event History**: Visual timeline of all events with edit functionality
-- **Quick Logging**: Default to current date/time with easy backdating options
-- **Local Storage**: All data stored locally with SQLite for offline access
+**Care Event Tracking**
+- Multiple event types: watering, fertilizing, fertigating, pruning, pest management, repotting
+- Event-specific metadata (fertilizer strength, pest severity ratings)
+- Full edit/delete capabilities with backdating support
+
+**Photo Documentation**
+- Camera and library integration with multi-photo support per plant
+- Event-linked photos with automatic thumbnail generation and caching
+- Gallery view with batch selection and deletion
+
+**Multi-User Support**
+- Household system with invite codes for shared plant collections
+- Member management with admin controls
+
+**Customization**
+- Light/dark/system theme options
+- Configurable date and time formats
+- Persistent user preferences
 
 ## Tech Stack
 
-- **Framework**: React Native with Expo
-- **Database**: Expo SQLite for local storage
-- **Photo Management**: Expo ImagePicker & FileSystem
-- **Navigation**: Expo Router
-- **Icons**: Lucide React Native
-- **State Management**: React Hooks
-- **Storage**: AsyncStorage for app settings
+| Layer | Technology |
+|-------|------------|
+| Framework | React Native + Expo SDK 53 |
+| Navigation | Expo Router (file-based) |
+| Backend | Supabase (PostgreSQL, Auth, Realtime) |
+| State Management | TanStack React Query |
+| Local Storage | AsyncStorage |
+| Language | TypeScript |
+
+## Architecture Highlights
+
+- **Service-oriented architecture** with dedicated services for plants, events, photos, tags, and households
+- **Optimistic updates** with React Query for responsive UI
+- **Smart caching** with automatic invalidation and real-time sync subscriptions
+- **Type-safe** end-to-end with TypeScript interfaces for all data models
 
 ## Getting Started
 
-### Prerequisites
-- Node.js (v16 or later)
-- npm or yarn
-- Expo CLI
-- iOS Simulator or physical iPhone for testing
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd rooted
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm start
-   ```
-
-4. Run on iOS:
-   ```bash
-   npm run ios
-   ```
-
-### Development Build
-
-For testing on a physical device:
-
 ```bash
-expo install --fix
-eas build --profile development --platform ios
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+
+# Run on iOS
+npm run ios
 ```
+
+### Prerequisites
+- Node.js v16+
+- Expo CLI
+- iOS Simulator or physical device
 
 ## Project Structure
 
 ```
 rooted/
-├── app/                    # Main app screens (Expo Router)
-│   ├── _layout.tsx        # Root navigation layout
-│   ├── index.tsx          # Home screen (plant list)
-│   ├── add-plant.tsx      # Add new plant screen
-│   ├── edit-plant.tsx     # Edit plant information screen
-│   ├── log-care.tsx       # Log event screen
-│   ├── edit-care-event.tsx# Edit event screen
-│   └── plant/
-│       └── [id].tsx       # Plant detail screen
-├── services/              # Data layer services
-│   ├── DatabaseService.ts # SQLite database setup
-│   ├── PlantService.ts    # Plant CRUD operations
-│   ├── CareEventService.ts# Event management
-│   ├── PhotoService.ts    # Photo management
-│   └── NotesService.ts    # Notes management
-├── types/                 # TypeScript type definitions
-│   └── Plant.ts          # Core data types
-└── assets/               # Static assets (icons, images)
+├── app/                    # Screens (Expo Router)
+│   ├── (tabs)/            # Tab navigation
+│   ├── plant/[id].tsx     # Dynamic plant detail
+│   └── *.tsx              # Feature screens
+├── services/              # Business logic layer
+├── hooks/                 # React Query hooks
+├── components/            # Reusable UI components
+└── types/                 # TypeScript definitions
 ```
-
-## Database Schema
-
-The app uses SQLite with tables designed for future cloud sync:
-
-- **plants**: Core plant information
-- **events**: All care activities (water, fertilize, etc.)
-- **plant_photos**: Photo metadata and file paths
-- **plant_notes**: Free-form notes for each plant
-
-All tables include UUID primary keys and sync tracking columns.
-
-## Usage
-
-### Adding a Plant
-1. Tap the "+" button on the home screen
-2. Enter plant name, type, and optional location
-3. Set initial health status (excellent/good/okay/poor/concerning/critical)
-4. Add any notes
-5. Save to your collection
-
-### Editing Plant Information
-1. Open a plant's detail page
-2. Tap the "✏️ Edit" button in the header
-3. Modify any plant details (name, type, location, health status, notes)
-4. Update plant photo if desired
-5. Save changes
-
-### Logging Events
-1. Open a plant's detail page
-2. Tap "Log Event"
-3. Select event type (water, fertilize, repot, etc.)
-4. Adjust date/time if backdating
-5. Add notes and fertilizer details if applicable
-6. Save the event
-
-### Editing Events
-1. From a plant's detail page, find the event in the history
-2. Tap the "✏️" button next to the event
-3. Modify event type, health status, notes, or fertilizer details
-4. Save changes
-
-### Adding and Managing Photos
-1. From a plant's detail page, tap "📷 Add Photo"
-2. Choose from camera roll or take a new photo
-3. Add an optional caption
-4. Photo is saved locally and linked to the plant
-5. Tap any photo for full-screen viewing
-6. Delete photos by tapping the red "✕" button on the photo
-
-## Future Enhancements
-
-- Cloud sync capability
-- Reminder notifications based on care patterns
-- Care analytics and insights
-- Plant care recommendations
-- Multi-user support
-- Export/backup functionality
-
-## Contributing
-
-This is a personal project, but suggestions and feedback are welcome! Please open an issue to discuss any changes.
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Support
-
-For questions or issues, please open a GitHub issue or contact the maintainer.
+MIT
