@@ -338,4 +338,26 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
+  // Search bar styles
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  searchBarActive: {
+    borderColor: theme.colors.primary,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+  },
 }); 
