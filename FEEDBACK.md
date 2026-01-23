@@ -19,8 +19,8 @@
 - [x] Add delete button with multiselect capability
 
 ### Features
-- Add metrics (e.g., water frequency)
-- Add ability to sort plants in the plants page
+- [ ] Add metrics (e.g., water frequency)
+- [x] Add ability to sort plants in the plants page
 
 ### Optimization
 - [x] Need to add caching and similar items so that the item is not doing so many reads
@@ -31,10 +31,10 @@
 - [x] Add tabs at the top to separate event categories:
   - **Care Tab**: water, fertilize, fertigate, repot, prune, insecticide
   - **Events Tab**: pest spotted, new leaf, relocation, roots spotted
-- Add notification system
+- [ ] Add notification system
 
 ### UX Improvements
 - [x] When keyboard opens, snap the input field above the keyboard
 - [x] Add ability to download photos
-- Add ability to search via a search bar in plants list
+- [x] Add ability to search via a search bar in plants list
 - [x] Add ability to zoom into full screen photos
