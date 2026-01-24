@@ -408,42 +408,42 @@ export class CacheInvalidationService {
         case 'plant_added':
         case 'plant_updated':
         case 'plant_deleted':
-          patterns.push('plants-list', 'plants-all');
+          patterns.push('plants:household');
           if (entityId) {
-            patterns.push(`plant-${entityId}`);
+            patterns.push(`plant:${entityId}`);
           }
           if (additionalData.location) {
-            patterns.push(`plants-location-${additionalData.location}`);
+            patterns.push(`plants:location:`, additionalData.location);
           }
           if (additionalData.oldLocation) {
-            patterns.push(`plants-location-${additionalData.oldLocation}`);
+            patterns.push(`plants:location:`, additionalData.oldLocation);
           }
           if (additionalData.newLocation) {
-            patterns.push(`plants-location-${additionalData.newLocation}`);
+            patterns.push(`plants:location:`, additionalData.newLocation);
           }
           break;
 
         case 'event_added':
         case 'event_updated':
         case 'event_deleted':
-          patterns.push('events-recent');
+          patterns.push('events:recent');
           if (entityId) {
-            patterns.push(`plant-events-${entityId}`, `plant-stats-${entityId}`);
+            patterns.push(`events:plant:${entityId}`);
           }
           break;
 
         case 'photo_added':
         case 'photo_updated':
         case 'photo_deleted':
-          patterns.push('photos-all');
+          patterns.push('photos:all');
           if (entityId) {
-            patterns.push(`plant-photos-${entityId}`, `thumbnail-${entityId}`);
+            patterns.push(`photos:plant:${entityId}`, `photos:oldest:plant:${entityId}`);
           }
           break;
 
         case 'thumbnail_changed':
           if (entityId) {
-            patterns.push(`plant-${entityId}`, `thumbnail-${entityId}`, 'plants-list');
+            patterns.push(`plant:${entityId}`, `thumbnails:batch`, 'plants:household');
           }
           break;
 
@@ -452,14 +452,14 @@ export class CacheInvalidationService {
         case 'tag_deleted':
         case 'all_tags_deleted':
           if (additionalData.plant_id && additionalData.household_id) {
-            patterns.push(`plant-tags-${additionalData.plant_id}-${additionalData.household_id}`, `plant-${additionalData.plant_id}`);
+            patterns.push(`tags:plant:${additionalData.plant_id}`, `plant:${additionalData.plant_id}`);
           }
           // Also invalidate global tags cache to ensure getAllTags() returns fresh data
           if (additionalData.household_id) {
-            patterns.push(`all-tags-${additionalData.household_id}`);
+            patterns.push(`tags:all:household:${additionalData.household_id}`);
           }
           // Invalidate plants list to ensure filtering works with fresh data
-          patterns.push('plants-list', 'plants-all');
+          patterns.push('plants:household');
           break;
 
         case 'household_changed':
@@ -468,7 +468,7 @@ export class CacheInvalidationService {
           return;
 
         case 'user_action':
-          patterns.push('plants-list', 'events-recent');
+          patterns.push('plants:household', 'events:recent');
           break;
       }
 

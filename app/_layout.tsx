@@ -6,6 +6,7 @@ import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { AuthGuard } from "../components/AuthGuard";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { QUERY_CLIENT_CONFIG, calculateRetryDelay } from "../constants/domain";
+import { CacheInvalidationService } from "../services/CacheInvalidationService";
 
 // Create a client with optimized cache settings for plant care app
 const queryClient = new QueryClient({
@@ -23,6 +24,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Set the query client for cache invalidation service
+CacheInvalidationService.setDefaultQueryClient(queryClient);
 
 function ThemedStack() {
   const { theme } = useTheme();
