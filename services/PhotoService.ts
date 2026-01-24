@@ -201,7 +201,10 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.plantPhotosOldest(plantId, session.household_id);
+    const cacheKey = CacheKeyBuilder.plantPhotosOldest(
+      plantId,
+      session.household_id,
+    );
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
@@ -1169,7 +1172,10 @@ export class PhotoService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = CacheKeyBuilder.batchThumbnails(session.household_id, plantIds);
+      const cacheKey = CacheKeyBuilder.batchThumbnails(
+        session.household_id,
+        plantIds,
+      );
 
       // Try to get from cache first
       const cached = await CacheService.getCachedResponse<{

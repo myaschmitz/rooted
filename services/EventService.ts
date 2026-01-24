@@ -7,7 +7,6 @@ import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
 import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
-
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 type EventUpdate = Database["public"]["Tables"]["events"]["Update"];
@@ -265,7 +264,10 @@ export class EventService {
   }
 
   static async deleteAllEvents(): Promise<void> {
-    const { error } = await supabase.from(DB_TABLES.EVENTS).delete().neq("id", ""); // Delete all rows
+    const { error } = await supabase
+      .from(DB_TABLES.EVENTS)
+      .delete()
+      .neq("id", ""); // Delete all rows
 
     if (error) {
       console.error("Error deleting all events:", error);

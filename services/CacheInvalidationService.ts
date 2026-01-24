@@ -1,25 +1,25 @@
-import { QueryClient } from '@tanstack/react-query';
-import { CacheService } from './CacheService';
-import { CachedPhotoService } from './CachedPhotoService';
-import { queryKeys } from '../constants/queryKeys';
+import { QueryClient } from "@tanstack/react-query";
+import { CacheService } from "./CacheService";
+import { CachedPhotoService } from "./CachedPhotoService";
+import { queryKeys } from "../constants/queryKeys";
 
-export type InvalidationAction = 
-  | 'plant_added'
-  | 'plant_updated' 
-  | 'plant_deleted'
-  | 'event_added'
-  | 'event_updated'
-  | 'event_deleted'
-  | 'photo_added'
-  | 'photo_updated'
-  | 'photo_deleted'
-  | 'thumbnail_changed'
-  | 'tag_added'
-  | 'tag_updated'
-  | 'tag_deleted'
-  | 'all_tags_deleted'
-  | 'user_action'
-  | 'household_changed';
+export type InvalidationAction =
+  | "plant_added"
+  | "plant_updated"
+  | "plant_deleted"
+  | "event_added"
+  | "event_updated"
+  | "event_deleted"
+  | "photo_added"
+  | "photo_updated"
+  | "photo_deleted"
+  | "thumbnail_changed"
+  | "tag_added"
+  | "tag_updated"
+  | "tag_deleted"
+  | "all_tags_deleted"
+  | "user_action"
+  | "household_changed";
 
 export interface CacheInvalidationOptions {
   queryClient?: QueryClient;
@@ -46,13 +46,10 @@ export class CacheInvalidationService {
   }
 
   static async invalidateOnUserAction(
-    action: InvalidationAction, 
-    options: CacheInvalidationOptions = {}
+    action: InvalidationAction,
+    options: CacheInvalidationOptions = {},
   ): Promise<void> {
-    const {
-      immediate = false,
-      ...restOptions
-    } = options;
+    const { immediate = false, ...restOptions } = options;
 
     if (immediate) {
       await this.executeInvalidation(action, restOptions);
@@ -62,7 +59,10 @@ export class CacheInvalidationService {
     }
   }
 
-  private static addToBatch(action: InvalidationAction, options: CacheInvalidationOptions): void {
+  private static addToBatch(
+    action: InvalidationAction,
+    options: CacheInvalidationOptions,
+  ): void {
     this.pendingInvalidations.push({
       action,
       options,
@@ -90,17 +90,23 @@ export class CacheInvalidationService {
     console.log(`Processing cache invalidation batch: ${batch.length} actions`);
 
     // Group by action type for optimization
-    const grouped = batch.reduce((acc, item) => {
-      if (!acc[item.action]) {
-        acc[item.action] = [];
-      }
-      acc[item.action].push(item.options);
-      return acc;
-    }, {} as Record<InvalidationAction, CacheInvalidationOptions[]>);
+    const grouped = batch.reduce(
+      (acc, item) => {
+        if (!acc[item.action]) {
+          acc[item.action] = [];
+        }
+        acc[item.action].push(item.options);
+        return acc;
+      },
+      {} as Record<InvalidationAction, CacheInvalidationOptions[]>,
+    );
 
     // Process each action type
     const promises = Object.entries(grouped).map(([action, optionsList]) =>
-      this.executeBatchedInvalidation(action as InvalidationAction, optionsList)
+      this.executeBatchedInvalidation(
+        action as InvalidationAction,
+        optionsList,
+      ),
     );
 
     await Promise.allSettled(promises);
@@ -108,7 +114,7 @@ export class CacheInvalidationService {
 
   private static async executeBatchedInvalidation(
     action: InvalidationAction,
-    optionsList: CacheInvalidationOptions[]
+    optionsList: CacheInvalidationOptions[],
   ): Promise<void> {
     try {
       // Merge options and deduplicate entity IDs
@@ -123,7 +129,7 @@ export class CacheInvalidationService {
       const entityIds = new Set<string>();
       const additionalData: Record<string, any> = {};
 
-      optionsList.forEach(options => {
+      optionsList.forEach((options) => {
         if (options.entityId) {
           entityIds.add(options.entityId);
         }
@@ -134,21 +140,31 @@ export class CacheInvalidationService {
 
       // Execute for each unique entity
       if (entityIds.size > 0) {
-        const promises = Array.from(entityIds).map(entityId =>
-          this.executeInvalidation(action, { ...mergedOptions, entityId, additionalData })
+        const promises = Array.from(entityIds).map((entityId) =>
+          this.executeInvalidation(action, {
+            ...mergedOptions,
+            entityId,
+            additionalData,
+          }),
         );
         await Promise.allSettled(promises);
       } else {
-        await this.executeInvalidation(action, { ...mergedOptions, additionalData });
+        await this.executeInvalidation(action, {
+          ...mergedOptions,
+          additionalData,
+        });
       }
     } catch (error) {
-      console.error(`Failed to execute batched invalidation for ${action}:`, error);
+      console.error(
+        `Failed to execute batched invalidation for ${action}:`,
+        error,
+      );
     }
   }
 
   private static async executeInvalidation(
     action: InvalidationAction,
-    options: CacheInvalidationOptions = {}
+    options: CacheInvalidationOptions = {},
   ): Promise<void> {
     const {
       queryClient = this.defaultQueryClient,
@@ -156,7 +172,7 @@ export class CacheInvalidationService {
       invalidateReactQuery = true,
       clearPhotoCache = false,
       entityId,
-      additionalData = {}
+      additionalData = {},
     } = options;
 
     try {
@@ -166,31 +182,38 @@ export class CacheInvalidationService {
       // React Query invalidations
       if (invalidateReactQuery && queryClient) {
         invalidationPromises.push(
-          this.invalidateReactQueryCache(queryClient, action, entityId, additionalData)
+          this.invalidateReactQueryCache(
+            queryClient,
+            action,
+            entityId,
+            additionalData,
+          ),
         );
       }
 
       // MMKV cache invalidations
       if (invalidateMMKV) {
         invalidationPromises.push(
-          this.invalidateMMKVCache(action, entityId, additionalData)
+          this.invalidateMMKVCache(action, entityId, additionalData),
         );
       }
 
       // Photo cache invalidations
       if (clearPhotoCache) {
-        invalidationPromises.push(
-          this.invalidatePhotoCache(action, entityId)
-        );
+        invalidationPromises.push(this.invalidatePhotoCache(action, entityId));
       }
 
       const results = await Promise.allSettled(invalidationPromises);
-      
+
       // Log any failures
       results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          const type = index === 0 ? 'React Query' : index === 1 ? 'MMKV' : 'Photo';
-          console.warn(`${type} cache invalidation failed for ${action}:`, result.reason);
+        if (result.status === "rejected") {
+          const type =
+            index === 0 ? "React Query" : index === 1 ? "MMKV" : "Photo";
+          console.warn(
+            `${type} cache invalidation failed for ${action}:`,
+            result.reason,
+          );
         }
       });
     } catch (error) {
@@ -202,213 +225,275 @@ export class CacheInvalidationService {
     queryClient: QueryClient,
     action: InvalidationAction,
     entityId?: string,
-    additionalData: Record<string, any> = {}
+    additionalData: Record<string, any> = {},
   ): Promise<void> {
     try {
       switch (action) {
-        case 'plant_added':
+        case "plant_added":
           // Invalidate plants list
           await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-          
+
           // Invalidate location-based queries if location is provided
           if (additionalData.location) {
-            await queryClient.invalidateQueries({ 
-              queryKey: queryKeys.plantsByLocation(additionalData.location)
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantsByLocation(additionalData.location),
             });
           }
           break;
 
-        case 'plant_updated':
+        case "plant_updated":
           if (entityId) {
             // Update specific plant cache
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plant(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plant(entityId),
+            });
+
             // Invalidate plants list to reflect changes
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-            
+
             // Invalidate thumbnail if it might have changed
-            await queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.thumbnailPhoto(entityId),
+            });
+
             // If location changed, invalidate location-based queries
             if (additionalData.oldLocation || additionalData.newLocation) {
-              const locations = [additionalData.oldLocation, additionalData.newLocation].filter(Boolean);
-              await Promise.all(locations.map(location => 
-                queryClient.invalidateQueries({ queryKey: queryKeys.plantsByLocation(location) })
-              ));
+              const locations = [
+                additionalData.oldLocation,
+                additionalData.newLocation,
+              ].filter(Boolean);
+              await Promise.all(
+                locations.map((location) =>
+                  queryClient.invalidateQueries({
+                    queryKey: queryKeys.plantsByLocation(location),
+                  }),
+                ),
+              );
             }
           }
           break;
 
-        case 'plant_deleted':
+        case "plant_deleted":
           if (entityId) {
             // Remove specific plant cache
             queryClient.removeQueries({ queryKey: queryKeys.plant(entityId) });
-            
+
             // Invalidate plants list
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-            
+
             // Invalidate related data
-            queryClient.removeQueries({ queryKey: queryKeys.plantPhotos(entityId) });
-            queryClient.removeQueries({ queryKey: queryKeys.plantEvents(entityId) });
-            queryClient.removeQueries({ queryKey: queryKeys.plantStats(entityId) });
-            queryClient.removeQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
-            
+            queryClient.removeQueries({
+              queryKey: queryKeys.plantPhotos(entityId),
+            });
+            queryClient.removeQueries({
+              queryKey: queryKeys.plantEvents(entityId),
+            });
+            queryClient.removeQueries({
+              queryKey: queryKeys.plantStats(entityId),
+            });
+            queryClient.removeQueries({
+              queryKey: queryKeys.thumbnailPhoto(entityId),
+            });
+
             // Invalidate location-based queries
             if (additionalData.location) {
-              await queryClient.invalidateQueries({ 
-                queryKey: queryKeys.plantsByLocation(additionalData.location)
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.plantsByLocation(additionalData.location),
               });
             }
           }
           break;
 
-        case 'event_added':
-        case 'event_updated':
+        case "event_added":
+        case "event_updated":
           if (entityId) {
             // Invalidate plant events
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantEvents(entityId),
+            });
+
             // Invalidate recent events
-            await queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.recentEvents,
+            });
+
             // Invalidate plant stats
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantStats(entityId),
+            });
+
             // If this event might affect plant display, invalidate plant data too
             if (additionalData.affectsPlant) {
-              await queryClient.invalidateQueries({ queryKey: queryKeys.plant(entityId) });
+              await queryClient.invalidateQueries({
+                queryKey: queryKeys.plant(entityId),
+              });
             }
           }
           break;
 
-        case 'event_deleted':
+        case "event_deleted":
           if (entityId) {
             // Invalidate plant events
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantEvents(entityId),
+            });
+
             // Invalidate recent events
-            await queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.recentEvents,
+            });
+
             // Invalidate plant stats
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(entityId) });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantStats(entityId),
+            });
           }
           break;
 
-        case 'photo_added':
+        case "photo_added":
           if (entityId) {
             // Invalidate plant photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantPhotos(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantPhotos(entityId),
+            });
+
             // Invalidate all photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.allPhotos,
+            });
+
             // Invalidate thumbnail if this might be the first photo
-            await queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.thumbnailPhoto(entityId),
+            });
           }
           break;
 
-        case 'photo_updated':
+        case "photo_updated":
           if (entityId) {
             // Invalidate plant photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantPhotos(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantPhotos(entityId),
+            });
+
             // Invalidate all photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.allPhotos,
+            });
           }
           break;
 
-        case 'photo_deleted':
+        case "photo_deleted":
           if (entityId) {
             // Invalidate plant photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plantPhotos(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantPhotos(entityId),
+            });
+
             // Invalidate all photos
-            await queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.allPhotos,
+            });
+
             // Invalidate thumbnail in case we deleted the thumbnail photo
-            await queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.thumbnailPhoto(entityId),
+            });
           }
           break;
 
-        case 'thumbnail_changed':
+        case "thumbnail_changed":
           if (entityId) {
             // Invalidate plant data
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plant(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plant(entityId),
+            });
+
             // Invalidate thumbnail photo
-            await queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(entityId) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.thumbnailPhoto(entityId),
+            });
+
             // Invalidate plants list to update thumbnail display
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
           }
           break;
 
-        case 'tag_added':
-        case 'tag_updated':
-        case 'tag_deleted':
-        case 'all_tags_deleted':
+        case "tag_added":
+        case "tag_updated":
+        case "tag_deleted":
+        case "all_tags_deleted":
           // Invalidate all tags queries
-          await queryClient.invalidateQueries({ queryKey: ['all-tags'] });
-          
+          await queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+
           if (additionalData.plant_id) {
             // Invalidate plant-specific tag queries
-            await queryClient.invalidateQueries({ queryKey: ['plant-tags', additionalData.plant_id] });
-            
-            // Invalidate batch plant tags queries
-            await queryClient.invalidateQueries({ 
-              queryKey: ['batch-plant-tags'],
-              exact: false 
+            await queryClient.invalidateQueries({
+              queryKey: ["plant-tags", additionalData.plant_id],
             });
-            
+
+            // Invalidate batch plant tags queries
+            await queryClient.invalidateQueries({
+              queryKey: ["batch-plant-tags"],
+              exact: false,
+            });
+
             // Invalidate plant data as tags are part of plant display
-            await queryClient.invalidateQueries({ queryKey: queryKeys.plant(additionalData.plant_id) });
-            
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plant(additionalData.plant_id),
+            });
+
             // Invalidate plants list to ensure filtering works with fresh data
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
           } else {
             // If no specific plant_id, invalidate all batch queries
-            await queryClient.invalidateQueries({ 
-              queryKey: ['batch-plant-tags'],
-              exact: false 
+            await queryClient.invalidateQueries({
+              queryKey: ["batch-plant-tags"],
+              exact: false,
             });
-            
+
             // Invalidate plants list to ensure filtering works with fresh data
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
           }
           break;
 
-        case 'household_changed':
+        case "household_changed":
           // Nuclear option - invalidate everything for household changes
           await queryClient.invalidateQueries();
           break;
 
-        case 'user_action':
+        case "user_action":
           // General invalidation for user actions
           await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-          await queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.recentEvents,
+          });
           break;
 
         default:
           console.warn(`Unknown React Query invalidation action: ${action}`);
       }
     } catch (error) {
-      console.error(`Failed to invalidate React Query cache for action ${action}:`, error);
+      console.error(
+        `Failed to invalidate React Query cache for action ${action}:`,
+        error,
+      );
     }
   }
 
   private static async invalidateMMKVCache(
     action: InvalidationAction,
     entityId?: string,
-    additionalData: Record<string, any> = {}
+    additionalData: Record<string, any> = {},
   ): Promise<void> {
     try {
       const patterns: string[] = [];
 
       switch (action) {
-        case 'plant_added':
-        case 'plant_updated':
-        case 'plant_deleted':
-          patterns.push('plants:household');
+        case "plant_added":
+        case "plant_updated":
+        case "plant_deleted":
+          patterns.push("plants:household");
           if (entityId) {
             patterns.push(`plant:${entityId}`);
           }
@@ -423,92 +508,107 @@ export class CacheInvalidationService {
           }
           break;
 
-        case 'event_added':
-        case 'event_updated':
-        case 'event_deleted':
-          patterns.push('events:recent');
+        case "event_added":
+        case "event_updated":
+        case "event_deleted":
+          patterns.push("events:recent");
           if (entityId) {
             patterns.push(`events:plant:${entityId}`);
           }
           break;
 
-        case 'photo_added':
-        case 'photo_updated':
-        case 'photo_deleted':
-          patterns.push('photos:all');
+        case "photo_added":
+        case "photo_updated":
+        case "photo_deleted":
+          patterns.push("photos:all");
           if (entityId) {
-            patterns.push(`photos:plant:${entityId}`, `photos:oldest:plant:${entityId}`);
+            patterns.push(
+              `photos:plant:${entityId}`,
+              `photos:oldest:plant:${entityId}`,
+            );
           }
           break;
 
-        case 'thumbnail_changed':
+        case "thumbnail_changed":
           if (entityId) {
-            patterns.push(`plant:${entityId}`, `thumbnails:batch`, 'plants:household');
+            patterns.push(
+              `plant:${entityId}`,
+              `thumbnails:batch`,
+              "plants:household",
+            );
           }
           break;
 
-        case 'tag_added':
-        case 'tag_updated':
-        case 'tag_deleted':
-        case 'all_tags_deleted':
+        case "tag_added":
+        case "tag_updated":
+        case "tag_deleted":
+        case "all_tags_deleted":
           if (additionalData.plant_id && additionalData.household_id) {
-            patterns.push(`tags:plant:${additionalData.plant_id}`, `plant:${additionalData.plant_id}`);
+            patterns.push(
+              `tags:plant:${additionalData.plant_id}`,
+              `plant:${additionalData.plant_id}`,
+            );
           }
           // Also invalidate global tags cache to ensure getAllTags() returns fresh data
           if (additionalData.household_id) {
             patterns.push(`tags:all:household:${additionalData.household_id}`);
           }
           // Invalidate plants list to ensure filtering works with fresh data
-          patterns.push('plants:household');
+          patterns.push("plants:household");
           break;
 
-        case 'household_changed':
+        case "household_changed":
           // Clear all cache for household changes
           await CacheService.clearAllCache();
           return;
 
-        case 'user_action':
-          patterns.push('plants:household', 'events:recent');
+        case "user_action":
+          patterns.push("plants:household", "events:recent");
           break;
       }
 
       // Invalidate cache patterns in parallel
       if (patterns.length > 0) {
-        const invalidationPromises = patterns.map(pattern => 
-          CacheService.invalidateCachePattern(pattern)
+        const invalidationPromises = patterns.map((pattern) =>
+          CacheService.invalidateCachePattern(pattern),
         );
 
         const results = await Promise.allSettled(invalidationPromises);
         const totalInvalidated = results.reduce((sum, result) => {
-          return sum + (result.status === 'fulfilled' ? result.value : 0);
+          return sum + (result.status === "fulfilled" ? result.value : 0);
         }, 0);
 
         if (totalInvalidated > 0) {
-          console.log(`MMKV cache invalidation: ${totalInvalidated} entries removed for ${action}`);
+          console.log(
+            `MMKV cache invalidation: ${totalInvalidated} entries removed for ${action}`,
+          );
         }
       }
     } catch (error) {
-      console.error(`Failed to invalidate MMKV cache for action ${action}:`, error);
+      console.error(
+        `Failed to invalidate MMKV cache for action ${action}:`,
+        error,
+      );
     }
   }
 
   private static async invalidatePhotoCache(
     action: InvalidationAction,
-    entityId?: string
+    entityId?: string,
   ): Promise<void> {
     try {
       switch (action) {
-        case 'photo_deleted':
-        case 'plant_deleted':
+        case "photo_deleted":
+        case "plant_deleted":
           // For deleted photos/plants, clean up the cache
           await CachedPhotoService.cleanExpiredCache();
           break;
 
-        case 'thumbnail_changed':
+        case "thumbnail_changed":
           // Could clear specific thumbnail cache if needed
           break;
 
-        case 'household_changed':
+        case "household_changed":
           // Clear all photo cache for household changes
           await CachedPhotoService.clearAllCache();
           break;
@@ -518,7 +618,10 @@ export class CacheInvalidationService {
           break;
       }
     } catch (error) {
-      console.error(`Failed to invalidate photo cache for action ${action}:`, error);
+      console.error(
+        `Failed to invalidate photo cache for action ${action}:`,
+        error,
+      );
     }
   }
 
@@ -530,31 +633,34 @@ export class CacheInvalidationService {
       photos?: string[];
       locations?: string[];
     },
-    queryClient?: QueryClient
+    queryClient?: QueryClient,
   ): Promise<void> {
-    const actions: Array<{ action: InvalidationAction; options: CacheInvalidationOptions }> = [];
+    const actions: Array<{
+      action: InvalidationAction;
+      options: CacheInvalidationOptions;
+    }> = [];
 
     // Add plant invalidations
-    changedData.plants?.forEach(plantId => {
+    changedData.plants?.forEach((plantId) => {
       actions.push({
-        action: 'plant_updated',
-        options: { queryClient, entityId: plantId }
+        action: "plant_updated",
+        options: { queryClient, entityId: plantId },
       });
     });
 
     // Add event invalidations
-    changedData.events?.forEach(plantId => {
+    changedData.events?.forEach((plantId) => {
       actions.push({
-        action: 'event_updated',
-        options: { queryClient, entityId: plantId }
+        action: "event_updated",
+        options: { queryClient, entityId: plantId },
       });
     });
 
     // Add photo invalidations
-    changedData.photos?.forEach(plantId => {
+    changedData.photos?.forEach((plantId) => {
       actions.push({
-        action: 'photo_updated',
-        options: { queryClient, entityId: plantId }
+        action: "photo_updated",
+        options: { queryClient, entityId: plantId },
       });
     });
 
@@ -563,12 +669,17 @@ export class CacheInvalidationService {
 
   // Batch invalidation for multiple actions
   static async batchInvalidate(
-    actions: Array<{ action: InvalidationAction; options?: CacheInvalidationOptions }>
+    actions: Array<{
+      action: InvalidationAction;
+      options?: CacheInvalidationOptions;
+    }>,
   ): Promise<void> {
-    console.log(`Manual batch cache invalidation for ${actions.length} actions`);
+    console.log(
+      `Manual batch cache invalidation for ${actions.length} actions`,
+    );
 
     const invalidationPromises = actions.map(({ action, options = {} }) =>
-      this.executeInvalidation(action, { ...options, immediate: true })
+      this.executeInvalidation(action, { ...options, immediate: true }),
     );
 
     await Promise.allSettled(invalidationPromises);
@@ -577,25 +688,25 @@ export class CacheInvalidationService {
   // Periodic cache optimization
   static async performPeriodicCleanup(): Promise<void> {
     try {
-      console.log('Performing periodic cache cleanup...');
-      
+      console.log("Performing periodic cache cleanup...");
+
       await Promise.all([
         // Clean up expired MMKV cache
         CacheService.cleanupExpiredCache(),
-        
+
         // Clean up expired photo cache
         CachedPhotoService.cleanExpiredCache(),
-        
+
         // Optimize photo cache
         CachedPhotoService.optimizeCache(),
 
         // Perform MMKV maintenance
         CacheService.performMaintenance(),
       ]);
-      
-      console.log('Periodic cache cleanup completed');
+
+      console.log("Periodic cache cleanup completed");
     } catch (error) {
-      console.error('Failed to perform periodic cache cleanup:', error);
+      console.error("Failed to perform periodic cache cleanup:", error);
     }
   }
 
@@ -604,18 +715,23 @@ export class CacheInvalidationService {
     mmkvCache: any;
     photoCache: any;
     reactQueryCache?: any;
-    overall: 'healthy' | 'degraded' | 'unhealthy';
+    overall: "healthy" | "degraded" | "unhealthy";
   }> {
     try {
-      const [mmkvStats, photoStats, mmkvHealthy, photoHealthy] = await Promise.all([
-        CacheService.getCacheStats(),
-        CachedPhotoService.getCacheStats(),
-        CacheService.isHealthy(),
-        CachedPhotoService.isHealthy(),
-      ]);
+      const [mmkvStats, photoStats, mmkvHealthy, photoHealthy] =
+        await Promise.all([
+          CacheService.getCacheStats(),
+          CachedPhotoService.getCacheStats(),
+          CacheService.isHealthy(),
+          CachedPhotoService.isHealthy(),
+        ]);
 
-      const overall = mmkvHealthy && photoHealthy ? 'healthy' : 
-                    mmkvHealthy || photoHealthy ? 'degraded' : 'unhealthy';
+      const overall =
+        mmkvHealthy && photoHealthy
+          ? "healthy"
+          : mmkvHealthy || photoHealthy
+            ? "degraded"
+            : "unhealthy";
 
       return {
         mmkvCache: { ...mmkvStats, healthy: mmkvHealthy },
@@ -623,11 +739,11 @@ export class CacheInvalidationService {
         overall,
       };
     } catch (error) {
-      console.error('Failed to get cache health:', error);
+      console.error("Failed to get cache health:", error);
       return {
         mmkvCache: null,
         photoCache: null,
-        overall: 'unhealthy',
+        overall: "unhealthy",
       };
     }
   }
@@ -648,9 +764,9 @@ export class CacheInvalidationService {
         CachedPhotoService.initialize(),
         CacheService.isHealthy(), // This initializes MMKV if needed
       ]);
-      console.log('Cache system initialized successfully');
+      console.log("Cache system initialized successfully");
     } catch (error) {
-      console.error('Failed to initialize cache system:', error);
+      console.error("Failed to initialize cache system:", error);
     }
   }
 }

@@ -1,8 +1,8 @@
 /**
  * Cache Key Builder
- * 
+ *
  * Centralizes cache key construction logic to prevent leakage of caching strategy.
- * 
+ *
  * Benefits:
  * - Single source of truth for cache key formats
  * - Easy to change key structure (e.g., add versioning, change delimiters)
@@ -11,7 +11,7 @@
  */
 export class CacheKeyBuilder {
   // Separator used in cache keys (can be changed in one place)
-  private static readonly SEP = ':';
+  private static readonly SEP = ":";
 
   // ============================================================================
   // PLANT KEYS
@@ -54,7 +54,7 @@ export class CacheKeyBuilder {
   }
 
   static batchThumbnails(householdId: string, plantIds: string[]): string {
-    return `thumbnails${this.SEP}batch${this.SEP}${householdId}${this.SEP}${plantIds.sort().join(',')}`;
+    return `thumbnails${this.SEP}batch${this.SEP}${householdId}${this.SEP}${plantIds.sort().join(",")}`;
   }
 
   // ============================================================================

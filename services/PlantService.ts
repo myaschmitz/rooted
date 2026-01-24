@@ -281,7 +281,10 @@ export class PlantService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.plantsByLocation(session.household_id, location);
+    const cacheKey = CacheKeyBuilder.plantsByLocation(
+      session.household_id,
+      location,
+    );
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);

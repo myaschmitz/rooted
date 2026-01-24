@@ -7,7 +7,6 @@ import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
 import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
-
 type PlantNoteRow = Database["public"]["Tables"]["plant_notes"]["Row"];
 type PlantNoteInsert = Database["public"]["Tables"]["plant_notes"]["Insert"];
 type PlantNoteUpdate = Database["public"]["Tables"]["plant_notes"]["Update"];
