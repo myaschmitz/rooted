@@ -1,100 +1,107 @@
-import { PlantNote } from '../types/Plant';
-import { supabase } from './SupabaseService';
-import { HouseholdService } from './HouseholdService';
-import { PlantService } from './PlantService';
-import type { Database } from '../types/Database';
+import { PlantNote } from "../types/Plant";
+import { supabase } from "./SupabaseService";
+import { HouseholdService } from "./HouseholdService";
+import { PlantService } from "./PlantService";
+import type { Database } from "../types/Database";
+import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 
-type PlantNoteRow = Database['public']['Tables']['plant_notes']['Row'];
-type PlantNoteInsert = Database['public']['Tables']['plant_notes']['Insert'];
-type PlantNoteUpdate = Database['public']['Tables']['plant_notes']['Update'];
+type PlantNoteRow = Database["public"]["Tables"]["plant_notes"]["Row"];
+type PlantNoteInsert = Database["public"]["Tables"]["plant_notes"]["Insert"];
+type PlantNoteUpdate = Database["public"]["Tables"]["plant_notes"]["Update"];
 
 export class NotesService {
   static async getNotesByPlantId(plantId: string): Promise<PlantNote[]> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
-      throw new Error('Plant not found or not accessible');
+      throw new Error("Plant not found or not accessible");
     }
 
     const { data, error } = await supabase
-      .from('plant_notes')
-      .select('*')
-      .eq('plant_id', plantId)
-      .eq('household_id', session.household_id)
-      .order('created_at', { ascending: false });
+      .from(DB_TABLES.NOTES)
+      .select("*")
+      .eq(DB_COLUMNS.PLANT_ID, plantId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching notes:', error);
+      console.error("Error fetching notes:", error);
       throw new Error(`Failed to fetch notes: ${error.message}`);
     }
 
     return (data || []) as PlantNote[];
   }
 
-  static async createNote(plantId: string, content: string): Promise<PlantNote> {
+  static async createNote(
+    plantId: string,
+    content: string,
+  ): Promise<PlantNote> {
     // Get current household session
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
-      throw new Error('Plant not found or not accessible');
+      throw new Error("Plant not found or not accessible");
     }
 
     const noteInsert: PlantNoteInsert = {
       plant_id: plantId,
       content,
-      household_id: session.household_id
+      household_id: session.household_id,
     };
 
     const { data, error } = await supabase
-      .from('plant_notes')
+      .from(DB_TABLES.NOTES)
       .insert(noteInsert)
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating note:', error);
+      console.error("Error creating note:", error);
       throw new Error(`Failed to create note: ${error.message}`);
     }
 
     return data as PlantNote;
   }
 
-  static async updateNote(id: string, content: string): Promise<PlantNote | null> {
+  static async updateNote(
+    id: string,
+    content: string,
+  ): Promise<PlantNote | null> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     const noteUpdate: PlantNoteUpdate = {
       content,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
-      .from('plant_notes')
+      .from(DB_TABLES.NOTES)
       .update(noteUpdate)
-      .eq('id', id)
-      .eq('household_id', session.household_id)
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .select()
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (isNotFoundError(error)) {
         return null; // No rows found
       }
-      console.error('Error updating note:', error);
+      console.error("Error updating note:", error);
       throw new Error(`Failed to update note: ${error.message}`);
     }
 
@@ -105,21 +112,21 @@ export class NotesService {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     const { data, error } = await supabase
-      .from('plant_notes')
-      .select('*')
-      .eq('id', id)
-      .eq('household_id', session.household_id)
+      .from(DB_TABLES.NOTES)
+      .select("*")
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if (isNotFoundError(error)) {
         return null; // No rows found
       }
-      console.error('Error fetching note:', error);
+      console.error("Error fetching note:", error);
       throw new Error(`Failed to fetch note: ${error.message}`);
     }
 
@@ -130,17 +137,17 @@ export class NotesService {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     const { error } = await supabase
-      .from('plant_notes')
+      .from(DB_TABLES.NOTES)
       .delete()
-      .eq('id', id)
-      .eq('household_id', session.household_id);
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
-      console.error('Error deleting note:', error);
+      console.error("Error deleting note:", error);
       throw new Error(`Failed to delete note: ${error.message}`);
     }
 
@@ -151,20 +158,20 @@ export class NotesService {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     const searchTerm = `%${query.toLowerCase()}%`;
-    
+
     const { data, error } = await supabase
-      .from('plant_notes')
-      .select('*')
-      .eq('household_id', session.household_id)
-      .ilike('content', searchTerm)
-      .order('created_at', { ascending: false });
+      .from(DB_TABLES.NOTES)
+      .select("*")
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .ilike("content", searchTerm)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error searching notes:', error);
+      console.error("Error searching notes:", error);
       throw new Error(`Failed to search notes: ${error.message}`);
     }
 
@@ -175,17 +182,17 @@ export class NotesService {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
-      throw new Error('No household session found');
+      throw new Error("No household session found");
     }
 
     const { data, error } = await supabase
-      .from('plant_notes')
-      .select('*')
-      .eq('household_id', session.household_id)
-      .order('created_at', { ascending: false });
+      .from(DB_TABLES.NOTES)
+      .select("*")
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching all notes:', error);
+      console.error("Error fetching all notes:", error);
       throw new Error(`Failed to fetch all notes: ${error.message}`);
     }
 
@@ -194,12 +201,12 @@ export class NotesService {
 
   static async deleteAllNotes(): Promise<void> {
     const { error } = await supabase
-      .from('plant_notes')
+      .from(DB_TABLES.NOTES)
       .delete()
-      .neq('id', ''); // Delete all rows
+      .neq("id", ""); // Delete all rows
 
     if (error) {
-      console.error('Error deleting all notes:', error);
+      console.error("Error deleting all notes:", error);
       throw new Error(`Failed to delete all notes: ${error.message}`);
     }
   }

@@ -1,5 +1,6 @@
-import { supabase } from './SupabaseService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from "./SupabaseService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DB_TABLES, STORAGE_KEYS } from "../constants/domain";
 import {
   Household,
   HouseholdMember,
@@ -12,34 +13,32 @@ import {
   UserSession,
   ActivityAction,
   ActivityLogDetails,
-} from '../types/Household';
+} from "../types/Household";
 
-const STORAGE_KEYS = {
-  USER_SESSION: 'household_user_session',
-  HOUSEHOLD_CACHE: 'household_cache',
-};
+// Note: STORAGE_KEYS now imported from domain constants
 
 export class HouseholdService {
-  
-  static async createHousehold(request: CreateHouseholdRequest): Promise<CreateHouseholdResponse> {
+  static async createHousehold(
+    request: CreateHouseholdRequest,
+  ): Promise<CreateHouseholdResponse> {
     try {
       // For creating a household, we'll still try the original approach since there are no existing members
       // but we'll be more conservative and just try once with the original name
       const adminUserName = request.adminUserName;
 
-      const { data, error } = await supabase.rpc('create_household', {
+      const { data, error } = await supabase.rpc("create_household", {
         household_name: request.householdName,
         admin_user_name: adminUserName,
         admin_user_id: request.adminUserId || null,
       });
 
       if (error) {
-        console.error('Error creating household:', error);
-        throw new Error(error.message || 'Failed to create household');
+        console.error("Error creating household:", error);
+        throw new Error(error.message || "Failed to create household");
       }
 
       if (!data || data.length === 0) {
-        throw new Error('No data returned from household creation');
+        throw new Error("No data returned from household creation");
       }
 
       const createResult = data[0];
@@ -53,32 +52,40 @@ export class HouseholdService {
         user_id: request.adminUserId,
         user_name: adminUserName,
         household_id: createResult.household_id,
-        role: 'admin',
+        role: "admin",
       });
 
       return response;
     } catch (error) {
-      console.error('Error in createHousehold:', error);
+      console.error("Error in createHousehold:", error);
       throw error;
     }
   }
 
-  static async joinHousehold(request: JoinHouseholdRequest): Promise<JoinHouseholdResponse> {
+  static async joinHousehold(
+    request: JoinHouseholdRequest,
+  ): Promise<JoinHouseholdResponse> {
     try {
       // First, validate the household code to make sure it exists
-      const validation = await this.validateHouseholdCode(request.householdCode);
+      const validation = await this.validateHouseholdCode(
+        request.householdCode,
+      );
       if (!validation.valid) {
         return {
           success: false,
           household_name: null,
-          error_message: validation.error_message || 'Invalid household code',
+          error_message: validation.error_message || "Invalid household code",
         };
       }
 
       // Get existing members in this household to check if name already exists
-      const existingMembers = await this.getHouseholdMembers(request.householdCode);
+      const existingMembers = await this.getHouseholdMembers(
+        request.householdCode,
+      );
       const existingMember = existingMembers.find(
-        member => member.user_name.toLowerCase() === request.memberUserName.toLowerCase()
+        (member) =>
+          member.user_name.toLowerCase() ===
+          request.memberUserName.toLowerCase(),
       );
 
       // If member with this name already exists, log in as that member
@@ -91,7 +98,7 @@ export class HouseholdService {
         });
 
         // Log activity for existing member login
-        await this.logActivity('rejoined household', {
+        await this.logActivity("rejoined household", {
           member_name: existingMember.user_name,
         });
 
@@ -103,19 +110,19 @@ export class HouseholdService {
       }
 
       // If no existing member with this name, create a new member
-      const { data, error } = await supabase.rpc('join_household', {
+      const { data, error } = await supabase.rpc("join_household", {
         household_code: request.householdCode,
         member_user_name: request.memberUserName,
         member_user_id: request.memberUserId || null,
       });
 
       if (error) {
-        console.error('Error joining household:', error);
-        throw new Error(error.message || 'Failed to join household');
+        console.error("Error joining household:", error);
+        throw new Error(error.message || "Failed to join household");
       }
 
       if (!data || data.length === 0) {
-        throw new Error('No data returned from household join');
+        throw new Error("No data returned from household join");
       }
 
       const joinResult = data[0];
@@ -131,30 +138,32 @@ export class HouseholdService {
           user_id: request.memberUserId,
           user_name: request.memberUserName,
           household_id: request.householdCode,
-          role: 'member',
+          role: "member",
         });
       }
 
       return response;
     } catch (error) {
-      console.error('Error in joinHousehold:', error);
+      console.error("Error in joinHousehold:", error);
       throw error;
     }
   }
 
-  static async validateHouseholdCode(code: string): Promise<HouseholdCodeValidationResponse> {
+  static async validateHouseholdCode(
+    code: string,
+  ): Promise<HouseholdCodeValidationResponse> {
     try {
       const { data, error } = await supabase
-        .from('households')
-        .select('id, name')
-        .eq('id', code)
+        .from(DB_TABLES.HOUSEHOLDS)
+        .select("id, name")
+        .eq("id", code)
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
+        if (error.code === "PGRST116") {
           return {
             valid: false,
-            error_message: 'Household code not found',
+            error_message: "Household code not found",
           };
         }
         throw error;
@@ -165,10 +174,10 @@ export class HouseholdService {
         household_name: data.name,
       };
     } catch (error) {
-      console.error('Error validating household code:', error);
+      console.error("Error validating household code:", error);
       return {
         valid: false,
-        error_message: 'Failed to validate household code',
+        error_message: "Failed to validate household code",
       };
     }
   }
@@ -181,46 +190,48 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from('households')
-        .select('*')
-        .eq('id', session.household_id)
+        .from(DB_TABLES.HOUSEHOLDS)
+        .select("*")
+        .eq("id", session.household_id)
         .single();
 
       if (error) {
-        console.error('Error getting current household:', error);
+        console.error("Error getting current household:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getCurrentHousehold:', error);
+      console.error("Error in getCurrentHousehold:", error);
       return null;
     }
   }
 
-  static async getHouseholdMembers(householdId?: string): Promise<HouseholdMember[]> {
+  static async getHouseholdMembers(
+    householdId?: string,
+  ): Promise<HouseholdMember[]> {
     try {
       const session = await this.getUserSession();
       const targetHouseholdId = householdId || session?.household_id;
-      
+
       if (!targetHouseholdId) {
         return [];
       }
 
       const { data, error } = await supabase
-        .from('household_members')
-        .select('*')
-        .eq('household_id', targetHouseholdId)
-        .order('joined_at', { ascending: true });
+        .from("household_members")
+        .select("*")
+        .eq("household_id", targetHouseholdId)
+        .order("joined_at", { ascending: true });
 
       if (error) {
-        console.error('Error getting household members:', error);
+        console.error("Error getting household members:", error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getHouseholdMembers:', error);
+      console.error("Error in getHouseholdMembers:", error);
       return [];
     }
   }
@@ -233,20 +244,20 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from('household_members')
-        .select('*')
-        .eq('household_id', session.household_id)
-        .eq('user_name', session.user_name)
+        .from("household_members")
+        .select("*")
+        .eq("household_id", session.household_id)
+        .eq("user_name", session.user_name)
         .single();
 
       if (error) {
-        console.error('Error getting current member:', error);
+        console.error("Error getting current member:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error in getCurrentMember:', error);
+      console.error("Error in getCurrentMember:", error);
       return null;
     }
   }
@@ -255,27 +266,27 @@ export class HouseholdService {
     try {
       const session = await this.getUserSession();
       if (!session?.household_id || !session?.user_name) {
-        throw new Error('No household session found');
+        throw new Error("No household session found");
       }
 
-      await this.logActivity('left household', {
+      await this.logActivity("left household", {
         member_name: session.user_name,
       });
 
       const { error } = await supabase
-        .from('household_members')
+        .from("household_members")
         .delete()
-        .eq('household_id', session.household_id)
-        .eq('user_name', session.user_name);
+        .eq("household_id", session.household_id)
+        .eq("user_name", session.user_name);
 
       if (error) {
-        console.error('Error leaving household:', error);
-        throw new Error('Failed to leave household');
+        console.error("Error leaving household:", error);
+        throw new Error("Failed to leave household");
       }
 
       await this.clearUserSession();
     } catch (error) {
-      console.error('Error in leaveHousehold:', error);
+      console.error("Error in leaveHousehold:", error);
       throw error;
     }
   }
@@ -283,79 +294,82 @@ export class HouseholdService {
   static async removeMember(memberId: string): Promise<void> {
     try {
       const session = await this.getUserSession();
-      if (!session?.household_id || session.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+      if (!session?.household_id || session.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
       }
 
       const memberToRemove = await supabase
-        .from('household_members')
-        .select('user_name')
-        .eq('id', memberId)
-        .eq('household_id', session.household_id)
+        .from("household_members")
+        .select("user_name")
+        .eq("id", memberId)
+        .eq("household_id", session.household_id)
         .single();
 
       if (memberToRemove.error) {
-        throw new Error('Member not found');
+        throw new Error("Member not found");
       }
 
-      await this.logActivity('removed member', {
+      await this.logActivity("removed member", {
         member_name: memberToRemove.data.user_name,
         removed_by: session.user_name,
       });
 
       const { error } = await supabase
-        .from('household_members')
+        .from("household_members")
         .delete()
-        .eq('id', memberId)
-        .eq('household_id', session.household_id);
+        .eq("id", memberId)
+        .eq("household_id", session.household_id);
 
       if (error) {
-        console.error('Error removing member:', error);
-        throw new Error('Failed to remove member');
+        console.error("Error removing member:", error);
+        throw new Error("Failed to remove member");
       }
     } catch (error) {
-      console.error('Error in removeMember:', error);
+      console.error("Error in removeMember:", error);
       throw error;
     }
   }
 
-  static async updateMemberRole(memberId: string, newRole: 'admin' | 'member'): Promise<void> {
+  static async updateMemberRole(
+    memberId: string,
+    newRole: "admin" | "member",
+  ): Promise<void> {
     try {
       const session = await this.getUserSession();
-      if (!session?.household_id || session.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+      if (!session?.household_id || session.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
       }
 
       const memberToUpdate = await supabase
-        .from('household_members')
-        .select('user_name, role')
-        .eq('id', memberId)
-        .eq('household_id', session.household_id)
+        .from("household_members")
+        .select("user_name, role")
+        .eq("id", memberId)
+        .eq("household_id", session.household_id)
         .single();
 
       if (memberToUpdate.error) {
-        throw new Error('Member not found');
+        throw new Error("Member not found");
       }
 
       const { error } = await supabase
-        .from('household_members')
+        .from("household_members")
         .update({ role: newRole })
-        .eq('id', memberId)
-        .eq('household_id', session.household_id);
+        .eq("id", memberId)
+        .eq("household_id", session.household_id);
 
       if (error) {
-        console.error('Error updating member role:', error);
-        throw new Error('Failed to update member role');
+        console.error("Error updating member role:", error);
+        throw new Error("Failed to update member role");
       }
 
-      await this.logActivity('updated member role', {
+      await this.logActivity("updated member role", {
         member_name: memberToUpdate.data.user_name,
         old_role: memberToUpdate.data.role,
         new_role: newRole,
         updated_by: session.user_name,
       });
     } catch (error) {
-      console.error('Error in updateMemberRole:', error);
+      console.error("Error in updateMemberRole:", error);
       throw error;
     }
   }
@@ -363,26 +377,26 @@ export class HouseholdService {
   static async updateHouseholdName(newName: string): Promise<void> {
     try {
       const session = await this.getUserSession();
-      if (!session?.household_id || session.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+      if (!session?.household_id || session.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
       }
 
       const { error } = await supabase
-        .from('households')
+        .from(DB_TABLES.HOUSEHOLDS)
         .update({ name: newName })
-        .eq('id', session.household_id);
+        .eq("id", session.household_id);
 
       if (error) {
-        console.error('Error updating household name:', error);
-        throw new Error('Failed to update household name');
+        console.error("Error updating household name:", error);
+        throw new Error("Failed to update household name");
       }
 
-      await this.logActivity('updated household name', {
+      await this.logActivity("updated household name", {
         new_name: newName,
         updated_by: session.user_name,
       });
     } catch (error) {
-      console.error('Error in updateHouseholdName:', error);
+      console.error("Error in updateHouseholdName:", error);
       throw error;
     }
   }
@@ -390,37 +404,37 @@ export class HouseholdService {
   static async regenerateHouseholdCode(): Promise<string> {
     try {
       const session = await this.getUserSession();
-      if (!session?.household_id || session.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+      if (!session?.household_id || session.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
       }
 
-      const { data, error } = await supabase.rpc('generate_household_code');
+      const { data, error } = await supabase.rpc("generate_household_code");
 
       if (error || !data) {
-        throw new Error('Failed to generate new household code');
+        throw new Error("Failed to generate new household code");
       }
 
       const newCode = data;
 
       const { error: updateError } = await supabase
-        .from('households')
+        .from(DB_TABLES.HOUSEHOLDS)
         .update({ id: newCode })
-        .eq('id', session.household_id);
+        .eq("id", session.household_id);
 
       if (updateError) {
-        throw new Error('Failed to update household with new code');
+        throw new Error("Failed to update household with new code");
       }
 
       session.household_id = newCode;
       await this.storeUserSession(session);
 
-      await this.logActivity('regenerated household code', {
+      await this.logActivity("regenerated household code", {
         regenerated_by: session.user_name,
       });
 
       return newCode;
     } catch (error) {
-      console.error('Error in regenerateHouseholdCode:', error);
+      console.error("Error in regenerateHouseholdCode:", error);
       throw error;
     }
   }
@@ -428,23 +442,23 @@ export class HouseholdService {
   static async deleteHousehold(): Promise<void> {
     try {
       const session = await this.getUserSession();
-      if (!session?.household_id || session.role !== 'admin') {
-        throw new Error('Unauthorized: Admin access required');
+      if (!session?.household_id || session.role !== "admin") {
+        throw new Error("Unauthorized: Admin access required");
       }
 
       const { error } = await supabase
-        .from('households')
+        .from(DB_TABLES.HOUSEHOLDS)
         .delete()
-        .eq('id', session.household_id);
+        .eq("id", session.household_id);
 
       if (error) {
-        console.error('Error deleting household:', error);
-        throw new Error('Failed to delete household');
+        console.error("Error deleting household:", error);
+        throw new Error("Failed to delete household");
       }
 
       await this.clearUserSession();
     } catch (error) {
-      console.error('Error in deleteHousehold:', error);
+      console.error("Error in deleteHousehold:", error);
       throw error;
     }
   }
@@ -452,30 +466,30 @@ export class HouseholdService {
   static async logActivity(
     action: ActivityAction,
     details?: ActivityLogDetails,
-    plantName?: string
+    plantName?: string,
   ): Promise<void> {
     try {
       const session = await this.getUserSession();
       if (!session?.household_id || !session?.user_name) {
-        console.warn('Cannot log activity: no household session');
+        console.warn("Cannot log activity: no household session");
         return;
       }
 
-      const { error } = await supabase
-        .from('activity_log')
-        .insert([{
+      const { error } = await supabase.from("activity_log").insert([
+        {
           household_id: session.household_id,
           user_name: session.user_name,
           action,
           plant_name: plantName || null,
           details: details || null,
-        }]);
+        },
+      ]);
 
       if (error) {
-        console.error('Error logging activity:', error);
+        console.error("Error logging activity:", error);
       }
     } catch (error) {
-      console.error('Error in logActivity:', error);
+      console.error("Error in logActivity:", error);
     }
   }
 
@@ -487,29 +501,32 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from('activity_log')
-        .select('*')
-        .eq('household_id', session.household_id)
-        .order('created_at', { ascending: false })
+        .from("activity_log")
+        .select("*")
+        .eq("household_id", session.household_id)
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (error) {
-        console.error('Error getting activity log:', error);
+        console.error("Error getting activity log:", error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getActivityLog:', error);
+      console.error("Error in getActivityLog:", error);
       return [];
     }
   }
 
   static async storeUserSession(session: UserSession): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(session));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USER_SESSION,
+        JSON.stringify(session),
+      );
     } catch (error) {
-      console.error('Error storing user session:', error);
+      console.error("Error storing user session:", error);
       throw error;
     }
   }
@@ -522,16 +539,19 @@ export class HouseholdService {
       }
       return JSON.parse(sessionData);
     } catch (error) {
-      console.error('Error getting user session:', error);
+      console.error("Error getting user session:", error);
       return null;
     }
   }
 
   static async clearUserSession(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove([STORAGE_KEYS.USER_SESSION, STORAGE_KEYS.HOUSEHOLD_CACHE]);
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.USER_SESSION,
+        STORAGE_KEYS.HOUSEHOLD_CACHE,
+      ]);
     } catch (error) {
-      console.error('Error clearing user session:', error);
+      console.error("Error clearing user session:", error);
       throw error;
     }
   }
@@ -546,7 +566,7 @@ export class HouseholdService {
       const household = await this.getCurrentHousehold();
       return household !== null;
     } catch (error) {
-      console.error('Error checking household status:', error);
+      console.error("Error checking household status:", error);
       return false;
     }
   }
@@ -563,10 +583,10 @@ export class HouseholdService {
         household,
         currentMember,
         members,
-        isAdmin: currentMember?.role === 'admin',
+        isAdmin: currentMember?.role === "admin",
       };
     } catch (error) {
-      console.error('Error getting household context:', error);
+      console.error("Error getting household context:", error);
       return {
         household: null,
         currentMember: null,

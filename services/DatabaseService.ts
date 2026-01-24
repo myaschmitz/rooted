@@ -1,8 +1,9 @@
-import { supabase } from './SupabaseService';
+import { supabase } from "./SupabaseService";
+import { DB_TABLES } from "../constants/domain";
 
 /**
  * DatabaseService - Utility service for database operations
- * 
+ *
  * This service now provides utility functions for working with Supabase
  * instead of managing a local SQLite database.
  */
@@ -12,10 +13,12 @@ export class DatabaseService {
    */
   static async testConnection(): Promise<boolean> {
     try {
-      const { error } = await supabase.from('plants').select('count', { count: 'exact', head: true });
+      const { error } = await supabase
+        .from(DB_TABLES.PLANTS)
+        .select("count", { count: "exact", head: true });
       return !error;
     } catch (error) {
-      console.error('Database connection test failed:', error);
+      console.error("Database connection test failed:", error);
       return false;
     }
   }
@@ -31,12 +34,21 @@ export class DatabaseService {
     notesCount: number;
   }> {
     try {
-      const [plantsResult, careEventsResult, photosResult, notesResult] = await Promise.all([
-        supabase.from('plants').select('*', { count: 'exact', head: true }),
-        supabase.from('events').select('*', { count: 'exact', head: true }),
-        supabase.from('plant_photos').select('*', { count: 'exact', head: true }),
-        supabase.from('plant_notes').select('*', { count: 'exact', head: true })
-      ]);
+      const [plantsResult, careEventsResult, photosResult, notesResult] =
+        await Promise.all([
+          supabase
+            .from(DB_TABLES.PLANTS)
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from(DB_TABLES.EVENTS)
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from(DB_TABLES.PLANT_PHOTOS)
+            .select("*", { count: "exact", head: true }),
+          supabase
+            .from(DB_TABLES.NOTES)
+            .select("*", { count: "exact", head: true }),
+        ]);
 
       return {
         connected: true,
@@ -46,7 +58,7 @@ export class DatabaseService {
         notesCount: notesResult.count || 0,
       };
     } catch (error) {
-      console.error('Error getting database health status:', error);
+      console.error("Error getting database health status:", error);
       return {
         connected: false,
         plantsCount: 0,
@@ -64,14 +76,14 @@ export class DatabaseService {
   static async resetDatabase(): Promise<void> {
     try {
       // Delete in order to respect foreign key constraints
-      await supabase.from('plant_notes').delete().neq('id', '');
-      await supabase.from('plant_photos').delete().neq('id', '');
-      await supabase.from('events').delete().neq('id', '');
-      await supabase.from('plants').delete().neq('id', '');
-      
-      console.log('Database reset completed successfully');
+      await supabase.from(DB_TABLES.NOTES).delete().neq("id", "");
+      await supabase.from(DB_TABLES.PLANT_PHOTOS).delete().neq("id", "");
+      await supabase.from(DB_TABLES.EVENTS).delete().neq("id", "");
+      await supabase.from(DB_TABLES.PLANTS).delete().neq("id", "");
+
+      console.log("Database reset completed successfully");
     } catch (error) {
-      console.error('Error resetting database:', error);
+      console.error("Error resetting database:", error);
       throw new Error(`Failed to reset database: ${error}`);
     }
   }
@@ -82,19 +94,19 @@ export class DatabaseService {
    */
   static async executeRawQuery(query: string, params?: any[]): Promise<any> {
     try {
-      const { data, error } = await supabase.rpc('execute_sql', { 
+      const { data, error } = await supabase.rpc("execute_sql", {
         sql_query: query,
-        query_params: params || []
+        query_params: params || [],
       });
-      
+
       if (error) {
-        console.error('Error executing raw query:', error);
+        console.error("Error executing raw query:", error);
         throw new Error(`Query execution failed: ${error.message}`);
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error executing raw query:', error);
+      console.error("Error executing raw query:", error);
       throw error;
     }
   }
@@ -104,16 +116,19 @@ export class DatabaseService {
    */
   static async getCurrentUser() {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
       if (error) {
-        console.error('Error getting current user:', error);
+        console.error("Error getting current user:", error);
         return null;
       }
-      
+
       return user;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error("Error getting current user:", error);
       return null;
     }
   }
@@ -123,10 +138,12 @@ export class DatabaseService {
    */
   static async isAuthenticated(): Promise<boolean> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       return !!session;
     } catch (error) {
-      console.error('Error checking authentication status:', error);
+      console.error("Error checking authentication status:", error);
       return false;
     }
   }

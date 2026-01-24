@@ -1,34 +1,37 @@
-import React from 'react';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
-import { AuthGuard } from '../components/AuthGuard';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import React from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+import { AuthGuard } from "../components/AuthGuard";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { QUERY_CLIENT_CONFIG, calculateRetryDelay } from "../constants/domain";
 
 // Create a client with optimized cache settings for plant care app
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes - data is considered fresh for 5 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes - keep unused data in cache for 30 minutes
-      retry: 3, // Retry failed requests 3 times
-      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      staleTime: QUERY_CLIENT_CONFIG.DEFAULT_STALE_TIME,
+      gcTime: QUERY_CLIENT_CONFIG.DEFAULT_GC_TIME,
+      retry: QUERY_CLIENT_CONFIG.RETRY_COUNT,
+      retryDelay: calculateRetryDelay,
       refetchOnWindowFocus: false, // Don't refetch when app comes back to foreground
       refetchOnReconnect: true, // Refetch when internet reconnects
     },
     mutations: {
-      retry: 2, // Retry failed mutations 2 times
+      retry: QUERY_CLIENT_CONFIG.MUTATION_RETRY_COUNT,
     },
   },
 });
 
 function ThemedStack() {
   const { theme } = useTheme();
-  
+
   return (
     <>
-      <StatusBar style={theme.colors.statusBar === 'light-content' ? 'light' : 'dark'} />
+      <StatusBar
+        style={theme.colors.statusBar === "light-content" ? "light" : "dark"}
+      />
       <Stack
         screenOptions={{
           headerStyle: {
@@ -40,62 +43,62 @@ function ThemedStack() {
           },
         }}
       >
-        <Stack.Screen 
-          name="welcome" 
-          options={{ 
+        <Stack.Screen
+          name="welcome"
+          options={{
             headerShown: false,
-            title: 'Welcome'
-          }} 
+            title: "Welcome",
+          }}
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="plant/[id]" 
-          options={{ 
-            title: 'Plant Details',
-            headerBackTitle: 'My Plants'
-          }} 
+        <Stack.Screen
+          name="plant/[id]"
+          options={{
+            title: "Plant Details",
+            headerBackTitle: "My Plants",
+          }}
         />
-        <Stack.Screen 
-          name="add-plant" 
-          options={{ 
-            title: 'Add Plant',
-            headerBackTitle: 'Back'
-          }} 
+        <Stack.Screen
+          name="add-plant"
+          options={{
+            title: "Add Plant",
+            headerBackTitle: "Back",
+          }}
         />
-        <Stack.Screen 
-          name="edit-plant" 
-          options={{ 
-            title: 'Edit Plant',
-            headerBackTitle: 'Back'
-          }} 
+        <Stack.Screen
+          name="edit-plant"
+          options={{
+            title: "Edit Plant",
+            headerBackTitle: "Back",
+          }}
         />
-        <Stack.Screen 
-          name="log-care" 
-          options={{ 
-            title: 'Log Event',
-            headerBackTitle: 'Back'
-          }} 
+        <Stack.Screen
+          name="log-care"
+          options={{
+            title: "Log Event",
+            headerBackTitle: "Back",
+          }}
         />
-        <Stack.Screen 
-          name="edit-care-event" 
-          options={{ 
-            title: 'Edit Event',
-            headerBackTitle: 'Back'
-          }} 
+        <Stack.Screen
+          name="edit-care-event"
+          options={{
+            title: "Edit Event",
+            headerBackTitle: "Back",
+          }}
         />
-        <Stack.Screen 
-          name="theme-settings" 
-          options={{ 
-            title: 'Theme Settings',
-            headerBackTitle: 'Back'
-          }} 
+        <Stack.Screen
+          name="theme-settings"
+          options={{
+            title: "Theme Settings",
+            headerBackTitle: "Back",
+          }}
         />
-        <Stack.Screen 
-          name="add-tag" 
-          options={{ 
-            title: 'Add Tag',
-            headerBackTitle: 'Plant Details'
-          }} 
+        <Stack.Screen
+          name="add-tag"
+          options={{
+            title: "Add Tag",
+            headerBackTitle: "Plant Details",
+          }}
         />
       </Stack>
     </>

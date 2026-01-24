@@ -1,5 +1,6 @@
-import { supabase } from './SupabaseService';
-import { HouseholdService } from './HouseholdService';
+import { supabase } from "./SupabaseService";
+import { HouseholdService } from "./HouseholdService";
+import { DB_TABLES, DB_COLUMNS } from "../constants/domain";
 
 export interface PlantLocation {
   id: string;
@@ -14,32 +15,35 @@ export class LocationService {
    */
   static async getAllLocations(): Promise<PlantLocation[]> {
     try {
-      const { data, error } = await supabase.rpc('get_plant_locations');
-      
+      const { data, error } = await supabase.rpc("get_plant_locations");
+
       if (error) {
         // Fallback to manual query if stored procedure doesn't exist
         // Get current household session for filtering
         const session = await HouseholdService.getUserSession();
         if (!session?.household_id) {
-          throw new Error('No household session found');
+          throw new Error("No household session found");
         }
 
         const { data: plantsData, error: plantsError } = await supabase
-          .from('plants')
-          .select('location, created_at')
-          .eq('household_id', session.household_id)
-          .not('location', 'is', null)
-          .neq('location', '');
+          .from(DB_TABLES.PLANTS)
+          .select("location, created_at")
+          .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+          .not("location", "is", null)
+          .neq("location", "");
 
         if (plantsError) {
-          console.error('Error fetching locations:', plantsError);
+          console.error("Error fetching locations:", plantsError);
           throw new Error(`Failed to fetch locations: ${plantsError.message}`);
         }
 
         // Group by location and count
-        const locationMap = new Map<string, { count: number; created_at: string }>();
-        
-        plantsData?.forEach(plant => {
+        const locationMap = new Map<
+          string,
+          { count: number; created_at: string }
+        >();
+
+        plantsData?.forEach((plant) => {
           if (plant.location) {
             const existing = locationMap.get(plant.location);
             if (existing) {
@@ -51,7 +55,7 @@ export class LocationService {
             } else {
               locationMap.set(plant.location, {
                 count: 1,
-                created_at: plant.created_at
+                created_at: plant.created_at,
               });
             }
           }
@@ -63,7 +67,7 @@ export class LocationService {
             id: `loc_${index}`,
             name,
             created_at: info.created_at,
-            plant_count: info.count
+            plant_count: info.count,
           }))
           .sort((a, b) => {
             // Sort by plant count desc, then by name asc
@@ -80,10 +84,10 @@ export class LocationService {
         id: `loc_${index}`,
         name: row.name,
         created_at: row.created_at,
-        plant_count: row.plant_count
+        plant_count: row.plant_count,
       }));
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      console.error("Error fetching locations:", error);
       throw error;
     }
   }
@@ -98,30 +102,33 @@ export class LocationService {
 
     try {
       const searchTerm = `%${query.toLowerCase().trim()}%`;
-      
+
       // Get current household session for filtering
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
-        throw new Error('No household session found');
+        throw new Error("No household session found");
       }
 
       const { data: plantsData, error } = await supabase
-        .from('plants')
-        .select('location, created_at')
-        .eq('household_id', session.household_id)
-        .not('location', 'is', null)
-        .neq('location', '')
-        .ilike('location', searchTerm);
+        .from(DB_TABLES.PLANTS)
+        .select("location, created_at")
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .not("location", "is", null)
+        .neq("location", "")
+        .ilike("location", searchTerm);
 
       if (error) {
-        console.error('Error searching locations:', error);
+        console.error("Error searching locations:", error);
         throw new Error(`Failed to search locations: ${error.message}`);
       }
 
       // Group by location and count
-      const locationMap = new Map<string, { count: number; created_at: string }>();
-      
-      plantsData?.forEach(plant => {
+      const locationMap = new Map<
+        string,
+        { count: number; created_at: string }
+      >();
+
+      plantsData?.forEach((plant) => {
         if (plant.location) {
           const existing = locationMap.get(plant.location);
           if (existing) {
@@ -132,7 +139,7 @@ export class LocationService {
           } else {
             locationMap.set(plant.location, {
               count: 1,
-              created_at: plant.created_at
+              created_at: plant.created_at,
             });
           }
         }
@@ -143,7 +150,7 @@ export class LocationService {
           id: `loc_${index}`,
           name,
           created_at: info.created_at,
-          plant_count: info.count
+          plant_count: info.count,
         }))
         .sort((a, b) => {
           if (b.plant_count !== a.plant_count) {
@@ -154,7 +161,7 @@ export class LocationService {
 
       return locations;
     } catch (error) {
-      console.error('Error searching locations:', error);
+      console.error("Error searching locations:", error);
       throw error;
     }
   }
@@ -167,23 +174,23 @@ export class LocationService {
       // Get current household session for filtering
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
-        throw new Error('No household session found');
+        throw new Error("No household session found");
       }
 
       const { count, error } = await supabase
-        .from('plants')
-        .select('*', { count: 'exact', head: true })
-        .eq('household_id', session.household_id)
-        .ilike('location', locationName.toLowerCase().trim());
+        .from(DB_TABLES.PLANTS)
+        .select("*", { count: "exact", head: true })
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .ilike("location", locationName.toLowerCase().trim());
 
       if (error) {
-        console.error('Error checking location existence:', error);
+        console.error("Error checking location existence:", error);
         throw new Error(`Failed to check location existence: ${error.message}`);
       }
 
       return (count || 0) > 0;
     } catch (error) {
-      console.error('Error checking location existence:', error);
+      console.error("Error checking location existence:", error);
       throw error;
     }
   }
@@ -191,39 +198,43 @@ export class LocationService {
   /**
    * Get plants grouped by location
    */
-  static async getPlantsGroupedByLocation(): Promise<{[location: string]: any[]}> {
+  static async getPlantsGroupedByLocation(): Promise<{
+    [location: string]: any[];
+  }> {
     try {
       // Get current household session for filtering
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
-        throw new Error('No household session found');
+        throw new Error("No household session found");
       }
 
       const { data: plants, error } = await supabase
-        .from('plants')
-        .select('*')
-        .eq('household_id', session.household_id)
-        .order('location', { ascending: true })
-        .order('name', { ascending: true });
+        .from(DB_TABLES.PLANTS)
+        .select("*")
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .order("location", { ascending: true })
+        .order("name", { ascending: true });
 
       if (error) {
-        console.error('Error fetching plants for grouping:', error);
-        throw new Error(`Failed to fetch plants for grouping: ${error.message}`);
+        console.error("Error fetching plants for grouping:", error);
+        throw new Error(
+          `Failed to fetch plants for grouping: ${error.message}`,
+        );
       }
 
-      const grouped: {[location: string]: any[]} = {};
-      
+      const grouped: { [location: string]: any[] } = {};
+
       plants?.forEach((plant: any) => {
-        const locationKey = plant.location || 'No Location';
+        const locationKey = plant.location || "No Location";
         if (!grouped[locationKey]) {
           grouped[locationKey] = [];
         }
         grouped[locationKey].push(plant);
       });
-      
+
       return grouped;
     } catch (error) {
-      console.error('Error grouping plants by location:', error);
+      console.error("Error grouping plants by location:", error);
       throw error;
     }
   }
@@ -241,16 +252,16 @@ export class LocationService {
       // Get current household session for filtering
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
-        throw new Error('No household session found');
+        throw new Error("No household session found");
       }
 
       const { data: plants, error } = await supabase
-        .from('plants')
-        .select('location')
-        .eq('household_id', session.household_id);
+        .from(DB_TABLES.PLANTS)
+        .select("location")
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
       if (error) {
-        console.error('Error fetching plants for stats:', error);
+        console.error("Error fetching plants for stats:", error);
         throw new Error(`Failed to fetch location stats: ${error.message}`);
       }
 
@@ -258,7 +269,7 @@ export class LocationService {
         return {
           totalLocations: 0,
           mostPopularLocation: null,
-          plantsWithoutLocation: 0
+          plantsWithoutLocation: 0,
         };
       }
 
@@ -266,8 +277,8 @@ export class LocationService {
       const locationCounts = new Map<string, number>();
       let plantsWithoutLocation = 0;
 
-      plants.forEach(plant => {
-        if (!plant.location || plant.location.trim() === '') {
+      plants.forEach((plant) => {
+        if (!plant.location || plant.location.trim() === "") {
           plantsWithoutLocation++;
         } else {
           const location = plant.location;
@@ -278,7 +289,7 @@ export class LocationService {
       // Find most popular location
       let mostPopularLocation: string | null = null;
       let maxCount = 0;
-      
+
       for (const [location, count] of locationCounts.entries()) {
         if (count > maxCount) {
           maxCount = count;
@@ -289,10 +300,10 @@ export class LocationService {
       return {
         totalLocations: locationCounts.size,
         mostPopularLocation,
-        plantsWithoutLocation
+        plantsWithoutLocation,
       };
     } catch (error) {
-      console.error('Error getting location stats:', error);
+      console.error("Error getting location stats:", error);
       throw error;
     }
   }
