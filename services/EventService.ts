@@ -4,6 +4,9 @@ import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
 import type { Database } from "../types/Database";
 import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { CacheKeyBuilder } from "./CacheKeyBuilder";
+
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
@@ -32,7 +35,7 @@ export class EventService {
 
     if (error) {
       console.error("Error fetching events:", error);
-      throw new Error(`Failed to fetch events: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
     }
 
     return (data || []) as Event[];
@@ -60,7 +63,7 @@ export class EventService {
 
     if (error) {
       console.error("Error creating event:", error);
-      throw new Error(`Failed to create event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "event");
     }
 
     return data as Event;
@@ -94,7 +97,7 @@ export class EventService {
         return null;
       }
       console.error("Error updating event:", error);
-      throw new Error(`Failed to update event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "event");
     }
 
     return data as Event;
@@ -119,7 +122,7 @@ export class EventService {
         return null;
       }
       console.error("Error fetching event:", error);
-      throw new Error(`Failed to fetch event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
     }
 
     return data as Event;
@@ -146,7 +149,7 @@ export class EventService {
 
     if (error) {
       console.error("Error deleting event:", error);
-      throw new Error(`Failed to delete event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "event");
     }
 
     return true;
@@ -168,7 +171,7 @@ export class EventService {
 
     if (error) {
       console.error("Error fetching recent events:", error);
-      throw new Error(`Failed to fetch recent events: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
     }
 
     return (data || []) as Event[];
@@ -201,7 +204,7 @@ export class EventService {
 
     if (error) {
       console.error("Error fetching last event by type:", error);
-      throw new Error(`Failed to fetch last event by type: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
     }
 
     // Return the first result if any, otherwise null
@@ -266,7 +269,7 @@ export class EventService {
 
     if (error) {
       console.error("Error deleting all events:", error);
-      throw new Error(`Failed to delete all events: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "event");
     }
   }
 
@@ -296,7 +299,7 @@ export class EventService {
 
       if (error) {
         console.error("Error fetching last events by type for plants:", error);
-        throw new Error(`Failed to fetch last events: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
       }
 
       // Group events by plant and type, keeping only the most recent for each combination

@@ -25,6 +25,8 @@ import {
   DB_TABLES,
   DB_COLUMNS,
 } from "../constants/domain";
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
 type PlantPhotoRow = Database["public"]["Tables"]["plant_photos"]["Row"];
 type PlantPhotoInsert = Database["public"]["Tables"]["plant_photos"]["Insert"];
@@ -148,7 +150,7 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plant-photos-${plantId}-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.plantPhotos(plantId, session.household_id);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
@@ -173,7 +175,7 @@ export class PhotoService {
 
     if (error) {
       console.error("Error fetching photos:", error);
-      throw new Error(`Failed to fetch photos: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
     }
 
     const photos = (data || []) as PlantPhoto[];
@@ -199,7 +201,7 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plant-photos-oldest-${plantId}-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.plantPhotosOldest(plantId, session.household_id);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
@@ -222,7 +224,7 @@ export class PhotoService {
 
     if (error) {
       console.error("Error fetching photos:", error);
-      throw new Error(`Failed to fetch photos: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
     }
 
     const photos = (data || []) as PlantPhoto[];
@@ -457,7 +459,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error saving event photo to database:", error);
-        throw new Error(`Failed to save photo: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "create", "photo");
       }
 
       console.log("Event photo saved successfully");
@@ -515,7 +517,7 @@ export class PhotoService {
 
     if (error) {
       console.error("Error fetching event photos:", error);
-      throw new Error(`Failed to fetch event photos: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
     }
 
     return (data || []) as PlantPhoto[];
@@ -548,7 +550,7 @@ export class PhotoService {
         return null;
       }
       console.error("Error linking photo to event:", error);
-      throw new Error(`Failed to link photo to event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
     return data as PlantPhoto;
@@ -580,7 +582,7 @@ export class PhotoService {
         return null;
       }
       console.error("Error unlinking photo from event:", error);
-      throw new Error(`Failed to unlink photo from event: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
     return data as PlantPhoto;
@@ -671,7 +673,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error saving photo to database:", error);
-        throw new Error(`Failed to save photo: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "create", "photo");
       }
 
       // Check if this plant has no thumbnail yet, and if so, set this as the thumbnail
@@ -735,7 +737,7 @@ export class PhotoService {
         return null;
       }
       console.error("Error updating photo caption:", error);
-      throw new Error(`Failed to update photo caption: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
     return data as PlantPhoto;
@@ -760,7 +762,7 @@ export class PhotoService {
         return null;
       }
       console.error("Error fetching photo:", error);
-      throw new Error(`Failed to fetch photo: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
     }
 
     return data as PlantPhoto;
@@ -824,7 +826,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error deleting photo from database:", error);
-        throw new Error(`Failed to delete photo: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "delete", "photo");
       }
 
       // Invalidate relevant caches
@@ -849,7 +851,7 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `all-photos-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.allPhotos(session.household_id);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
@@ -867,7 +869,7 @@ export class PhotoService {
 
     if (error) {
       console.error("Error fetching all photos:", error);
-      throw new Error(`Failed to fetch all photos: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
     }
 
     const photos = (data || []) as PlantPhoto[];
@@ -954,7 +956,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error deleting all photos from database:", error);
-        throw new Error(`Failed to delete all photos: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "delete", "photo");
       }
 
       // Clean up local photos directory
@@ -1005,7 +1007,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error setting thumbnail photo:", error);
-        throw new Error(`Failed to set thumbnail photo: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
 
       // Invalidate the plant cache so fresh data is loaded
@@ -1042,7 +1044,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error clearing thumbnail photo:", error);
-        throw new Error(`Failed to clear thumbnail photo: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
     } catch (error) {
       console.error("Error clearing thumbnail photo:", error);
@@ -1167,7 +1169,7 @@ export class PhotoService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = `batch-thumbnails-${session.household_id}-${plantIds.sort().join(",")}`;
+      const cacheKey = CacheKeyBuilder.batchThumbnails(session.household_id, plantIds);
 
       // Try to get from cache first
       const cached = await CacheService.getCachedResponse<{
@@ -1278,7 +1280,7 @@ export class PhotoService {
 
       if (error) {
         console.error("Error fetching photos without thumbnails:", error);
-        throw new Error(`Failed to fetch photos: ${error.message}`);
+        throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
       }
 
       if (!photosWithoutThumbnails || photosWithoutThumbnails.length === 0) {

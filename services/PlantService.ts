@@ -10,6 +10,8 @@ import {
   DB_TABLES,
   DB_COLUMNS,
 } from "../constants/domain";
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
 type PlantRow = Database["public"]["Tables"]["plants"]["Row"];
 type PlantInsert = Database["public"]["Tables"]["plants"]["Insert"];
@@ -23,7 +25,7 @@ export class PlantService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plants-list-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.plantsList(session.household_id);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
@@ -39,8 +41,7 @@ export class PlantService {
       .order("name", { ascending: true });
 
     if (error) {
-      console.error("Error fetching plants:", error);
-      throw new Error(`Failed to fetch plants: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch plants");
     }
 
     const plants = (data || []) as Plant[];
@@ -61,7 +62,7 @@ export class PlantService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plant-${id}-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.plant(id, session.household_id);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<Plant>(cacheKey);
@@ -81,8 +82,7 @@ export class PlantService {
       if (isNotFoundError(error)) {
         return null;
       }
-      console.error("Error fetching plant:", error);
-      throw new Error(`Failed to fetch plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "plant");
     }
 
     const plant = data as Plant;
@@ -121,8 +121,7 @@ export class PlantService {
       .single();
 
     if (error) {
-      console.error("Error creating plant:", error);
-      throw new Error(`Failed to create plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "plant");
     }
 
     const plant = data as Plant;
@@ -168,7 +167,7 @@ export class PlantService {
         return null;
       }
       console.error("Error updating plant:", error);
-      throw new Error(`Failed to update plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "plant");
     }
 
     const plant = data as Plant;
@@ -208,7 +207,7 @@ export class PlantService {
 
     if (error) {
       console.error("Error deleting plant:", error);
-      throw new Error(`Failed to delete plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "plant");
     }
 
     // Log activity
@@ -242,7 +241,7 @@ export class PlantService {
     }
 
     const searchTerm = `%${query.toLowerCase()}%`;
-    const cacheKey = `plants-search-${session.household_id}-${query.toLowerCase()}`;
+    const cacheKey = CacheKeyBuilder.plantsSearch(session.household_id, query);
 
     // Try to get from cache first (shorter TTL for searches)
     const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
@@ -261,7 +260,7 @@ export class PlantService {
 
     if (error) {
       console.error("Error searching plants:", error);
-      throw new Error(`Failed to search plants: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "search", "plant");
     }
 
     const plants = (data || []) as Plant[];
@@ -282,7 +281,7 @@ export class PlantService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plants-location-${session.household_id}-${location}`;
+    const cacheKey = CacheKeyBuilder.plantsByLocation(session.household_id, location);
 
     // Try to get from cache first
     const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
@@ -299,7 +298,7 @@ export class PlantService {
 
     if (error) {
       console.error("Error fetching plants by location:", error);
-      throw new Error(`Failed to fetch plants by location: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "plant");
     }
 
     const plants = (data || []) as Plant[];
@@ -321,7 +320,7 @@ export class PlantService {
 
     if (error) {
       console.error("Error deleting all plants:", error);
-      throw new Error(`Failed to delete all plants: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "plant");
     }
   }
 
@@ -350,7 +349,7 @@ export class PlantService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = `plants-with-watering-${session.household_id}`;
+      const cacheKey = CacheKeyBuilder.plantsWithWatering(session.household_id);
 
       // Try to get from cache first
       const cached =

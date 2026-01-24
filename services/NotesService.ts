@@ -4,6 +4,9 @@ import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
 import type { Database } from "../types/Database";
 import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { CacheKeyBuilder } from "./CacheKeyBuilder";
+
 
 type PlantNoteRow = Database["public"]["Tables"]["plant_notes"]["Row"];
 type PlantNoteInsert = Database["public"]["Tables"]["plant_notes"]["Insert"];
@@ -32,7 +35,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error fetching notes:", error);
-      throw new Error(`Failed to fetch notes: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "note");
     }
 
     return (data || []) as PlantNote[];
@@ -68,7 +71,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error creating note:", error);
-      throw new Error(`Failed to create note: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "note");
     }
 
     return data as PlantNote;
@@ -102,7 +105,7 @@ export class NotesService {
         return null; // No rows found
       }
       console.error("Error updating note:", error);
-      throw new Error(`Failed to update note: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "note");
     }
 
     return data as PlantNote;
@@ -127,7 +130,7 @@ export class NotesService {
         return null; // No rows found
       }
       console.error("Error fetching note:", error);
-      throw new Error(`Failed to fetch note: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "note");
     }
 
     return data as PlantNote;
@@ -148,7 +151,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error deleting note:", error);
-      throw new Error(`Failed to delete note: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "note");
     }
 
     return true;
@@ -172,7 +175,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error searching notes:", error);
-      throw new Error(`Failed to search notes: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "search", "note");
     }
 
     return (data || []) as PlantNote[];
@@ -193,7 +196,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error fetching all notes:", error);
-      throw new Error(`Failed to fetch all notes: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "note");
     }
 
     return (data || []) as PlantNote[];
@@ -207,7 +210,7 @@ export class NotesService {
 
     if (error) {
       console.error("Error deleting all notes:", error);
-      throw new Error(`Failed to delete all notes: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "note");
     }
   }
 }

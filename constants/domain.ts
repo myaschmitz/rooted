@@ -79,6 +79,8 @@ export const DB_TABLES = {
   HOUSEHOLDS: "households",
   NOTES: "notes",
   HOUSEHOLD_USERS: "household_users",
+  HOUSEHOLD_MEMBERS: "household_members",
+  ACTIVITY_LOG: "activity_log",
 } as const;
 
 /**

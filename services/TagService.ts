@@ -11,6 +11,8 @@ import {
   DB_TABLES,
   DB_COLUMNS,
 } from "../constants/domain";
+import { ErrorMapper } from "../errors/ErrorMapper";
+import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
 type TagRow = Database["public"]["Tables"]["tags"]["Row"];
 type TagInsert = Database["public"]["Tables"]["tags"]["Insert"];
@@ -30,7 +32,7 @@ export class TagService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `all-tags-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.allTags(session.household_id);
 
     // Try to get from cache first (unless bypassing cache)
     if (!bypassCache) {
@@ -48,7 +50,7 @@ export class TagService {
 
     if (error) {
       console.error("Error fetching tags:", error);
-      throw new Error(`Failed to fetch tags: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
     }
 
     const tags = (data || []) as Tag[];
@@ -67,7 +69,7 @@ export class TagService {
 
     if (error) {
       console.error("Error fetching tag by ID:", error);
-      throw new Error(`Failed to fetch tag: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
     }
 
     if (!data) {
@@ -117,7 +119,7 @@ export class TagService {
           "A tag with this name and color already exists in your household",
         );
       }
-      throw new Error(`Failed to create tag: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "tag");
     }
 
     const tag = data as Tag;
@@ -186,7 +188,7 @@ export class TagService {
           "A tag with this name and color already exists in your household",
         );
       }
-      throw new Error(`Failed to update tag: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "update", "tag");
     }
 
     const tag = data as Tag;
@@ -219,7 +221,7 @@ export class TagService {
 
     if (fetchError) {
       console.error("Error fetching tag for deletion:", fetchError);
-      throw new Error(`Failed to fetch tag: ${fetchError.message}`);
+      throw ErrorMapper.mapDatabaseError(fetchError, "fetch", "tag");
     }
 
     // Delete the tag (this will cascade delete all plant_tags relationships)
@@ -230,7 +232,7 @@ export class TagService {
 
     if (error) {
       console.error("Error deleting tag:", error);
-      throw new Error(`Failed to delete tag: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "tag");
     }
 
     // Log activity
@@ -281,7 +283,7 @@ export class TagService {
         return null; // No matching tag found
       }
       console.error("Error finding existing tag:", error);
-      throw new Error(`Failed to find existing tag: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
     }
 
     return data as Tag;
@@ -317,7 +319,7 @@ export class TagService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = `plant-tags-${plantId}-${session.household_id}`;
+    const cacheKey = CacheKeyBuilder.plantTags(plantId, session.household_id);
 
     // Try to get from cache first (unless bypassing cache)
     if (!bypassCache) {
@@ -341,7 +343,7 @@ export class TagService {
 
     if (error) {
       console.error("Error fetching plant tags:", error);
-      throw new Error(`Failed to fetch plant tags: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
     }
 
     const plantTagsWithDetails = (data || []) as (PlantTagRow & {
@@ -388,7 +390,7 @@ export class TagService {
 
     if (error) {
       console.error("Error adding tag to plant:", error);
-      throw new Error(`Failed to add tag to plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "tag");
     }
 
     const plantTag = data as PlantTag;
@@ -472,7 +474,7 @@ export class TagService {
 
     if (error) {
       console.error("Error adding multiple tags to plant:", error);
-      throw new Error(`Failed to add tags to plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "create", "tag");
     }
 
     const plantTags = data as PlantTag[];
@@ -536,7 +538,7 @@ export class TagService {
 
     if (error) {
       console.error("Error removing tag from plant:", error);
-      throw new Error(`Failed to remove tag from plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "tag");
     }
 
     // Log activity
@@ -582,7 +584,7 @@ export class TagService {
 
     if (error) {
       console.error("Error removing all tags from plant:", error);
-      throw new Error(`Failed to remove all tags from plant: ${error.message}`);
+      throw ErrorMapper.mapDatabaseError(error, "delete", "tag");
     }
 
     // Invalidate relevant caches

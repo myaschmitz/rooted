@@ -219,7 +219,7 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .select("*")
         .eq("household_id", targetHouseholdId)
         .order("joined_at", { ascending: true });
@@ -244,7 +244,7 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .select("*")
         .eq("household_id", session.household_id)
         .eq("user_name", session.user_name)
@@ -274,7 +274,7 @@ export class HouseholdService {
       });
 
       const { error } = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .delete()
         .eq("household_id", session.household_id)
         .eq("user_name", session.user_name);
@@ -299,7 +299,7 @@ export class HouseholdService {
       }
 
       const memberToRemove = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .select("user_name")
         .eq("id", memberId)
         .eq("household_id", session.household_id)
@@ -315,7 +315,7 @@ export class HouseholdService {
       });
 
       const { error } = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .delete()
         .eq("id", memberId)
         .eq("household_id", session.household_id);
@@ -341,7 +341,7 @@ export class HouseholdService {
       }
 
       const memberToUpdate = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .select("user_name, role")
         .eq("id", memberId)
         .eq("household_id", session.household_id)
@@ -352,7 +352,7 @@ export class HouseholdService {
       }
 
       const { error } = await supabase
-        .from("household_members")
+        .from(DB_TABLES.HOUSEHOLD_MEMBERS)
         .update({ role: newRole })
         .eq("id", memberId)
         .eq("household_id", session.household_id);
@@ -475,7 +475,7 @@ export class HouseholdService {
         return;
       }
 
-      const { error } = await supabase.from("activity_log").insert([
+      const { error } = await supabase.from(DB_TABLES.ACTIVITY_LOG).insert([
         {
           household_id: session.household_id,
           user_name: session.user_name,
@@ -501,7 +501,7 @@ export class HouseholdService {
       }
 
       const { data, error } = await supabase
-        .from("activity_log")
+        .from(DB_TABLES.ACTIVITY_LOG)
         .select("*")
         .eq("household_id", session.household_id)
         .order("created_at", { ascending: false })
