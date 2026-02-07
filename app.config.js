@@ -42,13 +42,7 @@ export default ({ config }) => {
       },
       web: {},
       plugins: [
-        "expo-router",
-        [
-          "expo-sqlite",
-          {
-            enableFTS: true
-          }
-        ]
+        "expo-router"
       ],
       scheme: schemeName,
       extra: {
