@@ -24,7 +24,8 @@ import { useGlobalStyles } from '../styles';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
-import { useCreateEvent } from '../hooks/queries';
+import { useCreateEvent, useUpdatePlant } from '../hooks/queries';
+import LocationDropdown from '../components/LocationDropdown';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
@@ -33,6 +34,7 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const createEventMutation = useCreateEvent();
+  const updatePlantMutation = useUpdatePlant();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'other'>('water');
   const [activeTab, setActiveTab] = useState<'care' | 'events'>('care');
@@ -51,6 +53,7 @@ export default function LogCareScreen() {
   const [takingPhoto, setTakingPhoto] = useState(false);
   const [pickingPhotos, setPickingPhotos] = useState(false);
   const [photosExpanded, setPhotosExpanded] = useState(false);
+  const [newLocation, setNewLocation] = useState('');
 
   useEffect(() => {
     if (plantId) {
@@ -151,6 +154,11 @@ export default function LogCareScreen() {
       return;
     }
 
+    if (eventType === 'relocation' && !newLocation.trim()) {
+      Alert.alert('Location Required', 'Please select or enter a new location for this relocation event.');
+      return;
+    }
+
     setSaving(true);
     try {
       // First create the event using React Query mutation for cache invalidation
@@ -162,6 +170,14 @@ export default function LogCareScreen() {
         fertilizer_concentration: (eventType === 'fertilize' || eventType === 'fertigate') ? fertilizerStrength : undefined,
         pest_severity: eventType === 'pest_spotted' ? pestSeverity : undefined,
       });
+
+      // If relocating and a new location was selected, update the plant's location
+      if (eventType === 'relocation' && newLocation.trim()) {
+        await updatePlantMutation.mutateAsync({
+          id: plantId,
+          updates: { location: newLocation.trim() },
+        });
+      }
 
       // Handle photos
       const photoErrors: string[] = [];
@@ -258,6 +274,7 @@ export default function LogCareScreen() {
                 onPress={() => {
                   setActiveTab('care');
                   setEventType('water');
+                  setNewLocation('');
                 }}
               >
                 <Text
@@ -277,6 +294,7 @@ export default function LogCareScreen() {
                 onPress={() => {
                   setActiveTab('events');
                   setEventType('pest_spotted');
+                  setNewLocation('');
                 }}
               >
                 <Text
@@ -298,7 +316,10 @@ export default function LogCareScreen() {
                     styles.careTypeOption,
                     eventType === type.value && styles.careTypeOptionSelected,
                   ]}
-                  onPress={() => setEventType(type.value)}
+                  onPress={() => {
+                    setEventType(type.value);
+                    if (type.value !== 'relocation') setNewLocation('');
+                  }}
                 >
                   <Text style={styles.careTypeIcon}>{type.icon}</Text>
                   <Text
@@ -417,6 +438,21 @@ export default function LogCareScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+          )}
+
+          {/* Relocation - new location picker */}
+          {eventType === 'relocation' && (
+            <View style={globalStyles.inputGroup}>
+              <Text style={globalStyles.label}>New Location *</Text>
+              {plant?.location ? (
+                <Text style={globalStyles.sublabel}>Current location: {plant.location}</Text>
+              ) : null}
+              <LocationDropdown
+                value={newLocation}
+                onValueChange={setNewLocation}
+                placeholder="Select or enter new location"
+              />
             </View>
           )}
 
