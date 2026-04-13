@@ -18,6 +18,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useAddTagToPlant, useCreateTagAndAddToPlant } from '../hooks/queries';
 import { TextSkeleton } from '../components/Skeleton';
+import WebContainer from '../components/WebContainer';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -150,6 +151,7 @@ export default function AddTagScreen() {
   }
 
   return (
+    <WebContainer>
     <KeyboardAwareScrollView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Add Tag to Plant</Text>
@@ -389,6 +391,7 @@ export default function AddTagScreen() {
         </View>
       </View>
     </KeyboardAwareScrollView>
+    </WebContainer>
   );
 }
 

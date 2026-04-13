@@ -17,6 +17,7 @@ import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { TextSkeleton } from '../components/Skeleton';
 import { useUpdateTag } from '../hooks/queries';
+import WebContainer from '../components/WebContainer';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -131,6 +132,7 @@ export default function EditTagScreen() {
   }
 
   return (
+    <WebContainer>
     <KeyboardAwareScrollView style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Edit Tag</Text>
@@ -255,6 +257,7 @@ export default function EditTagScreen() {
         </View>
       </View>
     </KeyboardAwareScrollView>
+    </WebContainer>
   );
 }
 

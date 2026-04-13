@@ -14,6 +14,7 @@ import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlant, useUpdatePlant } from '../hooks/queries';
+import WebContainer from '../components/WebContainer';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
@@ -86,6 +87,7 @@ export default function EditPlantScreen() {
   }
 
   return (
+    <WebContainer>
     <View style={styles.container}>
       <KeyboardAwareScrollView
         extraScrollHeight={100}
@@ -155,6 +157,7 @@ export default function EditPlantScreen() {
         </View>
       </KeyboardAwareScrollView>
     </View>
+    </WebContainer>
   );
 }
 

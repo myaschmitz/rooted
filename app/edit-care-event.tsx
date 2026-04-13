@@ -14,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimeInput from '../components/DateTimeInput';
 import { EventService } from '../services/EventService';
 import { PhotoService } from '../services/PhotoService';
 import { Event, PlantPhoto } from '../types/Plant';
@@ -22,6 +22,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useUpdateEvent } from '../hooks/queries';
+import WebContainer from '../components/WebContainer';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
@@ -273,6 +274,7 @@ export default function EditCareEventScreen() {
   }
 
   return (
+    <WebContainer>
     <View style={styles.container}>
       <KeyboardAwareScrollView
         extraScrollHeight={100}
@@ -353,29 +355,19 @@ export default function EditCareEventScreen() {
           <View style={styles.inputGroup}>
             <View style={styles.dateTimeRow}>
               <View style={styles.dateTimeSection}>
-                <Text style={styles.label}>Date</Text>
-                <DateTimePicker
+                <DateTimeInput
                   value={eventDate}
                   mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    if (selectedDate) {
-                      setEventDate(selectedDate);
-                    }
-                  }}
+                  label="Date"
+                  onChange={(date) => setEventDate(date)}
                 />
               </View>
               <View style={styles.dateTimeSection}>
-                <Text style={styles.label}>Time</Text>
-                <DateTimePicker
+                <DateTimeInput
                   value={eventDate}
                   mode="time"
-                  display="default"
-                  onChange={(event, selectedTime) => {
-                    if (selectedTime) {
-                      setEventDate(selectedTime);
-                    }
-                  }}
+                  label="Time"
+                  onChange={(date) => setEventDate(date)}
                 />
               </View>
               <View style={styles.buttonSection}>
@@ -670,6 +662,7 @@ export default function EditCareEventScreen() {
         </View>
       </Modal>
     </View>
+    </WebContainer>
   );
 }
 

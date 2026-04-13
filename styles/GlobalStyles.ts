@@ -1,6 +1,9 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemeColors, Typography, Spacing, BorderRadius, Shadows, Layout } from './theme';
+
+const webCursor = Platform.OS === 'web' ? { cursor: 'pointer' as any } : {};
+const webTransition = Platform.OS === 'web' ? { transition: 'opacity 0.15s ease, background-color 0.15s ease' as any } : {};
 
 export const useGlobalStyles = () => {
   const { theme } = useTheme();
@@ -62,6 +65,8 @@ export const useGlobalStyles = () => {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: Layout.buttonHeight,
+      ...webCursor,
+      ...webTransition,
     },
     
     buttonLarge: {
@@ -71,6 +76,8 @@ export const useGlobalStyles = () => {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: Layout.buttonHeight + 8,
+      ...webCursor,
+      ...webTransition,
     },
     
     buttonSecondary: {
@@ -240,6 +247,7 @@ export const useGlobalStyles = () => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      ...webCursor,
     },
     
     listItemSelected: {
@@ -317,6 +325,8 @@ export const useGlobalStyles = () => {
       bottom: Spacing.lg,
       right: Spacing.lg,
       ...Shadows.lg,
+      ...webCursor,
+      ...webTransition,
     },
     
     // ========== CHIPS & TAGS ==========

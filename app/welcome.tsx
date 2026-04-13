@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import WebContainer from '../components/WebContainer';
 import { HouseholdService } from '../services/HouseholdService';
 import {
   WelcomeFlowState,
@@ -106,7 +107,7 @@ export default function WelcomeScreen() {
     setLoading(true);
     try {
       const validation = await HouseholdService.validateHouseholdCode(state.householdCode.trim().toUpperCase());
-      
+
       if (!validation.valid) {
         Alert.alert('Invalid Code', validation.error_message || 'Household code not found');
         setState(prev => ({ ...prev, error: validation.error_message || 'Invalid household code' }));
@@ -114,68 +115,52 @@ export default function WelcomeScreen() {
         return;
       }
 
-      Alert.alert(
-        'Confirm Join',
-        `Do you want to join "${validation.household_name}"?`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => setLoading(false),
-          },
-          {
-            text: 'Join',
-            onPress: async () => {
-              try {
-                const request: JoinHouseholdRequest = {
-                  householdCode: state.householdCode!.trim().toUpperCase(),
-                  memberUserName: state.userName!.trim(),
-                };
-
-                const response = await HouseholdService.joinHousehold(request);
-                
-                if (response.success) {
-                  // Get the current user session to see if name was modified
-                  const session = await HouseholdService.getUserSession();
-                  const finalUserName = session?.user_name || state.userName;
-                  
-                  const isExistingMember = finalUserName === state.userName?.trim();
-                  const welcomeMessage = isExistingMember 
-                    ? `Welcome back to "${response.household_name}"! You're logged in as "${finalUserName}".`
-                    : `You've successfully joined "${response.household_name}" as a new member.`;
-                  
-                  Alert.alert(
-                    'Welcome!',
-                    welcomeMessage,
-                    [
-                      {
-                        text: 'Continue',
-                        onPress: () => {
-                          setState(prev => ({ ...prev, step: 'complete', householdName: response.household_name || undefined, userName: finalUserName }));
-                          setTimeout(() => router.replace('/(tabs)'), 1000);
-                        },
-                      },
-                    ]
-                  );
-                } else {
-                  Alert.alert('Error', response.error_message || 'Failed to join household');
-                  setState(prev => ({ ...prev, error: response.error_message || 'Failed to join household' }));
-                }
-              } catch (error) {
-                console.error('Error joining household:', error);
-                Alert.alert('Error', error instanceof Error ? error.message : 'Failed to join household');
-                setState(prev => ({ ...prev, error: error instanceof Error ? error.message : 'Failed to join household' }));
-              } finally {
-                setLoading(false);
-              }
-            },
-          },
-        ]
-      );
+      // Move to confirmation step instead of using Alert.alert
+      setState(prev => ({
+        ...prev,
+        step: 'confirm_join',
+        validatedHouseholdName: validation.household_name,
+        error: undefined,
+      }));
+      setLoading(false);
     } catch (error) {
       console.error('Error validating household code:', error);
       Alert.alert('Error', 'Failed to validate household code');
       setState(prev => ({ ...prev, error: 'Failed to validate household code' }));
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmJoin = async () => {
+    setLoading(true);
+    try {
+      const request: JoinHouseholdRequest = {
+        householdCode: state.householdCode!.trim().toUpperCase(),
+        memberUserName: state.userName!.trim(),
+      };
+
+      const response = await HouseholdService.joinHousehold(request);
+
+      if (response.success) {
+        const session = await HouseholdService.getUserSession();
+        const finalUserName = session?.user_name || state.userName;
+
+        setState(prev => ({
+          ...prev,
+          step: 'complete',
+          householdName: response.household_name || undefined,
+          userName: finalUserName,
+        }));
+        setTimeout(() => router.replace('/(tabs)'), 1000);
+      } else {
+        Alert.alert('Error', response.error_message || 'Failed to join household');
+        setState(prev => ({ ...prev, step: 'join_household', error: response.error_message || 'Failed to join household' }));
+      }
+    } catch (error) {
+      console.error('Error joining household:', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to join household');
+      setState(prev => ({ ...prev, step: 'join_household', error: error instanceof Error ? error.message : 'Failed to join household' }));
+    } finally {
       setLoading(false);
     }
   };
@@ -188,6 +173,9 @@ export default function WelcomeScreen() {
       case 'create_household':
       case 'join_household':
         setState(prev => ({ ...prev, step: 'choice', error: undefined }));
+        break;
+      case 'confirm_join':
+        setState(prev => ({ ...prev, step: 'join_household', error: undefined }));
         break;
       default:
         break;
@@ -330,7 +318,8 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <WebContainer>
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
@@ -409,11 +398,11 @@ export default function WelcomeScreen() {
           <>
             <Text style={styles.title}>Join a Household</Text>
             <Text style={styles.subtitle}>Enter the household code you received</Text>
-            
+
             <Text style={styles.helpText}>
               Household codes are 8 characters starting with 'H' (e.g., H7K9P3M2)
             </Text>
-            
+
             <TextInput
               style={styles.input}
               placeholder="e.g., H7K9P3M2"
@@ -425,15 +414,36 @@ export default function WelcomeScreen() {
               returnKeyType="done"
               onSubmitEditing={handleJoinHouseholdSubmit}
             />
-            
+
             {state.error && <Text style={styles.errorText}>{state.error}</Text>}
-            
+
             <TouchableOpacity style={styles.button} onPress={handleJoinHouseholdSubmit}>
               <Text style={styles.buttonText}>Join Household</Text>
             </TouchableOpacity>
           </>
         )}
+
+        {state.step === 'confirm_join' && (
+          <>
+            <Text style={styles.title}>Confirm Join</Text>
+            <Text style={styles.subtitle}>
+              Do you want to join "{state.validatedHouseholdName}"?
+            </Text>
+
+            <TouchableOpacity style={styles.button} onPress={handleConfirmJoin}>
+              <Text style={styles.buttonText}>Join</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSecondary]}
+              onPress={handleBack}
+            >
+              <Text style={[styles.buttonText, styles.buttonTextSecondary]}>Cancel</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
+    </WebContainer>
   );
 }

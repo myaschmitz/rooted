@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimeInput from '../components/DateTimeInput';
 import { EventService } from '../services/EventService';
 import { PlantService } from '../services/PlantService';
 import { PhotoService } from '../services/PhotoService';
@@ -26,6 +26,7 @@ import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useCreateEvent, useUpdatePlant } from '../hooks/queries';
 import LocationDropdown from '../components/LocationDropdown';
+import WebContainer from '../components/WebContainer';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
@@ -246,6 +247,7 @@ export default function LogCareScreen() {
   const showPestSeverity = eventType === 'pest_spotted';
 
   return (
+    <WebContainer>
     <View style={globalStyles.container}>
       <KeyboardAwareScrollView
         extraScrollHeight={100}
@@ -339,29 +341,19 @@ export default function LogCareScreen() {
           <View style={globalStyles.inputGroup}>
             <View style={styles.dateTimeRow}>
               <View style={styles.dateTimeSection}>
-                <Text style={globalStyles.label}>Date</Text>
-                <DateTimePicker
+                <DateTimeInput
                   value={careDateTime}
                   mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    if (selectedDate) {
-                      setCareDateTime(selectedDate);
-                    }
-                  }}
+                  label="Date"
+                  onChange={(date) => setCareDateTime(date)}
                 />
               </View>
               <View style={styles.dateTimeSection}>
-                <Text style={globalStyles.label}>Time</Text>
-                <DateTimePicker
+                <DateTimeInput
                   value={careDateTime}
                   mode="time"
-                  display="default"
-                  onChange={(event, selectedTime) => {
-                    if (selectedTime) {
-                      setCareDateTime(selectedTime);
-                    }
-                  }}
+                  label="Time"
+                  onChange={(date) => setCareDateTime(date)}
                 />
               </View>
               <View style={styles.buttonSection}>
@@ -671,6 +663,7 @@ export default function LogCareScreen() {
         </View>
       </Modal>
     </View>
+    </WebContainer>
   );
 }
 

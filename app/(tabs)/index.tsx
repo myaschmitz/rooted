@@ -9,8 +9,10 @@ import {
   RefreshControl,
   ScrollView,
   TextInput,
+  Platform,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import WebContainer from '../../components/WebContainer';
 import {
   CheckSquare,
   Square,
@@ -368,6 +370,7 @@ export default function HomeScreen() {
   // Loading state
   if (loading) {
     return (
+      <WebContainer>
       <View style={styles.container}>
         <View style={globalStyles.flexRowBetween}>
           <View
@@ -406,10 +409,12 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
       </View>
+      </WebContainer>
     );
   }
 
   return (
+    <WebContainer>
     <View style={styles.container}>
       {/* Header with batch mode toggle and sorting controls */}
       {plants.length > 0 && (
@@ -708,5 +713,6 @@ export default function HomeScreen() {
         onSubmit={handleBatchCareSubmit}
       />
     </View>
+    </WebContainer>
   );
 }

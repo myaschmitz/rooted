@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../../contexts/ThemeContext';
+import WebContainer from '../../components/WebContainer';
 import { TextSkeleton } from '../../components/Skeleton';
 import { useSettings } from '../../hooks/useSettings';
 import { useHouseholdSettings } from '../../hooks/useHouseholdSettings';
@@ -75,6 +76,7 @@ export default function SettingsScreen() {
   }
 
   return (
+    <WebContainer>
     <>
       <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
         <HouseholdSection
@@ -116,5 +118,6 @@ export default function SettingsScreen() {
         onClose={() => setEditHouseholdNameVisible(false)}
       />
     </>
+    </WebContainer>
   );
 }

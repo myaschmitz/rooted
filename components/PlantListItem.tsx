@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Pin, PinOff, Check, Camera } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Plant, Tag } from '../types/Plant';
@@ -165,6 +165,11 @@ const createStyles = (theme: Theme) =>
       marginBottom: 12,
       borderRadius: 8,
       elevation: 3,
+      ...(Platform.OS === 'web' ? {
+        // @ts-ignore — web-only properties
+        cursor: 'pointer',
+        transition: 'box-shadow 0.15s ease, transform 0.15s ease',
+      } : {}),
     },
     plantCardSelected: {
       borderColor: theme.colors.primary,

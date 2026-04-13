@@ -40,7 +40,11 @@ export default ({ config }) => {
           policy: "appVersion"
         }
       },
-      web: {},
+      web: {
+        bundler: "metro",
+        output: "single",
+        favicon: "./assets/icon.png",
+      },
       plugins: [
         "expo-router"
       ],

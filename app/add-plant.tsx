@@ -15,6 +15,7 @@ import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { Camera } from 'lucide-react-native';
 import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
+import WebContainer from '../components/WebContainer';
 
 export default function AddPlantScreen() {
   const { theme } = useTheme();
@@ -125,6 +126,7 @@ export default function AddPlantScreen() {
 
 
   return (
+    <WebContainer>
     <View style={styles.container}>
       <KeyboardAwareScrollView
         extraScrollHeight={100}
@@ -216,6 +218,7 @@ export default function AddPlantScreen() {
         </View>
       </KeyboardAwareScrollView>
     </View>
+    </WebContainer>
   );
 }
 

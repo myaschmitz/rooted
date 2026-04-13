@@ -5,6 +5,7 @@ import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { usePlantDetailState } from '../../hooks/usePlantDetailState';
 import TagsList from '../../components/TagsList';
+import WebContainer from '../../components/WebContainer';
 import {
   PlantDetailHeader,
   PlantActionButtons,
@@ -90,6 +91,7 @@ export default function PlantDetailScreen() {
   }
 
   return (
+    <WebContainer>
     <View style={{ flex: 1 }}>
       <ScrollView
         style={styles.container}
@@ -162,6 +164,7 @@ export default function PlantDetailScreen() {
         onClose={closeThumbnailViewer}
       />
     </View>
+    </WebContainer>
   );
 }
 

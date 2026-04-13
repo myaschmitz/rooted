@@ -68,11 +68,12 @@ export interface UserSession {
 }
 
 export interface WelcomeFlowState {
-  step: 'name' | 'choice' | 'create_household' | 'join_household' | 'complete';
+  step: 'name' | 'choice' | 'create_household' | 'join_household' | 'confirm_join' | 'complete';
   userName?: string;
   householdName?: string;
   householdCode?: string;
   isCreating?: boolean;
+  validatedHouseholdName?: string;
   error?: string;
 }
 
