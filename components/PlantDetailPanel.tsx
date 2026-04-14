@@ -180,6 +180,7 @@ export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelP
         thumbnailPhoto={thumbnailPhoto}
         onClose={closeThumbnailViewer}
       />
+
     </View>
   );
 }

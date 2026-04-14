@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useWebModal } from '../contexts/WebModalContext';
 import { Event, PlantPhoto } from '../types/Plant';
@@ -166,53 +166,55 @@ export function usePlantDetailState(plantId: string) {
     }
   }, [plantId, openModal]);
 
-  const handleAddPhoto = useCallback(() => {
-    Alert.alert('Add Photo', 'Choose how to add a photo', [
-      {
-        text: 'Take Photo',
-        onPress: async () => {
-          setUploadingPhoto(true);
-          try {
-            const photo = await PhotoService.takePhoto();
-            if (photo && plantId) {
-              await savePhotoMutation.mutateAsync({
-                plantId,
-                sourceUri: photo.uri,
-                caption: 'Plant photo',
-              });
-            }
-          } catch (error) {
-            console.error('Failed to take photo:', error);
-            Alert.alert('Error', 'Failed to take photo');
-          } finally {
-            setUploadingPhoto(false);
-          }
-        },
-      },
-      {
-        text: 'Photo Library',
-        onPress: async () => {
-          setUploadingPhoto(true);
-          try {
-            const photo = await PhotoService.pickPhoto();
-            if (photo && plantId) {
-              await savePhotoMutation.mutateAsync({
-                plantId,
-                sourceUri: photo.uri,
-                caption: 'Plant photo',
-              });
-            }
-          } catch (error) {
-            console.error('Failed to pick photo:', error);
-            Alert.alert('Error', 'Failed to pick photo');
-          } finally {
-            setUploadingPhoto(false);
-          }
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+  const handleTakePhoto = useCallback(async () => {
+    setUploadingPhoto(true);
+    try {
+      const photo = await PhotoService.takePhoto();
+      if (photo && plantId) {
+        await savePhotoMutation.mutateAsync({
+          plantId,
+          sourceUri: photo.uri,
+          caption: 'Plant photo',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to take photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
   }, [plantId, savePhotoMutation]);
+
+  const handlePickPhoto = useCallback(async () => {
+    setUploadingPhoto(true);
+    try {
+      const photo = await PhotoService.pickPhoto();
+      if (photo && plantId) {
+        await savePhotoMutation.mutateAsync({
+          plantId,
+          sourceUri: photo.uri,
+          caption: 'Plant photo',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to pick photo:', error);
+      Alert.alert('Error', 'Failed to pick photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }, [plantId, savePhotoMutation]);
+
+  const handleAddPhoto = useCallback(() => {
+    if (Platform.OS === 'web') {
+      handlePickPhoto();
+    } else {
+      Alert.alert('Add Photo', 'Choose how to add a photo', [
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Photo Library', onPress: handlePickPhoto },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }, [handleTakePhoto, handlePickPhoto]);
 
   const handlePhotoPress = useCallback(
     (photo: PlantPhoto) => {
