@@ -13,7 +13,6 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
 import DateTimeInput from '../components/DateTimeInput';
 import { EventService } from '../services/EventService';
 import { PlantService } from '../services/PlantService';
@@ -27,13 +26,15 @@ import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useCreateEvent, useUpdatePlant } from '../hooks/queries';
 import LocationDropdown from '../components/LocationDropdown';
 import WebContainer from '../components/WebContainer';
+import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
   const careStyles = useCareStyles();
-  const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const { plantId } = useModalParams<{ plantId: string }>();
+  const dismiss = useModalDismiss();
   const createEventMutation = useCreateEvent();
   const updatePlantMutation = useUpdatePlant();
   const [plant, setPlant] = useState<Plant | null>(null);
@@ -215,7 +216,7 @@ export default function LogCareScreen() {
       }
 
       setSaving(false);
-      router.back();
+      dismiss();
     } catch (error) {
       console.error('Failed to log event:', error);
       Alert.alert('Error', 'Failed to log event');

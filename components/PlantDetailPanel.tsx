@@ -1,12 +1,12 @@
-import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
-import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
-import { usePlantDetailState } from '../../hooks/usePlantDetailState';
-import TagsList from '../../components/TagsList';
-import WebContainer from '../../components/WebContainer';
-import WebBreadcrumb from '../../components/WebBreadcrumb';
+import React, { useCallback, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { X, ChevronRight, ExternalLink } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useTheme, Theme } from '../contexts/ThemeContext';
+import { usePlantDetailState } from '../hooks/usePlantDetailState';
+import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates';
+import TagsList from './TagsList';
 import {
   PlantDetailHeader,
   PlantActionButtons,
@@ -14,15 +14,19 @@ import {
   PlantEventsSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
-} from '../../components/plant-detail';
+} from './plant-detail';
 
-export default function PlantDetailScreen() {
+interface PlantDetailPanelProps {
+  plantId: string;
+  onClose: () => void;
+}
+
+export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelProps) {
   const { theme } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const styles = createStyles(theme);
   const [tagRefreshTrigger, setTagRefreshTrigger] = useState(0);
 
   const {
-    // Data
     plant,
     typedEvents,
     typedPhotos,
@@ -31,20 +35,14 @@ export default function PlantDetailScreen() {
     eventPhotos,
     formattedDates,
     currentThumbnailId,
-
-    // Loading states
     loading,
     refreshing,
     uploadingPhoto,
-
-    // UI state
     imageViewerVisible,
     currentPhotoIndex,
     thumbnailViewerVisible,
     isMultiSelectMode,
     selectedPhotos,
-
-    // Handlers
     onRefresh,
     handleLogCare,
     handleAddTag,
@@ -61,49 +59,61 @@ export default function PlantDetailScreen() {
     togglePhotoSelection,
     closeImageViewer,
     closeThumbnailViewer,
-  } = usePlantDetailState(id!);
+  } = usePlantDetailState(plantId);
 
-  // Set up real-time subscriptions
   useRealtimeUpdates({});
 
-  // Refresh tags when screen comes back into focus
-  useFocusEffect(
-    useCallback(() => {
-      setTagRefreshTrigger((prev) => prev + 1);
-    }, [])
-  );
-
-  const styles = createStyles(theme);
+  const handleOpenFullPage = () => {
+    router.push(`/plant/${plantId}`);
+  };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.panel}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Plant Details</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
       </View>
     );
   }
 
   if (!plant) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <Text style={{ color: theme.colors.text }}>Plant not found</Text>
+      <View style={styles.panel}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>Plant Details</Text>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.notFoundText}>Plant not found</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <WebContainer>
-    <View style={{ flex: 1 }}>
-      <WebBreadcrumb
-        items={[
-          { label: 'My Plants', href: '/' },
-          { label: plant.name || plant.type || 'Plant Details' },
-        ]}
-      />
-      <ScrollView
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
+    <View style={styles.panel}>
+      <View style={styles.panelHeader}>
+        <Text style={styles.panelTitle} numberOfLines={1}>{plant.name || plant.type}</Text>
+        <View style={styles.panelHeaderActions}>
+          <TouchableOpacity onPress={handleOpenFullPage} style={styles.expandButton}>
+            <ExternalLink size={18} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.panelContent}>
         <PlantDetailHeader
           plant={plant}
           thumbnailPhoto={thumbnailPhoto}
@@ -113,7 +123,7 @@ export default function PlantDetailScreen() {
 
         <View style={styles.tagSection}>
           <TagsList
-            plantId={id!}
+            plantId={plantId}
             onAddTagPress={handleAddTag}
             refreshTrigger={tagRefreshTrigger}
           />
@@ -171,21 +181,71 @@ export default function PlantDetailScreen() {
         onClose={closeThumbnailViewer}
       />
     </View>
-    </WebContainer>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
+    panel: {
+      width: 420,
       backgroundColor: theme.colors.background,
+      borderLeftWidth: 1,
+      borderLeftColor: theme.colors.border,
+      ...(Platform.OS === 'web' ? { height: '100%' as any } : { flex: 1 }),
+    },
+    panelHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface,
+    },
+    panelTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.textPrimary,
+      flex: 1,
+    },
+    panelHeaderActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    expandButton: {
+      padding: 8,
+      borderRadius: 6,
+      ...(Platform.OS === 'web'
+        ? {
+            cursor: 'pointer' as any,
+            transition: 'background-color 0.15s ease' as any,
+          }
+        : {}),
+    },
+    closeButton: {
+      padding: 8,
+      borderRadius: 6,
+      ...(Platform.OS === 'web'
+        ? {
+            cursor: 'pointer' as any,
+            transition: 'background-color 0.15s ease' as any,
+          }
+        : {}),
+    },
+    panelContent: {
+      flex: 1,
     },
     loadingContainer: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: theme.colors.background,
+      padding: 32,
+    },
+    notFoundText: {
+      fontSize: 16,
+      color: theme.colors.textSecondary,
     },
     tagSection: {
       backgroundColor: theme.colors.surface,

@@ -16,9 +16,11 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Camera } from 'lucide-react-native';
 import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
+import { useModalReplace } from '../hooks/useModalNav';
 
 export default function AddPlantScreen() {
   const { theme } = useTheme();
+  const modalReplace = useModalReplace();
   const createPlantMutation = useCreatePlant();
   const savePhotoMutation = useSavePhoto();
   const createEventMutation = useCreateEvent();
@@ -75,7 +77,7 @@ export default function AddPlantScreen() {
       }
 
       // Navigate to the new plant's detail page
-      router.replace(`/plant/${newPlant.id}`);
+      modalReplace(`/plant/${newPlant.id}`);
     } catch (error) {
       console.error('Failed to create plant:', error);
       Alert.alert('Error', 'Failed to add plant');

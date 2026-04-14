@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import WebContainer from '../../components/WebContainer';
+import { useWebModal } from '../../contexts/WebModalContext';
 import {
   CheckSquare,
   Square,
@@ -24,6 +25,7 @@ import {
   ChevronDown,
   ArrowDownUp,
   Check,
+  Leaf,
 } from 'lucide-react-native';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -34,6 +36,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { createStyles } from '../../styles/MyPlantsStyles';
 import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
 import { useGlobalStyles } from '../../styles';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 import {
   usePlants,
   useCreateEvent,
@@ -54,6 +57,7 @@ import { usePlantSearch } from '../../hooks/usePlantSearch';
 import PlantListItem from '../../components/PlantListItem';
 import PlantSectionHeader from '../../components/PlantSectionHeader';
 import BatchCareModal, { CareDetails } from '../../components/BatchCareModal';
+import PlantDetailPanel from '../../components/PlantDetailPanel';
 
 // Constants
 import { CareEventType, getCareTypeByType } from '../../constants/careTypes';
@@ -64,6 +68,9 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
+  const { isDesktop, isTablet, isWide } = useBreakpoint();
+  const { openModal } = useWebModal();
+  const isGridLayout = Platform.OS === 'web' && isWide;
 
   // React Query hooks
   const { data: plants = [], isLoading: plantsLoading, refetch: refetchPlants } = usePlants();
@@ -103,6 +110,10 @@ export default function HomeScreen() {
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
   const [selectedPlants, setSelectedPlants] = useState<Set<string>>(new Set());
   const [showCareModal, setShowCareModal] = useState(false);
+
+  // Desktop detail panel state
+  const [detailPanelPlantId, setDetailPanelPlantId] = useState<string | null>(null);
+  const showDetailPanel = isGridLayout && detailPanelPlantId !== null;
 
   // Derived data
   const loading = plantsLoading;
@@ -339,6 +350,11 @@ export default function HomeScreen() {
     setShowCareModal(false);
   };
 
+  // Handler for desktop detail panel
+  const handlePlantPressDesktop = useCallback((plantId: string) => {
+    setDetailPanelPlantId(plantId);
+  }, []);
+
   // Render functions
   const renderPlantItem = ({ item }: { item: Plant }) => (
     <PlantListItem
@@ -356,6 +372,32 @@ export default function HomeScreen() {
     />
   );
 
+  // Determine grid columns based on whether detail panel is open
+  const gridItemStyle = showDetailPanel
+    ? styles.gridItemTablet // 2 columns when panel is open
+    : isDesktop
+    ? styles.gridItemDesktop // 3 columns when panel is closed on desktop
+    : styles.gridItemTablet; // 2 columns on tablet
+
+  const renderPlantItemInGrid = (item: Plant) => (
+    <View key={item.id} style={gridItemStyle}>
+      <PlantListItem
+        plant={item}
+        thumbnail={plantThumbnails[item.id]}
+        lastWateredDate={plantWateringData[item.id]}
+        lastPhotoDate={plantLastPhotoData[item.id]}
+        tags={batchTagsData[item.id] || []}
+        isPinned={pinnedPlantIds.has(item.id)}
+        isEventsLoading={eventsLoading}
+        batchModeEnabled={batchModeEnabled}
+        isSelected={selectedPlants.has(item.id)}
+        onToggleSelection={togglePlantSelection}
+        onTogglePin={handleTogglePin}
+        onPress={isGridLayout ? handlePlantPressDesktop : undefined}
+      />
+    </View>
+  );
+
   const renderSectionHeader = ({ section }: { section: { title: string; data: Plant[] } }) => (
     <PlantSectionHeader
       title={section.title}
@@ -367,58 +409,72 @@ export default function HomeScreen() {
     />
   );
 
-  // Loading state
-  if (loading) {
-    return (
-      <WebContainer>
-      <View style={styles.container}>
-        <View style={globalStyles.flexRowBetween}>
-          <View
-            style={[
-              globalStyles.flexRowCenter,
-              { margin: 16, padding: 8, borderRadius: 8, backgroundColor: theme.colors.surface },
-            ]}
-          >
-            <Square size={20} color={theme.colors.textSecondary} />
-            <Text
-              style={[globalStyles.buttonTextSecondary, { marginLeft: 8, color: theme.colors.textPrimary }]}
-            >
-              Batch Mode
-            </Text>
+  // Desktop grid content renderer
+  const renderGridContent = () => (
+    <ScrollView
+      style={styles.list}
+      contentContainerStyle={
+        batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
+      }
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={theme.colors.primary}
+          colors={[theme.colors.primary]}
+        />
+      }
+    >
+      {isSearching ? (
+        searchResults.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Search size={48} color={theme.colors.textSecondary} />
+            <Text style={styles.emptyText}>No plants found</Text>
+            <Text style={styles.emptySubtext}>Try a different search term</Text>
           </View>
+        ) : (
+          <View style={styles.gridRow}>
+            {searchResults.map((plant) => renderPlantItemInGrid(plant))}
+          </View>
+        )
+      ) : (
+        plantsGrouped.map((section) => (
+          <View key={section.title}>
+            <PlantSectionHeader
+              title={section.title}
+              plantCount={section.data.length}
+              batchModeEnabled={batchModeEnabled}
+              plants={section.data}
+              selectedPlantIds={selectedPlants}
+              onSelectAll={selectAllInLocation}
+            />
+            <View style={styles.gridRow}>
+              {section.data.map((plant) => renderPlantItemInGrid(plant))}
+            </View>
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
 
-          <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
-            <TextSkeleton width={32} style={{ marginRight: 8 }} />
-            <TextSkeleton width={80} style={{ marginRight: 8 }} />
-            <TextSkeleton width={20} />
+  // Header toolbar (shared between loading and loaded states)
+  const renderToolbar = () => (
+    <>
+      {/* Desktop page title */}
+      {isGridLayout && (
+        <View style={styles.pageHeader}>
+          <View style={styles.pageHeaderLeft}>
+            <Leaf size={24} color={theme.colors.primary} />
+            <Text style={styles.pageTitle}>My Plants</Text>
           </View>
+          <Text style={styles.plantCount}>
+            {plants.length} plant{plants.length !== 1 ? 's' : ''}
+          </Text>
         </View>
+      )}
 
-        <View style={styles.searchBarContainer}>
-          <Search size={20} color={theme.colors.textSecondary} />
-          <TextSkeleton width="60%" style={{ marginLeft: 8 }} />
-        </View>
-
-        <ScrollView style={styles.list}>
-          <View style={styles.sectionHeader}>
-            <TextSkeleton width={120} height={20} />
-            <TextSkeleton width={60} height={16} />
-          </View>
-          {Array.from({ length: 6 }).map((_, index) => (
-            <PlantCardSkeleton key={index} />
-          ))}
-        </ScrollView>
-      </View>
-      </WebContainer>
-    );
-  }
-
-  return (
-    <WebContainer>
-    <View style={styles.container}>
-      {/* Header with batch mode toggle and sorting controls */}
       {plants.length > 0 && (
-        <View style={globalStyles.flexRowBetween}>
+        <View style={[globalStyles.flexRowBetween, { zIndex: 1000 }]}>
           <TouchableOpacity
             style={[
               globalStyles.flexRowCenter,
@@ -455,7 +511,7 @@ export default function HomeScreen() {
                 {selectedPlants.size} selected
               </Text>
             ) : (
-              <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
+              <View style={[globalStyles.flexRowCenter, { marginRight: 16, zIndex: 1000 }]}>
                 {/* Filter Button */}
                 <TouchableOpacity
                   style={[styles.sortDropdownButton, { marginRight: 8 }]}
@@ -630,31 +686,118 @@ export default function HomeScreen() {
           )}
         </View>
       )}
+    </>
+  );
 
-      {/* Content */}
-      {plants.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No plants yet!</Text>
-          <Text style={styles.emptySubtext}>Add your first plant to get started</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => router.navigate('/add-plant')}>
-            <Text style={styles.addButtonText}>Add Plant</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          {isSearching ? (
-            searchResults.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Search size={48} color={theme.colors.textSecondary} />
-                <Text style={styles.emptyText}>No plants found</Text>
-                <Text style={styles.emptySubtext}>Try a different search term</Text>
+  // Loading state
+  if (loading) {
+    return (
+      <WebContainer>
+        <View style={styles.container}>
+          <View style={globalStyles.flexRowBetween}>
+            <View
+              style={[
+                globalStyles.flexRowCenter,
+                { margin: 16, padding: 8, borderRadius: 8, backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Square size={20} color={theme.colors.textSecondary} />
+              <Text
+                style={[globalStyles.buttonTextSecondary, { marginLeft: 8, color: theme.colors.textPrimary }]}
+              >
+                Batch Mode
+              </Text>
+            </View>
+
+            <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
+              <TextSkeleton width={32} style={{ marginRight: 8 }} />
+              <TextSkeleton width={80} style={{ marginRight: 8 }} />
+              <TextSkeleton width={20} />
+            </View>
+          </View>
+
+          <View style={styles.searchBarContainer}>
+            <Search size={20} color={theme.colors.textSecondary} />
+            <TextSkeleton width="60%" style={{ marginLeft: 8 }} />
+          </View>
+
+          <ScrollView style={styles.list}>
+            <View style={styles.sectionHeader}>
+              <TextSkeleton width={120} height={20} />
+              <TextSkeleton width={60} height={16} />
+            </View>
+            {isGridLayout ? (
+              <View style={styles.gridRow}>
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <View key={index} style={isDesktop ? styles.gridItemDesktop : styles.gridItemTablet}>
+                    <PlantCardSkeleton />
+                  </View>
+                ))}
               </View>
             ) : (
-              <FlatList
-                data={searchResults}
+              Array.from({ length: 6 }).map((_, index) => (
+                <PlantCardSkeleton key={index} />
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </WebContainer>
+    );
+  }
+
+  return (
+    <WebContainer>
+      <View style={[styles.container, showDetailPanel && styles.containerWithPanel]}>
+        <View style={[showDetailPanel ? styles.mainContent : styles.mainContentFull]}>
+        {renderToolbar()}
+
+        {/* Content */}
+        {plants.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No plants yet!</Text>
+            <Text style={styles.emptySubtext}>Add your first plant to get started</Text>
+            <TouchableOpacity style={styles.addButton} onPress={() => openModal('add-plant') || router.navigate('/add-plant')}>
+              <Text style={styles.addButtonText}>Add Plant</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {isGridLayout ? (
+              renderGridContent()
+            ) : isSearching ? (
+              searchResults.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Search size={48} color={theme.colors.textSecondary} />
+                  <Text style={styles.emptyText}>No plants found</Text>
+                  <Text style={styles.emptySubtext}>Try a different search term</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={searchResults}
+                  renderItem={renderPlantItem}
+                  keyExtractor={(item) => item.id}
+                  style={styles.list}
+                  contentContainerStyle={
+                    batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
+                  }
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={refreshing}
+                      onRefresh={onRefresh}
+                      tintColor={theme.colors.primary}
+                      colors={[theme.colors.primary]}
+                    />
+                  }
+                />
+              )
+            ) : (
+              <SectionList
+                sections={plantsGrouped}
                 renderItem={renderPlantItem}
+                renderSectionHeader={renderSectionHeader}
                 keyExtractor={(item) => item.id}
                 style={styles.list}
+                stickySectionHeadersEnabled={true}
                 contentContainerStyle={
                   batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
                 }
@@ -667,52 +810,40 @@ export default function HomeScreen() {
                   />
                 }
               />
-            )
-          ) : (
-            <SectionList
-              sections={plantsGrouped}
-              renderItem={renderPlantItem}
-              renderSectionHeader={renderSectionHeader}
-              keyExtractor={(item) => item.id}
-              style={styles.list}
-              stickySectionHeadersEnabled={true}
-              contentContainerStyle={
-                batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
-              }
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={theme.colors.primary}
-                  colors={[theme.colors.primary]}
-                />
-              }
-            />
-          )}
+            )}
 
-          {/* FAB for adding plants or batch care */}
-          {batchModeEnabled && selectedPlants.size > 0 ? (
-            <TouchableOpacity style={globalStyles.fab} onPress={() => setShowCareModal(true)}>
-              <Text style={[globalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
-                Add Event ({selectedPlants.size})
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.fab} onPress={() => router.navigate('/add-plant')}>
-              <Text style={styles.fabText}>+</Text>
-            </TouchableOpacity>
-          )}
-        </>
-      )}
+            {/* FAB for adding plants or batch care */}
+            {batchModeEnabled && selectedPlants.size > 0 ? (
+              <TouchableOpacity style={globalStyles.fab} onPress={() => setShowCareModal(true)}>
+                <Text style={[globalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
+                  Add Event ({selectedPlants.size})
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.fab} onPress={() => openModal('add-plant') || router.navigate('/add-plant')}>
+                <Text style={styles.fabText}>+</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
 
-      {/* Batch Care Modal */}
-      <BatchCareModal
-        visible={showCareModal}
-        selectedCount={selectedPlants.size}
-        onClose={() => setShowCareModal(false)}
-        onSubmit={handleBatchCareSubmit}
-      />
-    </View>
+        {/* Batch Care Modal */}
+        <BatchCareModal
+          visible={showCareModal}
+          selectedCount={selectedPlants.size}
+          onClose={() => setShowCareModal(false)}
+          onSubmit={handleBatchCareSubmit}
+        />
+        </View>
+
+        {/* Desktop Detail Panel */}
+        {showDetailPanel && detailPanelPlantId && (
+          <PlantDetailPanel
+            plantId={detailPanelPlantId}
+            onClose={() => setDetailPanelPlantId(null)}
+          />
+        )}
+      </View>
     </WebContainer>
   );
 }

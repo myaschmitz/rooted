@@ -11,7 +11,6 @@ import {
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import { TagService } from '../services/TagService';
 import { Tag } from '../types/Plant';
 import { useTheme } from '../contexts/ThemeContext';
@@ -19,12 +18,14 @@ import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useAddTagToPlant, useCreateTagAndAddToPlant } from '../hooks/queries';
 import { TextSkeleton } from '../components/Skeleton';
 import WebContainer from '../components/WebContainer';
+import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function AddTagScreen() {
   const { theme } = useTheme();
-  const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const { plantId } = useModalParams<{ plantId: string }>();
+  const dismiss = useModalDismiss();
   
   // React Query mutations
   const addTagMutation = useAddTagToPlant();
@@ -110,7 +111,7 @@ export default function AddTagScreen() {
         }
       }
       
-      router.back();
+      dismiss();
     } catch (error) {
       console.error('Failed to add tag:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add tag');
@@ -118,7 +119,7 @@ export default function AddTagScreen() {
   };
 
   const handleCancel = () => {
-    router.back();
+    dismiss();
   };
 
   const getTextColor = (backgroundColor: string): string => {

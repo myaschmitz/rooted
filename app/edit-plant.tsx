@@ -8,17 +8,18 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePlant, useUpdatePlant } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
+import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useModalParams<{ id: string }>();
+  const dismiss = useModalDismiss();
   const { data: plant, isLoading: loading } = usePlant(id!);
   const updatePlantMutation = useUpdatePlant();
   
@@ -59,7 +60,7 @@ export default function EditPlantScreen() {
         }
       });
 
-      router.back();
+      dismiss();
     } catch (error) {
       console.error('Failed to update plant:', error);
       Alert.alert('Error', 'Failed to update plant');

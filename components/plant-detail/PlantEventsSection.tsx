@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SquarePen, Trash2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Event, PlantPhoto } from '../../types/Plant';
+import { useWebModal } from '../../contexts/WebModalContext';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { TextSkeleton } from '../Skeleton';
@@ -48,6 +49,7 @@ export default function PlantEventsSection({
   onPhotoPress,
 }: PlantEventsSectionProps) {
   const { theme } = useTheme();
+  const { openModal } = useWebModal();
   const styles = createStyles(theme);
 
   return (
@@ -75,7 +77,7 @@ export default function PlantEventsSection({
                 <View style={styles.careEventActions}>
                   <TouchableOpacity
                     style={styles.editCareButton}
-                    onPress={() => router.push(`/edit-care-event?id=${event.id}`)}
+                    onPress={() => { if (!openModal('edit-care-event', { id: event.id })) router.push(`/edit-care-event?id=${event.id}`); }}
                   >
                     <SquarePen size={16} color="#666" />
                   </TouchableOpacity>

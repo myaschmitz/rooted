@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +8,8 @@ import { AuthGuard } from "../components/AuthGuard";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { QUERY_CLIENT_CONFIG, calculateRetryDelay } from "../constants/domain";
 import { CacheInvalidationService } from "../services/CacheInvalidationService";
+import { useBreakpoint } from "../hooks/useBreakpoint";
+import { WebModalProvider } from "../contexts/WebModalContext";
 
 // Create a client with optimized cache settings for plant care app
 const queryClient = new QueryClient({
@@ -30,6 +33,8 @@ CacheInvalidationService.setDefaultQueryClient(queryClient);
 
 function ThemedStack() {
   const { theme } = useTheme();
+  const { isWide } = useBreakpoint();
+  const isDesktopWeb = Platform.OS === "web" && isWide;
 
   return (
     <>
@@ -45,6 +50,16 @@ function ThemedStack() {
           headerTitleStyle: {
             color: theme.colors.text,
           },
+          // On desktop web, hide the default Stack header for non-tab screens
+          // since we have the sidebar for navigation context
+          ...(isDesktopWeb
+            ? {
+                headerShown: true,
+                headerStyle: {
+                  backgroundColor: theme.colors.background,
+                },
+              }
+            : {}),
         }}
       >
         <Stack.Screen
@@ -114,7 +129,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ErrorBoundary>
-          <ThemedStack />
+          <WebModalProvider>
+            <ThemedStack />
+          </WebModalProvider>
         </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>

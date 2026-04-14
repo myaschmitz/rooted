@@ -1,40 +1,25 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { useBreakpoint } from '../hooks/useBreakpoint';
 
 interface WebContainerProps {
   children: React.ReactNode;
-  maxWidth?: number;
   style?: any;
 }
 
 /**
- * Wraps content in a centered, max-width container on web.
+ * Wraps content in a full-width container on web.
  * On mobile, renders children directly with no wrapper.
  */
-export default function WebContainer({ children, maxWidth = 800, style }: WebContainerProps) {
-  const { isWide } = useBreakpoint();
-
+export default function WebContainer({ children, style }: WebContainerProps) {
   if (Platform.OS !== 'web') {
     return <>{children}</>;
   }
 
-  return (
-    <View style={[styles.outer, style]}>
-      <View style={[styles.inner, isWide && { maxWidth }]}>
-        {children}
-      </View>
-    </View>
-  );
+  return <View style={[styles.container, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
-  outer: {
+  container: {
     flex: 1,
-    alignItems: 'center',
-  },
-  inner: {
-    flex: 1,
-    width: '100%',
   },
 });

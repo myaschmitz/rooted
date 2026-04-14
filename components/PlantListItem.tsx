@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Pin, PinOff, Check, Camera } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Plant, Tag } from '../types/Plant';
 import { useTheme, Theme } from '../contexts/ThemeContext';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PlantThumbnail } from './PlantThumbnail';
 import { TextSkeleton } from './Skeleton';
 import {
@@ -26,6 +27,8 @@ interface PlantListItemProps {
   isSelected?: boolean;
   onToggleSelection?: (plantId: string) => void;
   onTogglePin?: (plantId: string, event: any) => void;
+  // Override default navigation (for desktop detail panel)
+  onPress?: (plantId: string) => void;
 }
 
 export default function PlantListItem({
@@ -40,17 +43,25 @@ export default function PlantListItem({
   isSelected = false,
   onToggleSelection,
   onTogglePin,
+  onPress,
 }: PlantListItemProps) {
   const { theme } = useTheme();
+  const { isDesktop, isTablet } = useBreakpoint();
+  const isGrid = Platform.OS === 'web' && (isDesktop || isTablet);
   const styles = createStyles(theme);
+  const [isHovered, setIsHovered] = useState(false);
 
   const wateringDisplay = formatTimeSinceWatering(lastWateredDate);
   const wateringColor = getWateringStatusColor(lastWateredDate, theme.colors.textSecondary);
   const showCameraIcon = needsPhoto(lastPhotoDate);
 
+  const thumbnailSize = isGrid ? 80 : batchModeEnabled ? 40 : 65;
+
   const handlePress = () => {
     if (batchModeEnabled && onToggleSelection) {
       onToggleSelection(plant.id);
+    } else if (onPress) {
+      onPress(plant.id);
     } else {
       router.push(`/plant/${plant.id}`);
     }
@@ -62,6 +73,13 @@ export default function PlantListItem({
       onTogglePin(plant.id, event);
     }
   };
+
+  const hoverProps = Platform.OS === 'web'
+    ? {
+        onMouseEnter: () => setIsHovered(true),
+        onMouseLeave: () => setIsHovered(false),
+      }
+    : {};
 
   const renderTags = () => {
     if (tags.length === 0) {
@@ -86,16 +104,22 @@ export default function PlantListItem({
   if (batchModeEnabled) {
     return (
       <TouchableOpacity
-        style={[styles.plantCard, isSelected && styles.plantCardSelected]}
+        style={[
+          styles.plantCard,
+          isSelected && styles.plantCardSelected,
+          isGrid && styles.plantCardGrid,
+          isHovered && styles.plantCardHovered,
+        ]}
         onPress={handlePress}
+        {...hoverProps}
       >
-        <View style={styles.plantCardContent}>
+        <View style={[styles.plantCardContent, isGrid && styles.plantCardContentGrid]}>
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
             {isSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
           </View>
 
           <View style={styles.thumbnailContainer}>
-            <PlantThumbnail imageUri={thumbnail} size={40} />
+            <PlantThumbnail imageUri={thumbnail} size={thumbnailSize} />
           </View>
 
           <View style={styles.plantInfo}>
@@ -117,14 +141,24 @@ export default function PlantListItem({
   }
 
   return (
-    <TouchableOpacity style={styles.plantCard} onPress={handlePress}>
-      <View style={styles.plantCardContent}>
+    <TouchableOpacity
+      style={[
+        styles.plantCard,
+        isGrid && styles.plantCardGrid,
+        isHovered && styles.plantCardHovered,
+      ]}
+      onPress={handlePress}
+      {...hoverProps}
+    >
+      <View style={[styles.plantCardContent, isGrid && styles.plantCardContentGrid]}>
         <View style={styles.plantThumbnail}>
-          <PlantThumbnail imageUri={thumbnail} size={65} />
+          <PlantThumbnail imageUri={thumbnail} size={thumbnailSize} />
         </View>
 
         <View style={styles.plantInfo}>
-          <Text style={styles.plantName}>{plant.name || plant.type}</Text>
+          <Text style={[styles.plantName, isGrid && styles.plantNameGrid]}>
+            {plant.name || plant.type}
+          </Text>
           <View style={styles.tagsContainer}>{renderTags()}</View>
           <View style={styles.wateringContainer}>
             {isEventsLoading ? (
@@ -165,11 +199,27 @@ const createStyles = (theme: Theme) =>
       marginBottom: 12,
       borderRadius: 8,
       elevation: 3,
-      ...(Platform.OS === 'web' ? {
-        // @ts-ignore — web-only properties
-        cursor: 'pointer',
-        transition: 'box-shadow 0.15s ease, transform 0.15s ease',
-      } : {}),
+      ...(Platform.OS === 'web'
+        ? {
+            cursor: 'pointer' as any,
+            transition: 'box-shadow 0.2s ease, transform 0.15s ease, background-color 0.15s ease' as any,
+          }
+        : {}),
+    },
+    plantCardGrid: {
+      // In grid mode, cards are sized by the grid container
+    },
+    plantCardHovered: {
+      ...(Platform.OS === 'web'
+        ? {
+            transform: [{ translateY: -2 }],
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.15,
+            shadowRadius: 12,
+            elevation: 8,
+          }
+        : {}),
     },
     plantCardSelected: {
       borderColor: theme.colors.primary,
@@ -178,6 +228,9 @@ const createStyles = (theme: Theme) =>
     plantCardContent: {
       flexDirection: 'row',
       alignItems: 'center',
+    },
+    plantCardContentGrid: {
+      // Can be used for vertical card layout in future
     },
     checkbox: {
       width: 24,
@@ -207,6 +260,9 @@ const createStyles = (theme: Theme) =>
       fontWeight: 'bold',
       color: theme.colors.text,
       marginBottom: 4,
+    },
+    plantNameGrid: {
+      fontSize: 16,
     },
     tagsContainer: {
       flexDirection: 'row',

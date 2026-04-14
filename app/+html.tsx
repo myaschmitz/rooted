@@ -75,4 +75,14 @@ const responsiveStyles = `
   * {
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Web hover states for interactive elements */
+  [data-pressable]:hover {
+    opacity: 0.85;
+  }
+
+  /* Smooth transitions for nav items */
+  [role="tab"]:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+  }
 `;

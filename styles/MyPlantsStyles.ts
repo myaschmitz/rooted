@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 import { Theme } from '../contexts/ThemeContext';
 
 export const createStyles = (theme: Theme) => StyleSheet.create({
@@ -359,5 +359,53 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     color: theme.colors.textPrimary,
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
+  },
+  // Desktop page header
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  pageHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: theme.colors.textPrimary,
+    marginLeft: 10,
+  },
+  plantCount: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  // Grid layout styles
+  gridRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+  },
+  gridItemTablet: {
+    width: '50%',
+    paddingHorizontal: 0,
+  },
+  gridItemDesktop: {
+    width: '33.333%',
+    paddingHorizontal: 0,
+  },
+  // Master-detail panel layout
+  containerWithPanel: {
+    flexDirection: 'row',
+  },
+  mainContent: {
+    flex: 1,
+  },
+  mainContentFull: {
+    flex: 1,
   },
 }); 

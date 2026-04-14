@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } fr
 import { Edit } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Tag, PlantTag } from '../types/Plant';
+import { useWebModal } from '../contexts/WebModalContext';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
@@ -24,6 +25,7 @@ export default function TagsList({
   refreshTrigger = 0
 }: TagsListProps) {
   const { theme } = useTheme();
+  const { openModal } = useWebModal();
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +110,9 @@ export default function TagsList({
   };
 
   const handleEditTag = (tag: Tag) => {
-    router.push(`/edit-tag?tagId=${tag.id}`);
+    if (!openModal('edit-tag', { tagId: tag.id })) {
+      router.push(`/edit-tag?tagId=${tag.id}`);
+    }
   };
 
   const toggleEditMode = () => {

@@ -13,7 +13,6 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import DateTimeInput from '../components/DateTimeInput';
 import { EventService } from '../services/EventService';
 import { PhotoService } from '../services/PhotoService';
@@ -23,11 +22,13 @@ import { useCareStyles } from '../styles/CareStyles';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useUpdateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
+import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
   const careStyles = useCareStyles();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useModalParams<{ id: string }>();
+  const dismiss = useModalDismiss();
   const updateEventMutation = useUpdateEvent();
   const [event, setEvent] = useState<Event | null>(null);
   const [eventType, setEventType] = useState<'water' | 'fertilize' | 'fertigate' | 'prune' | 'repot' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other'>('water');
@@ -227,7 +228,7 @@ export default function EditCareEventScreen() {
         );
       }
 
-      router.back();
+      dismiss();
     } catch (error) {
       console.error('Failed to update event:', error);
       Alert.alert('Error', 'Failed to update event');

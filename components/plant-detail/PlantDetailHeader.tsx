@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SquarePen, Trash2 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Plant, PlantPhoto } from '../../types/Plant';
+import { useWebModal } from '../../contexts/WebModalContext';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 
@@ -21,6 +22,7 @@ export default function PlantDetailHeader({
   onDeletePlant,
 }: PlantDetailHeaderProps) {
   const { theme } = useTheme();
+  const { openModal } = useWebModal();
   const styles = createStyles(theme);
 
   return (
@@ -49,7 +51,7 @@ export default function PlantDetailHeader({
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => router.push(`/edit-plant?id=${plant.id}`)}
+            onPress={() => { if (!openModal('edit-plant', { id: plant.id })) router.push(`/edit-plant?id=${plant.id}`); }}
           >
             <SquarePen size={16} color="#666" />
           </TouchableOpacity>

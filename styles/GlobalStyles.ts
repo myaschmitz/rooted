@@ -1,9 +1,9 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemeColors, Typography, Spacing, BorderRadius, Shadows, Layout } from './theme';
 
 const webCursor = Platform.OS === 'web' ? { cursor: 'pointer' as any } : {};
-const webTransition = Platform.OS === 'web' ? { transition: 'opacity 0.15s ease, background-color 0.15s ease' as any } : {};
+const webTransition = Platform.OS === 'web' ? { transition: 'opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease' as any } : {};
 
 export const useGlobalStyles = () => {
   const { theme } = useTheme();
@@ -290,6 +290,7 @@ export const useGlobalStyles = () => {
       padding: Spacing.lg,
       margin: Spacing.lg,
       width: '90%',
+      maxWidth: Platform.OS === 'web' ? 520 : undefined,
       maxHeight: '80%',
       ...Shadows.xl,
     },

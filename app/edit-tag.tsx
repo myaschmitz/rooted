@@ -10,7 +10,6 @@ import {
   Dimensions,
   Keyboard,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import { Tag } from '../types/Plant';
@@ -18,12 +17,14 @@ import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { TextSkeleton } from '../components/Skeleton';
 import { useUpdateTag } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
+import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function EditTagScreen() {
   const { theme } = useTheme();
-  const { tagId } = useLocalSearchParams<{ tagId: string }>();
+  const { tagId } = useModalParams<{ tagId: string }>();
+  const dismiss = useModalDismiss();
   const updateTagMutation = useUpdateTag();
   
   const [originalTag, setOriginalTag] = useState<Tag | null>(null);
@@ -42,7 +43,7 @@ export default function EditTagScreen() {
   const loadTag = async () => {
     if (!tagId) {
       Alert.alert('Error', 'Tag ID is required');
-      router.back();
+      dismiss();
       return;
     }
 
@@ -55,7 +56,7 @@ export default function EditTagScreen() {
     } catch (error) {
       console.error('Failed to load tag:', error);
       Alert.alert('Error', 'Failed to load tag details');
-      router.back();
+      dismiss();
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export default function EditTagScreen() {
 
     // Check if anything actually changed
     if (tagName.trim() === originalTag.name && selectedColor === originalTag.color) {
-      router.back();
+      dismiss();
       return;
     }
 
@@ -92,7 +93,7 @@ export default function EditTagScreen() {
           color: selectedColor,
         }
       });
-      router.back();
+      dismiss();
     } catch (error) {
       console.error('Failed to update tag:', error);
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update tag');
@@ -100,7 +101,7 @@ export default function EditTagScreen() {
   };
 
   const handleCancel = () => {
-    router.back();
+    dismiss();
   };
 
   const getTextColor = (backgroundColor: string): string => {

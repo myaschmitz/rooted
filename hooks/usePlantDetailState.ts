@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useWebModal } from '../contexts/WebModalContext';
 import { Event, PlantPhoto } from '../types/Plant';
 import { PhotoService } from '../services/PhotoService';
 import { DateTimeService } from '../services/DateTimeService';
@@ -27,6 +28,7 @@ interface FormattedDate {
 }
 
 export function usePlantDetailState(plantId: string) {
+  const { openModal } = useWebModal();
   // React Query hooks
   const { data: plant, isLoading: plantLoading, refetch: refetchPlant } = usePlant(plantId);
   const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = usePlantEvents(plantId);
@@ -153,12 +155,16 @@ export function usePlantDetailState(plantId: string) {
   }, [refetchPlant, refetchEvents, refetchPhotos]);
 
   const handleLogCare = useCallback(() => {
-    router.push(`/log-care?plantId=${plantId}`);
-  }, [plantId]);
+    if (!openModal('log-care', { plantId })) {
+      router.push(`/log-care?plantId=${plantId}`);
+    }
+  }, [plantId, openModal]);
 
   const handleAddTag = useCallback(() => {
-    router.push(`/add-tag?plantId=${plantId}`);
-  }, [plantId]);
+    if (!openModal('add-tag', { plantId })) {
+      router.push(`/add-tag?plantId=${plantId}`);
+    }
+  }, [plantId, openModal]);
 
   const handleAddPhoto = useCallback(() => {
     Alert.alert('Add Photo', 'Choose how to add a photo', [
