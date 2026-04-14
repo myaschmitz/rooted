@@ -44,15 +44,18 @@ export function useWebModal() {
   return useContext(WebModalContext);
 }
 
-// Lazy imports to avoid circular dependencies - we import the screen components dynamically
-const screenComponents: Record<ModalScreen, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  'add-plant': React.lazy(() => import('../app/add-plant')),
-  'edit-plant': React.lazy(() => import('../app/edit-plant')),
-  'log-care': React.lazy(() => import('../app/log-care')),
-  'edit-care-event': React.lazy(() => import('../app/edit-care-event')),
-  'add-tag': React.lazy(() => import('../app/add-tag')),
-  'edit-tag': React.lazy(() => import('../app/edit-tag')),
-};
+// Use synchronous require() to avoid Metro's async bundle fetching on web,
+// deferred to render time to avoid circular dependency at module load.
+function getScreenComponent(screen: ModalScreen): React.ComponentType<any> {
+  switch (screen) {
+    case 'add-plant': return require('../app/add-plant').default;
+    case 'edit-plant': return require('../app/edit-plant').default;
+    case 'log-care': return require('../app/log-care').default;
+    case 'edit-care-event': return require('../app/edit-care-event').default;
+    case 'add-tag': return require('../app/add-tag').default;
+    case 'edit-tag': return require('../app/edit-tag').default;
+  }
+}
 
 // Inner context to mark children as being inside a modal
 const ModalContentContext = createContext<{
@@ -84,7 +87,7 @@ export function WebModalProvider({ children }: { children: React.ReactNode }) {
     setModalState(null);
   }, []);
 
-  const ScreenComponent = modalState ? screenComponents[modalState.screen] : null;
+  const ScreenComponent = modalState ? getScreenComponent(modalState.screen) : null;
 
   return (
     <WebModalContext.Provider
@@ -124,11 +127,7 @@ export function WebModalProvider({ children }: { children: React.ReactNode }) {
                   closeModal,
                 }}
               >
-                <React.Suspense
-                  fallback={<View style={styles.loading} />}
-                >
                   <ScreenComponent />
-                </React.Suspense>
               </ModalContentContext.Provider>
             </TouchableOpacity>
           </TouchableOpacity>
@@ -156,8 +155,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
-  },
-  loading: {
-    height: 200,
   },
 });
