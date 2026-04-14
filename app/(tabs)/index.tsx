@@ -68,7 +68,7 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
-  const { isDesktop, isTablet, isWide } = useBreakpoint();
+  const { isDesktop, isTablet, isWide, canShowSidePanel } = useBreakpoint();
   const { openModal } = useWebModal();
   const isGridLayout = Platform.OS === 'web' && isWide;
 
@@ -114,6 +114,9 @@ export default function HomeScreen() {
   // Desktop detail panel state
   const [detailPanelPlantId, setDetailPanelPlantId] = useState<string | null>(null);
   const showDetailPanel = isGridLayout && detailPanelPlantId !== null;
+  // Show panel side-by-side only when wide enough; otherwise overlay it
+  const showPanelInline = showDetailPanel && canShowSidePanel;
+  const showPanelOverlay = showDetailPanel && !canShowSidePanel;
 
   // Derived data
   const loading = plantsLoading;
@@ -372,9 +375,9 @@ export default function HomeScreen() {
     />
   );
 
-  // Determine grid columns based on whether detail panel is open
-  const gridItemStyle = showDetailPanel
-    ? styles.gridItemTablet // 2 columns when panel is open
+  // Determine grid columns based on whether detail panel is open inline
+  const gridItemStyle = showPanelInline
+    ? styles.gridItemTablet // 2 columns when inline panel is open
     : isDesktop
     ? styles.gridItemDesktop // 3 columns when panel is closed on desktop
     : styles.gridItemTablet; // 2 columns on tablet
@@ -747,8 +750,8 @@ export default function HomeScreen() {
 
   return (
     <WebContainer>
-      <View style={[styles.container, showDetailPanel && styles.containerWithPanel]}>
-        <View style={[showDetailPanel ? styles.mainContent : styles.mainContentFull]}>
+      <View style={[styles.container, showPanelInline && styles.containerWithPanel]}>
+        <View style={[showPanelInline ? styles.mainContent : styles.mainContentFull]}>
         {renderToolbar()}
 
         {/* Content */}
@@ -836,12 +839,30 @@ export default function HomeScreen() {
         />
         </View>
 
-        {/* Desktop Detail Panel */}
-        {showDetailPanel && detailPanelPlantId && (
+        {/* Desktop Detail Panel - inline when wide enough */}
+        {showPanelInline && detailPanelPlantId && (
           <PlantDetailPanel
             plantId={detailPanelPlantId}
             onClose={() => setDetailPanelPlantId(null)}
           />
+        )}
+
+        {/* Desktop Detail Panel - overlay when screen is narrow */}
+        {showPanelOverlay && detailPanelPlantId && (
+          <View style={styles.panelOverlayBackdrop}>
+            <TouchableOpacity
+              style={styles.panelOverlayDismiss}
+              activeOpacity={1}
+              onPress={() => setDetailPanelPlantId(null)}
+            />
+            <View style={styles.panelOverlayContainer}>
+              <PlantDetailPanel
+                plantId={detailPanelPlantId}
+                onClose={() => setDetailPanelPlantId(null)}
+                style={{ width: '100%' }}
+              />
+            </View>
+          </View>
         )}
       </View>
     </WebContainer>

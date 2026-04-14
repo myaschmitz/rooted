@@ -408,4 +408,27 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
   mainContentFull: {
     flex: 1,
   },
+  // Overlay panel for narrow screens
+  panelOverlayBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    zIndex: 100,
+  },
+  panelOverlayDismiss: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  panelOverlayContainer: {
+    width: 420,
+    maxWidth: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 20,
+  },
 }); 

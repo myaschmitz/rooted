@@ -19,9 +19,10 @@ import {
 interface PlantDetailPanelProps {
   plantId: string;
   onClose: () => void;
+  style?: any;
 }
 
-export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelProps) {
+export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetailPanelProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const [tagRefreshTrigger, setTagRefreshTrigger] = useState(0);
@@ -69,7 +70,7 @@ export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelP
 
   if (loading) {
     return (
-      <View style={styles.panel}>
+      <View style={[styles.panel, style]}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Plant Details</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -85,7 +86,7 @@ export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelP
 
   if (!plant) {
     return (
-      <View style={styles.panel}>
+      <View style={[styles.panel, style]}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Plant Details</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -100,7 +101,7 @@ export default function PlantDetailPanel({ plantId, onClose }: PlantDetailPanelP
   }
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, style]}>
       <View style={styles.panelHeader}>
         <Text style={styles.panelTitle} numberOfLines={1}>{plant.name || plant.type}</Text>
         <View style={styles.panelHeaderActions}>
