@@ -1,9 +1,16 @@
-import { useWindowDimensions } from 'react-native';
+import { useWindowDimensions, Platform } from 'react-native';
 
 export type Breakpoint = 'mobile' | 'tablet' | 'desktop';
 
 export function useBreakpoint() {
-  const { width } = useWindowDimensions();
+  const { width: rnWidth } = useWindowDimensions();
+
+  // On web, useWindowDimensions can return 0 during initial hydration/refresh,
+  // causing the sidebar to not render. Fall back to window.innerWidth.
+  const width =
+    rnWidth === 0 && Platform.OS === 'web' && typeof window !== 'undefined'
+      ? window.innerWidth
+      : rnWidth;
 
   const breakpoint: Breakpoint =
     width >= 1024 ? 'desktop' : width >= 768 ? 'tablet' : 'mobile';
