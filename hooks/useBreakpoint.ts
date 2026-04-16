@@ -16,6 +16,6 @@ export function useBreakpoint() {
     isDesktop: breakpoint === 'desktop',
     isWide: width >= 768, // tablet or desktop
     /** Wide enough for sidebar + content + detail panel side-by-side */
-    canShowSidePanel: width >= 1100,
+    canShowSidePanel: width >= 1200,
   };
 }
