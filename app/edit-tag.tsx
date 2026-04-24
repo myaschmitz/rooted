@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Dimensions,
   Keyboard,
@@ -18,11 +17,13 @@ import { TextSkeleton } from '../components/Skeleton';
 import { useUpdateTag } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function EditTagScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const { tagId } = useModalParams<{ tagId: string }>();
   const dismiss = useModalDismiss();
   const updateTagMutation = useUpdateTag();
@@ -42,7 +43,7 @@ export default function EditTagScreen() {
 
   const loadTag = async () => {
     if (!tagId) {
-      Alert.alert('Error', 'Tag ID is required');
+      showAlert('Error', 'Tag ID is required');
       dismiss();
       return;
     }
@@ -55,7 +56,7 @@ export default function EditTagScreen() {
       setSelectedColor(tag.color);
     } catch (error) {
       console.error('Failed to load tag:', error);
-      Alert.alert('Error', 'Failed to load tag details');
+      showAlert('Error', 'Failed to load tag details');
       dismiss();
     } finally {
       setLoading(false);
@@ -65,17 +66,17 @@ export default function EditTagScreen() {
   const handleSave = async () => {
     const validation = TagService.validateTagName(tagName);
     if (!validation.isValid) {
-      Alert.alert('Error', validation.error);
+      showAlert('Error', validation.error);
       return;
     }
 
     if (!TagService.validateTagColor(selectedColor)) {
-      Alert.alert('Error', 'Please select a valid color');
+      showAlert('Error', 'Please select a valid color');
       return;
     }
 
     if (!originalTag) {
-      Alert.alert('Error', 'Tag data not loaded');
+      showAlert('Error', 'Tag data not loaded');
       return;
     }
 
@@ -96,7 +97,7 @@ export default function EditTagScreen() {
       dismiss();
     } catch (error) {
       console.error('Failed to update tag:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update tag');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to update tag');
     }
   };
 

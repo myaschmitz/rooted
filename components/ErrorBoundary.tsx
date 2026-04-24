@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface Props {
@@ -37,21 +37,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     this.setState({ hasError: false, error: undefined });
   };
 
-  handleShowDetails = () => {
-    const message = `Error: ${this.state.error?.message || 'Unknown error'}\n\nThis might be a cache initialization issue. Try restarting the app or clearing app data.`;
-    Alert.alert(
-      'Error Details', 
-      message,
-      [{ text: 'OK' }]
-    );
-  };
-
   render() {
     if (this.state.hasError) {
       return (
         <ErrorFallback
           onRestart={this.handleRestart}
-          onShowDetails={this.handleShowDetails}
+          errorMessage={this.state.error?.message}
         />
       );
     }
@@ -60,11 +51,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 }
 
-function ErrorFallback({ onRestart, onShowDetails }: {
+function ErrorFallback({ onRestart, errorMessage }: {
   onRestart: () => void;
-  onShowDetails: () => void;
+  errorMessage?: string;
 }) {
   const { theme } = useTheme();
+  const [showDetails, setShowDetails] = React.useState(false);
 
   const styles = StyleSheet.create({
     container: {
@@ -111,6 +103,14 @@ function ErrorFallback({ onRestart, onShowDetails }: {
     buttonTextSecondary: {
       color: theme.colors.text,
     },
+    detailsText: {
+      marginTop: 20,
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
+      lineHeight: 20,
+      paddingHorizontal: 20,
+    },
   });
 
   return (
@@ -124,13 +124,21 @@ function ErrorFallback({ onRestart, onShowDetails }: {
         <TouchableOpacity style={styles.button} onPress={onRestart}>
           <Text style={styles.buttonText}>Try Again</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, styles.buttonSecondary]} 
-          onPress={onShowDetails}
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={() => setShowDetails(!showDetails)}
         >
-          <Text style={[styles.buttonText, styles.buttonTextSecondary]}>Details</Text>
+          <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
+            {showDetails ? 'Hide Details' : 'Details'}
+          </Text>
         </TouchableOpacity>
       </View>
+      {showDetails && (
+        <Text style={styles.detailsText}>
+          Error: {errorMessage || 'Unknown error'}{'\n\n'}
+          This might be a cache initialization issue. Try restarting the app or clearing app data.
+        </Text>
+      )}
     </View>
   );
 }

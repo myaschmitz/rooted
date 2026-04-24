@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
+  Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -17,9 +17,12 @@ import { Camera } from 'lucide-react-native';
 import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalReplace } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 export default function AddPlantScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const modalReplace = useModalReplace();
   const createPlantMutation = useCreatePlant();
   const savePhotoMutation = useSavePhoto();
@@ -36,7 +39,7 @@ export default function AddPlantScreen() {
 
   const handleSave = async () => {
     if (!type.trim()) {
-      Alert.alert('Error', 'Please enter plant type');
+      showAlert('Error', 'Please enter plant type');
       return;
     }
 
@@ -80,22 +83,14 @@ export default function AddPlantScreen() {
       modalReplace(`/plant/${newPlant.id}`);
     } catch (error) {
       console.error('Failed to create plant:', error);
-      Alert.alert('Error', 'Failed to add plant');
+      showAlert('Error', 'Failed to add plant');
     } finally {
       setSaving(false);
     }
   };
 
   const handleAddPhoto = () => {
-    Alert.alert(
-      'Add Photo',
-      'Choose how to add a photo',
-      [
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Photo Library', onPress: handlePickPhoto },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    setShowPhotoOptions(true);
   };
 
   const handleTakePhoto = async () => {
@@ -106,7 +101,7 @@ export default function AddPlantScreen() {
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      showAlert('Error', 'Failed to take photo');
     }
   };
 
@@ -118,7 +113,7 @@ export default function AddPlantScreen() {
       }
     } catch (error) {
       console.error('Failed to pick photo:', error);
-      Alert.alert('Error', 'Failed to pick photo');
+      showAlert('Error', 'Failed to pick photo');
     }
   };
 
@@ -219,6 +214,40 @@ export default function AddPlantScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
+      {/* Photo Options Modal */}
+      <Modal
+        visible={showPhotoOptions}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPhotoOptions(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Photo</Text>
+            <Text style={styles.modalMessage}>Choose how to add a photo</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => { setShowPhotoOptions(false); handleTakePhoto(); }}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => { setShowPhotoOptions(false); handlePickPhoto(); }}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Photo Library</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={() => setShowPhotoOptions(false)}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
     </WebContainer>
   );
@@ -334,5 +363,57 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textOnPrimary,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 24,
+    minWidth: 300,
+    maxWidth: 340,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: theme.colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    gap: 10,
+  },
+  modalButton: {
+    backgroundColor: theme.colors.primary,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonTextPrimary: {
+    color: theme.colors.textOnPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonCancel: {
+    backgroundColor: theme.colors.background,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonTextCancel: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

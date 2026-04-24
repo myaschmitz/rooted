@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   Image,
   ScrollView,
@@ -27,6 +26,7 @@ import { useCreateEvent, useUpdatePlant } from '../hooks/queries';
 import LocationDropdown from '../components/LocationDropdown';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 export default function LogCareScreen() {
   const { theme } = useTheme();
@@ -35,6 +35,7 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useModalParams<{ plantId: string }>();
   const dismiss = useModalDismiss();
+  const { showAlert } = useAlert();
   const createEventMutation = useCreateEvent();
   const updatePlantMutation = useUpdatePlant();
   const [plant, setPlant] = useState<Plant | null>(null);
@@ -70,7 +71,7 @@ export default function LogCareScreen() {
       setPlant(plantData);
     } catch (error) {
       console.error('Failed to load plant:', error);
-      Alert.alert('Error', 'Failed to load plant information');
+      showAlert('Error', 'Failed to load plant information');
     }
   };
 
@@ -92,7 +93,7 @@ export default function LogCareScreen() {
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      showAlert('Error', 'Failed to take photo');
     } finally {
       setTakingPhoto(false);
     }
@@ -107,7 +108,7 @@ export default function LogCareScreen() {
       }
     } catch (error) {
       console.error('Failed to pick photos:', error);
-      Alert.alert('Error', 'Failed to pick photos from library');
+      showAlert('Error', 'Failed to pick photos from library');
     } finally {
       setPickingPhotos(false);
     }
@@ -115,7 +116,7 @@ export default function LogCareScreen() {
 
   const handlePickFromPlantPhotos = () => {
     if (plantPhotos.length === 0) {
-      Alert.alert('No Photos', 'This plant doesn\'t have any photos yet. Take some photos first!');
+      showAlert('No Photos', 'This plant doesn\'t have any photos yet. Take some photos first!');
       return;
     }
     setSelectedPlantPhotoIds([]);
@@ -152,12 +153,12 @@ export default function LogCareScreen() {
 
   const handleSave = async () => {
     if (!plantId) {
-      Alert.alert('Error', 'No plant selected');
+      showAlert('Error', 'No plant selected');
       return;
     }
 
     if (eventType === 'relocation' && !newLocation.trim()) {
-      Alert.alert('Location Required', 'Please select or enter a new location for this relocation event.');
+      showAlert('Location Required', 'Please select or enter a new location for this relocation event.');
       return;
     }
 
@@ -208,7 +209,7 @@ export default function LogCareScreen() {
 
       // Show appropriate success/warning message
       if (photoErrors.length > 0) {
-        Alert.alert(
+        showAlert(
           'Event Saved',
           `Event was saved successfully, but ${photoErrors.join(' ')} You can add photos later by editing the event.`,
           [{ text: 'OK' }]
@@ -219,7 +220,7 @@ export default function LogCareScreen() {
       dismiss();
     } catch (error) {
       console.error('Failed to log event:', error);
-      Alert.alert('Error', 'Failed to log event');
+      showAlert('Error', 'Failed to log event');
       setSaving(false);
     }
   };

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Dimensions,
   Keyboard,
@@ -19,11 +18,13 @@ import { useAddTagToPlant, useCreateTagAndAddToPlant } from '../hooks/queries';
 import { TextSkeleton } from '../components/Skeleton';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function AddTagScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const { plantId } = useModalParams<{ plantId: string }>();
   const dismiss = useModalDismiss();
   
@@ -67,7 +68,7 @@ export default function AddTagScreen() {
       }
     } catch (error) {
       console.error('Failed to load available tags:', error);
-      Alert.alert('Error', 'Failed to load available tags');
+      showAlert('Error', 'Failed to load available tags');
       setMode('create'); // Fallback to create mode
     } finally {
       setLoading(false);
@@ -76,7 +77,7 @@ export default function AddTagScreen() {
 
   const handleSave = async () => {
     if (!plantId) {
-      Alert.alert('Error', 'Plant ID is required');
+      showAlert('Error', 'Plant ID is required');
       return;
     }
 
@@ -84,7 +85,7 @@ export default function AddTagScreen() {
       if (mode === 'select') {
         // Adding existing tags
         if (selectedExistingTags.length === 0) {
-          Alert.alert('Error', 'Please select at least one tag');
+          showAlert('Error', 'Please select at least one tag');
           return;
         }
         // Use the new multiple tags method from TagService
@@ -94,12 +95,12 @@ export default function AddTagScreen() {
         // Creating a new tag
         const validation = TagService.validateTagName(tagName);
         if (!validation.isValid) {
-          Alert.alert('Error', validation.error);
+          showAlert('Error', validation.error);
           return;
         }
 
         if (!TagService.validateTagColor(selectedColor)) {
-          Alert.alert('Error', 'Please select a valid color');
+          showAlert('Error', 'Please select a valid color');
           return;
         }
 
@@ -107,14 +108,14 @@ export default function AddTagScreen() {
         
         if (!result.isNew) {
           // Inform user that an existing tag was used
-          Alert.alert('Info', 'An existing tag with this name and color was added to your plant.');
+          showAlert('Info', 'An existing tag with this name and color was added to your plant.');
         }
       }
       
       dismiss();
     } catch (error) {
       console.error('Failed to add tag:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to add tag');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to add tag');
     }
   };
 

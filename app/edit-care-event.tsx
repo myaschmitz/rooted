@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
   ScrollView,
@@ -23,9 +22,11 @@ import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useUpdateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 export default function EditCareEventScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const careStyles = useCareStyles();
   const { id } = useModalParams<{ id: string }>();
   const dismiss = useModalDismiss();
@@ -79,7 +80,7 @@ export default function EditCareEventScreen() {
       }
     } catch (error) {
       console.error('Failed to load event:', error);
-      Alert.alert('Error', 'Failed to load event data');
+      showAlert('Error', 'Failed to load event data');
     } finally {
       setLoading(false);
     }
@@ -111,7 +112,7 @@ export default function EditCareEventScreen() {
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      showAlert('Error', 'Failed to take photo');
     }
   };
 
@@ -123,7 +124,7 @@ export default function EditCareEventScreen() {
       }
     } catch (error) {
       console.error('Failed to pick photos:', error);
-      Alert.alert('Error', 'Failed to pick photos from library');
+      showAlert('Error', 'Failed to pick photos from library');
     }
   };
 
@@ -132,7 +133,7 @@ export default function EditCareEventScreen() {
       !eventPhotos.some(eventPhoto => eventPhoto.id === photo.id)
     );
     if (availablePhotos.length === 0) {
-      Alert.alert('No Photos', 'This plant doesn\'t have any unlinked photos. All photos are already attached to this event.');
+      showAlert('No Photos', 'This plant doesn\'t have any unlinked photos. All photos are already attached to this event.');
       return;
     }
     setSelectedPlantPhotoIds([]);
@@ -173,7 +174,7 @@ export default function EditCareEventScreen() {
       setEventPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (error) {
       console.error('Failed to remove photo from event:', error);
-      Alert.alert('Error', 'Failed to remove photo from event');
+      showAlert('Error', 'Failed to remove photo from event');
     }
   };
 
@@ -221,7 +222,7 @@ export default function EditCareEventScreen() {
 
       // Show error alert if there were photo issues
       if (photoErrors.length > 0) {
-        Alert.alert(
+        showAlert(
           'Event Updated',
           `Event was updated successfully, but ${photoErrors.join(' ')}`,
           [{ text: 'OK' }]
@@ -231,7 +232,7 @@ export default function EditCareEventScreen() {
       dismiss();
     } catch (error) {
       console.error('Failed to update event:', error);
-      Alert.alert('Error', 'Failed to update event');
+      showAlert('Error', 'Failed to update event');
     } finally {
       setSaving(false);
     }

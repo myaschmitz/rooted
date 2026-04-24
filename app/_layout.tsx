@@ -10,6 +10,7 @@ import { QUERY_CLIENT_CONFIG, calculateRetryDelay } from "../constants/domain";
 import { CacheInvalidationService } from "../services/CacheInvalidationService";
 import { useBreakpoint } from "../hooks/useBreakpoint";
 import { WebModalProvider } from "../contexts/WebModalContext";
+import { AlertProvider } from "../contexts/AlertContext";
 
 // Create a client with optimized cache settings for plant care app
 const queryClient = new QueryClient({
@@ -129,9 +130,11 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ErrorBoundary>
-          <WebModalProvider>
-            <ThemedStack />
-          </WebModalProvider>
+          <AlertProvider>
+            <WebModalProvider>
+              <ThemedStack />
+            </WebModalProvider>
+          </AlertProvider>
         </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>

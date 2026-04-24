@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Share, Clipboard } from 'react-native';
-import { crossPlatformAlert } from '../utils/alert';
+import { useAlert } from '../contexts/AlertContext';
 import { router } from 'expo-router';
 import { HouseholdService } from '../services/HouseholdService';
 import { HouseholdContext, HouseholdMember } from '../types/Household';
@@ -22,6 +22,7 @@ export interface UseHouseholdSettingsReturn {
 }
 
 export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [householdLoading, setHouseholdLoading] = useState(true);
   const [householdContext, setHouseholdContext] = useState<HouseholdContext>({
@@ -63,12 +64,12 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
     if (!householdContext.household) return;
 
     await Clipboard.setString(householdContext.household.id);
-    crossPlatformAlert('Copied!', 'Household code copied to clipboard');
+    showAlert('Copied!', 'Household code copied to clipboard');
   }, [householdContext.household]);
 
   const editHouseholdName = useCallback(async (): Promise<boolean> => {
     if (!newHouseholdName.trim()) {
-      crossPlatformAlert('Error', 'Please enter a household name');
+      showAlert('Error', 'Please enter a household name');
       return false;
     }
 
@@ -79,7 +80,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
       return true;
     } catch (error) {
       console.error('Error updating household name:', error);
-      crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to update household name');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to update household name');
       return false;
     } finally {
       setLoading(false);
@@ -87,7 +88,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
   }, [newHouseholdName, loadHouseholdInfo]);
 
   const regenerateCode = useCallback(() => {
-    crossPlatformAlert(
+    showAlert(
       'Regenerate Household Code',
       'This will create a new code and invalidate the old one. Anyone with the old code will no longer be able to join. Continue?',
       [
@@ -100,13 +101,13 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
             try {
               const newCode = await HouseholdService.regenerateHouseholdCode();
               await loadHouseholdInfo();
-              crossPlatformAlert(
+              showAlert(
                 'Code Regenerated',
                 `Your new household code is: ${newCode}\n\nMake sure to share the new code with your household members.`
               );
             } catch (error) {
               console.error('Error regenerating code:', error);
-              crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to regenerate code');
+              showAlert('Error', error instanceof Error ? error.message : 'Failed to regenerate code');
             } finally {
               setLoading(false);
             }
@@ -118,7 +119,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
 
   const removeMember = useCallback(
     (member: HouseholdMember) => {
-      crossPlatformAlert(
+      showAlert(
         'Remove Member',
         `Are you sure you want to remove ${member.user_name} from this household?`,
         [
@@ -133,7 +134,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
                 await loadHouseholdInfo();
               } catch (error) {
                 console.error('Error removing member:', error);
-                crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to remove member');
+                showAlert('Error', error instanceof Error ? error.message : 'Failed to remove member');
               } finally {
                 setLoading(false);
               }
@@ -150,7 +151,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
       const newRole = member.role === 'admin' ? 'member' : 'admin';
       const action = newRole === 'admin' ? 'promote' : 'demote';
 
-      crossPlatformAlert(
+      showAlert(
         `${action === 'promote' ? 'Promote' : 'Demote'} Member`,
         `${action === 'promote' ? 'Give admin privileges to' : 'Remove admin privileges from'} ${member.user_name}?`,
         [
@@ -164,7 +165,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
                 await loadHouseholdInfo();
               } catch (error) {
                 console.error('Error updating member role:', error);
-                crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to update member role');
+                showAlert('Error', error instanceof Error ? error.message : 'Failed to update member role');
               } finally {
                 setLoading(false);
               }
@@ -177,7 +178,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
   );
 
   const leaveHousehold = useCallback(() => {
-    crossPlatformAlert(
+    showAlert(
       'Leave Household',
       'Are you sure you want to leave this household? You will need a new invitation code to rejoin.',
       [
@@ -192,7 +193,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
               router.replace('/welcome');
             } catch (error) {
               console.error('Error leaving household:', error);
-              crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to leave household');
+              showAlert('Error', error instanceof Error ? error.message : 'Failed to leave household');
               setLoading(false);
             }
           },

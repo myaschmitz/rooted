@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { Plant } from '../types/Plant';
@@ -15,9 +14,11 @@ import { useTheme } from '../contexts/ThemeContext';
 import { usePlant, useUpdatePlant } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
+import { useAlert } from '../contexts/AlertContext';
 
 export default function EditPlantScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const { id } = useModalParams<{ id: string }>();
   const dismiss = useModalDismiss();
   const { data: plant, isLoading: loading } = usePlant(id!);
@@ -42,7 +43,7 @@ export default function EditPlantScreen() {
 
   const handleSave = async () => {
     if (!type.trim()) {
-      Alert.alert('Error', 'Please enter plant type');
+      showAlert('Error', 'Please enter plant type');
       return;
     }
 
@@ -63,7 +64,7 @@ export default function EditPlantScreen() {
       dismiss();
     } catch (error) {
       console.error('Failed to update plant:', error);
-      Alert.alert('Error', 'Failed to update plant');
+      showAlert('Error', 'Failed to update plant');
     } finally {
       setSaving(false);
     }

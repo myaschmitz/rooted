@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
   SectionList,
   RefreshControl,
   ScrollView,
@@ -61,11 +60,13 @@ import PlantDetailPanel from '../../components/PlantDetailPanel';
 
 // Constants
 import { CareEventType, getCareTypeByType } from '../../constants/careTypes';
+import { useAlert } from '../../contexts/AlertContext';
 
 dayjs.extend(relativeTime);
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
   const { isDesktop, isTablet, isWide, canShowSidePanel } = useBreakpoint();
@@ -291,7 +292,7 @@ export default function HomeScreen() {
         await togglePin(plantId);
       } catch (error) {
         console.error('Failed to toggle pin:', error);
-        Alert.alert('Error', 'Failed to update pin status');
+        showAlert('Error', 'Failed to update pin status');
       }
     },
     [togglePin]

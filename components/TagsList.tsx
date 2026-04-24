@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Edit } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Tag, PlantTag } from '../types/Plant';
@@ -8,6 +8,7 @@ import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
 import { TextSkeleton } from './Skeleton';
+import { useAlert } from '../contexts/AlertContext';
 
 interface TagsListProps {
   plantId: string;
@@ -25,6 +26,7 @@ export default function TagsList({
   refreshTrigger = 0
 }: TagsListProps) {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const { openModal } = useWebModal();
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function TagsList({
   }, [plantId, refreshTrigger]);
 
   const handleRemoveTagFromPlant = async (tag: Tag) => {
-    Alert.alert(
+    showAlert(
       'Remove Tag',
       `Are you sure you want to remove the "${tag.name}" tag from this plant?`,
       [
@@ -74,7 +76,7 @@ export default function TagsList({
               });
             } catch (err) {
               console.error('Failed to remove tag from plant:', err);
-              Alert.alert('Error', 'Failed to remove tag from plant');
+              showAlert('Error', 'Failed to remove tag from plant');
             }
           },
         },
@@ -89,7 +91,7 @@ export default function TagsList({
         onTagLongPress(tag);
       } else {
         // Default action: show remove option
-        Alert.alert(
+        showAlert(
           'Tag Options',
           `What would you like to do with "${tag.name}"?`,
           [

@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
@@ -21,9 +20,11 @@ import {
   JoinHouseholdRequest,
 } from '../types/Household';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAlert } from '../contexts/AlertContext';
 
 export default function WelcomeScreen() {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<WelcomeFlowState>({
     step: 'name',
@@ -47,7 +48,7 @@ export default function WelcomeScreen() {
 
   const handleNameSubmit = () => {
     if (!state.userName?.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      showAlert('Error', 'Please enter your name');
       return;
     }
     setState(prev => ({ ...prev, step: 'choice' }));
@@ -63,7 +64,7 @@ export default function WelcomeScreen() {
 
   const handleCreateHouseholdSubmit = async () => {
     if (!state.householdName?.trim()) {
-      Alert.alert('Error', 'Please enter a household name');
+      showAlert('Error', 'Please enter a household name');
       return;
     }
 
@@ -76,7 +77,7 @@ export default function WelcomeScreen() {
 
       const response = await HouseholdService.createHousehold(request);
       
-      Alert.alert(
+      showAlert(
         'Household Created!',
         `Your household "${state.householdName}" has been created.\n\nYour household code is: ${response.household_code}\n\nShare this code with family members so they can join your household.`,
         [
@@ -91,7 +92,7 @@ export default function WelcomeScreen() {
       );
     } catch (error) {
       console.error('Error creating household:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to create household');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to create household');
       setState(prev => ({ ...prev, error: error instanceof Error ? error.message : 'Failed to create household' }));
     } finally {
       setLoading(false);
@@ -100,7 +101,7 @@ export default function WelcomeScreen() {
 
   const handleJoinHouseholdSubmit = async () => {
     if (!state.householdCode?.trim()) {
-      Alert.alert('Error', 'Please enter a household code');
+      showAlert('Error', 'Please enter a household code');
       return;
     }
 
@@ -109,13 +110,13 @@ export default function WelcomeScreen() {
       const validation = await HouseholdService.validateHouseholdCode(state.householdCode.trim().toUpperCase());
 
       if (!validation.valid) {
-        Alert.alert('Invalid Code', validation.error_message || 'Household code not found');
+        showAlert('Invalid Code', validation.error_message || 'Household code not found');
         setState(prev => ({ ...prev, error: validation.error_message || 'Invalid household code' }));
         setLoading(false);
         return;
       }
 
-      // Move to confirmation step instead of using Alert.alert
+      // Move to confirmation step instead of using showAlert
       setState(prev => ({
         ...prev,
         step: 'confirm_join',
@@ -125,7 +126,7 @@ export default function WelcomeScreen() {
       setLoading(false);
     } catch (error) {
       console.error('Error validating household code:', error);
-      Alert.alert('Error', 'Failed to validate household code');
+      showAlert('Error', 'Failed to validate household code');
       setState(prev => ({ ...prev, error: 'Failed to validate household code' }));
       setLoading(false);
     }
@@ -153,12 +154,12 @@ export default function WelcomeScreen() {
         }));
         setTimeout(() => router.replace('/(tabs)'), 1000);
       } else {
-        Alert.alert('Error', response.error_message || 'Failed to join household');
+        showAlert('Error', response.error_message || 'Failed to join household');
         setState(prev => ({ ...prev, step: 'join_household', error: response.error_message || 'Failed to join household' }));
       }
     } catch (error) {
       console.error('Error joining household:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to join household');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to join household');
       setState(prev => ({ ...prev, step: 'join_household', error: error instanceof Error ? error.message : 'Failed to join household' }));
     } finally {
       setLoading(false);

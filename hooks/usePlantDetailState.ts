@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Platform } from 'react-native';
-import { crossPlatformAlert } from '../utils/alert';
+import { useAlert } from '../contexts/AlertContext';
 import { router } from 'expo-router';
 import { useWebModal } from '../contexts/WebModalContext';
 import { Event, PlantPhoto } from '../types/Plant';
@@ -29,6 +29,7 @@ interface FormattedDate {
 }
 
 export function usePlantDetailState(plantId: string) {
+  const { showAlert } = useAlert();
   const { openModal } = useWebModal();
   // React Query hooks
   const { data: plant, isLoading: plantLoading, refetch: refetchPlant } = usePlant(plantId);
@@ -180,7 +181,7 @@ export function usePlantDetailState(plantId: string) {
       }
     } catch (error) {
       console.error('Failed to take photo:', error);
-      crossPlatformAlert('Error', 'Failed to take photo');
+      showAlert('Error', 'Failed to take photo');
     } finally {
       setUploadingPhoto(false);
     }
@@ -199,7 +200,7 @@ export function usePlantDetailState(plantId: string) {
       }
     } catch (error) {
       console.error('Failed to pick photo:', error);
-      crossPlatformAlert('Error', 'Failed to pick photo');
+      showAlert('Error', 'Failed to pick photo');
     } finally {
       setUploadingPhoto(false);
     }
@@ -209,7 +210,7 @@ export function usePlantDetailState(plantId: string) {
     if (Platform.OS === 'web') {
       handlePickPhoto();
     } else {
-      crossPlatformAlert('Add Photo', 'Choose how to add a photo', [
+      showAlert('Add Photo', 'Choose how to add a photo', [
         { text: 'Take Photo', onPress: handleTakePhoto },
         { text: 'Photo Library', onPress: handlePickPhoto },
         { text: 'Cancel', style: 'cancel' },
@@ -241,7 +242,7 @@ export function usePlantDetailState(plantId: string) {
         {
           onError: (error) => {
             console.error('Failed to set thumbnail:', error);
-            crossPlatformAlert('Error', 'Failed to set thumbnail photo');
+            showAlert('Error', 'Failed to set thumbnail photo');
           },
         }
       );
@@ -251,7 +252,7 @@ export function usePlantDetailState(plantId: string) {
 
   const handleDeletePhoto = useCallback(
     (photoId: string) => {
-      crossPlatformAlert('Delete Photo', 'Are you sure you want to delete this photo?', [
+      showAlert('Delete Photo', 'Are you sure you want to delete this photo?', [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -278,7 +279,7 @@ export function usePlantDetailState(plantId: string) {
               }
             } catch (error) {
               console.error('Failed to delete photo:', error);
-              crossPlatformAlert('Error', 'Failed to delete photo');
+              showAlert('Error', 'Failed to delete photo');
             }
           },
         },
@@ -289,7 +290,7 @@ export function usePlantDetailState(plantId: string) {
 
   const handlePhotoOptions = useCallback(
     (photo: PlantPhoto) => {
-      crossPlatformAlert('Photo Options', 'Choose an action', [
+      showAlert('Photo Options', 'Choose an action', [
         { text: 'Set as Thumbnail', onPress: () => handleSetThumbnail(photo.id) },
         { text: 'Delete Photo', onPress: () => handleDeletePhoto(photo.id), style: 'destructive' },
         { text: 'Cancel', style: 'cancel' },
@@ -302,7 +303,7 @@ export function usePlantDetailState(plantId: string) {
     const selectedCount = selectedPhotos.size;
     if (selectedCount === 0) return;
 
-    crossPlatformAlert(
+    showAlert(
       'Delete Photos',
       `Are you sure you want to delete ${selectedCount} photo${selectedCount > 1 ? 's' : ''}? This action cannot be undone.`,
       [
@@ -345,7 +346,7 @@ export function usePlantDetailState(plantId: string) {
               setSelectedPhotos(new Set());
             } catch (error) {
               console.error('Failed to delete photos:', error);
-              crossPlatformAlert('Error', 'Failed to delete photos');
+              showAlert('Error', 'Failed to delete photos');
             }
           },
         },
@@ -364,7 +365,7 @@ export function usePlantDetailState(plantId: string) {
   const handleDeletePlant = useCallback(async () => {
     if (!plant) return;
 
-    crossPlatformAlert(
+    showAlert(
       'Delete Plant',
       `Are you sure you want to delete "${plant.name || `${plant.type}`}"? This will also delete all events and photos associated with this plant. This action cannot be undone.`,
       [
@@ -378,7 +379,7 @@ export function usePlantDetailState(plantId: string) {
               router.back();
             } catch (error) {
               console.error('Failed to delete plant:', error);
-              crossPlatformAlert('Error', 'Failed to delete plant');
+              showAlert('Error', 'Failed to delete plant');
             }
           },
         },
@@ -388,7 +389,7 @@ export function usePlantDetailState(plantId: string) {
 
   const handleDeleteCareEvent = useCallback(
     (eventId: string, eventType: string) => {
-      crossPlatformAlert(
+      showAlert(
         'Delete Event',
         `Are you sure you want to delete this ${eventType} event? This action cannot be undone.`,
         [
@@ -401,7 +402,7 @@ export function usePlantDetailState(plantId: string) {
                 await deleteEventMutation.mutateAsync({ id: eventId, plantId });
               } catch (error) {
                 console.error('Failed to delete event:', error);
-                crossPlatformAlert('Error', 'Failed to delete event');
+                showAlert('Error', 'Failed to delete event');
               }
             },
           },
@@ -420,11 +421,11 @@ export function usePlantDetailState(plantId: string) {
         const result = await PhotoService.downloadPhotoToDevice(photoUrl, filename);
 
         if (!result.success) {
-          crossPlatformAlert('Error', result.error || 'Failed to download photo');
+          showAlert('Error', result.error || 'Failed to download photo');
         }
       } catch (error) {
         console.error('Error downloading photo:', error);
-        crossPlatformAlert('Error', 'Failed to download photo');
+        showAlert('Error', 'Failed to download photo');
       }
     },
     [plant]

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { crossPlatformAlert } from '../utils/alert';
+import { useAlert } from '../contexts/AlertContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../services/PlantService';
 import { EventService } from '../services/EventService';
@@ -30,6 +30,7 @@ export interface UseSettingsReturn {
 }
 
 export const useSettings = (): UseSettingsReturn => {
+  const { showAlert } = useAlert();
   const [dateFormat, setDateFormatState] = useState<DateFormatValue>('MM/DD/YYYY');
   const [timeFormat, setTimeFormatState] = useState<TimeFormatValue>('12');
   const [loading, setLoading] = useState(false);
@@ -71,7 +72,7 @@ export const useSettings = (): UseSettingsReturn => {
       setTimeFormatState(format);
     } catch (error) {
       console.error('Failed to save time format:', error);
-      crossPlatformAlert('Error', 'Failed to save time format setting');
+      showAlert('Error', 'Failed to save time format setting');
     }
   }, []);
 
@@ -79,13 +80,13 @@ export const useSettings = (): UseSettingsReturn => {
     setLoading(true);
     try {
       const result = await PhotoService.generateThumbnailsForExistingPhotos();
-      crossPlatformAlert(
+      showAlert(
         'Thumbnails Generated',
         `Successfully created ${result.success} thumbnails.\n${result.failed} failed, ${result.skipped} skipped.\n\nYour app will now use less data when loading photos!`
       );
     } catch (error) {
       console.error('Error generating thumbnails:', error);
-      crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
+      showAlert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
     } finally {
       setLoading(false);
     }
@@ -102,10 +103,10 @@ export const useSettings = (): UseSettingsReturn => {
       setDateFormatState('MM/DD/YYYY');
       setTimeFormatState('12');
 
-      crossPlatformAlert('Success', 'All data has been deleted successfully.');
+      showAlert('Success', 'All data has been deleted successfully.');
     } catch (error) {
       console.error('Failed to delete all data:', error);
-      crossPlatformAlert('Error', 'Failed to delete all data. Please try again.');
+      showAlert('Error', 'Failed to delete all data. Please try again.');
     } finally {
       setLoading(false);
     }
