@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { crossPlatformAlert } from '../utils/alert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../services/PlantService';
 import { EventService } from '../services/EventService';
@@ -71,7 +71,7 @@ export const useSettings = (): UseSettingsReturn => {
       setTimeFormatState(format);
     } catch (error) {
       console.error('Failed to save time format:', error);
-      Alert.alert('Error', 'Failed to save time format setting');
+      crossPlatformAlert('Error', 'Failed to save time format setting');
     }
   }, []);
 
@@ -79,13 +79,13 @@ export const useSettings = (): UseSettingsReturn => {
     setLoading(true);
     try {
       const result = await PhotoService.generateThumbnailsForExistingPhotos();
-      Alert.alert(
+      crossPlatformAlert(
         'Thumbnails Generated',
         `Successfully created ${result.success} thumbnails.\n${result.failed} failed, ${result.skipped} skipped.\n\nYour app will now use less data when loading photos!`
       );
     } catch (error) {
       console.error('Error generating thumbnails:', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
+      crossPlatformAlert('Error', error instanceof Error ? error.message : 'Failed to generate thumbnails');
     } finally {
       setLoading(false);
     }
@@ -102,10 +102,10 @@ export const useSettings = (): UseSettingsReturn => {
       setDateFormatState('MM/DD/YYYY');
       setTimeFormatState('12');
 
-      Alert.alert('Success', 'All data has been deleted successfully.');
+      crossPlatformAlert('Success', 'All data has been deleted successfully.');
     } catch (error) {
       console.error('Failed to delete all data:', error);
-      Alert.alert('Error', 'Failed to delete all data. Please try again.');
+      crossPlatformAlert('Error', 'Failed to delete all data. Please try again.');
     } finally {
       setLoading(false);
     }
