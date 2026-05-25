@@ -703,3 +703,44 @@ export const usePrefetchPlantData = () => {
     },
   };
 };
+
+// Archive hooks
+export const useArchivedPlants = () => {
+  return useQuery({
+    queryKey: ["archived-plants"] as const,
+    queryFn: () => PlantService.getArchivedPlants(),
+  });
+};
+
+export const useArchivePlant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => PlantService.archivePlant(id),
+    onSuccess: (_, archivedId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.plant(archivedId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+      queryClient.invalidateQueries({ queryKey: ["archived-plants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["plants-by-location"],
+        exact: false,
+      });
+    },
+  });
+};
+
+export const useRestorePlant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => PlantService.restorePlant(id),
+    onSuccess: (_, restoredId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+      queryClient.invalidateQueries({ queryKey: ["archived-plants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["plants-by-location"],
+        exact: false,
+      });
+    },
+  });
+};

@@ -38,6 +38,7 @@ export class PlantService {
       .from(DB_TABLES.PLANTS)
       .select("*")
       .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq("archived", false)
       .order("name", { ascending: true });
 
     if (error) {
@@ -454,5 +455,69 @@ export class PlantService {
         `Failed to fetch plants with watering data: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  static async archivePlant(id: string): Promise<boolean> {
+    const plant = await this.getPlantById(id);
+
+    const { error } = await supabase
+      .from(DB_TABLES.PLANTS)
+      .update({ archived: true, archived_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      throw ErrorMapper.mapDatabaseError(error, "archive", "plant");
+    }
+
+    if (plant) {
+      await HouseholdService.logActivity(
+        "archived plant",
+        { plant_id: plant.id, plant_type: plant.type },
+        plant.name || plant.type,
+      );
+      await CacheInvalidationService.invalidateOnUserAction("plant_deleted", {
+        entityId: plant.id,
+        additionalData: { location: plant.location },
+      });
+    }
+
+    return true;
+  }
+
+  static async restorePlant(id: string): Promise<boolean> {
+    const { error } = await supabase
+      .from(DB_TABLES.PLANTS)
+      .update({ archived: false, archived_at: null })
+      .eq("id", id);
+
+    if (error) {
+      throw ErrorMapper.mapDatabaseError(error, "restore", "plant");
+    }
+
+    await CacheInvalidationService.invalidateOnUserAction("plant_deleted", {
+      entityId: id,
+    });
+
+    return true;
+  }
+
+  static async getArchivedPlants(): Promise<Plant[]> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
+    const { data, error } = await supabase
+      .from(DB_TABLES.PLANTS)
+      .select("*")
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq("archived", true)
+      .order("archived_at", { ascending: false });
+
+    if (error) {
+      throw ErrorMapper.mapDatabaseError(error, "fetch archived plants");
+    }
+
+    return (data || []) as Plant[];
   }
 }

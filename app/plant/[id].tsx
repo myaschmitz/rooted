@@ -1,12 +1,19 @@
-import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
-import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
-import { usePlantDetailState } from '../../hooks/usePlantDetailState';
-import TagsList from '../../components/TagsList';
-import WebContainer from '../../components/WebContainer';
-import WebBreadcrumb from '../../components/WebBreadcrumb';
+import { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
+import { useLocalSearchParams, useFocusEffect } from "expo-router";
+import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { useRealtimeUpdates } from "../../hooks/useRealtimeUpdates";
+import { usePlantDetailState } from "../../hooks/usePlantDetailState";
+import TagsList from "../../components/TagsList";
+import WebContainer from "../../components/WebContainer";
+import WebBreadcrumb from "../../components/WebBreadcrumb";
 import {
   PlantDetailHeader,
   PlantActionButtons,
@@ -14,7 +21,7 @@ import {
   PlantEventsSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
-} from '../../components/plant-detail';
+} from "../../components/plant-detail";
 
 export default function PlantDetailScreen() {
   const { theme } = useTheme();
@@ -55,6 +62,7 @@ export default function PlantDetailScreen() {
     handlePhotoOptions,
     handleDeleteSelectedPhotos,
     handleDeletePlant,
+    handleArchivePlant,
     handleDeleteCareEvent,
     handleDownloadPhoto,
     toggleMultiSelect,
@@ -70,7 +78,7 @@ export default function PlantDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       setTagRefreshTrigger((prev) => prev + 1);
-    }, [])
+    }, []),
   );
 
   const styles = createStyles(theme);
@@ -85,7 +93,9 @@ export default function PlantDetailScreen() {
 
   if (!plant) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         <Text style={{ color: theme.colors.text }}>Plant not found</Text>
       </View>
     );
@@ -93,85 +103,87 @@ export default function PlantDetailScreen() {
 
   return (
     <WebContainer>
-    <View style={{ flex: 1 }}>
-      <WebBreadcrumb
-        items={[
-          { label: 'My Plants', href: '/' },
-          { label: plant.name || plant.type || 'Plant Details' },
-        ]}
-      />
-      <ScrollView
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <PlantDetailHeader
-          plant={plant}
-          thumbnailPhoto={thumbnailPhoto}
-          onThumbnailPress={handleThumbnailPress}
-          onDeletePlant={handleDeletePlant}
+      <View style={{ flex: 1 }}>
+        <WebBreadcrumb
+          items={[
+            { label: "My Plants", href: "/" },
+            { label: plant.name || plant.type || "Plant Details" },
+          ]}
         />
-
-        <View style={styles.tagSection}>
-          <TagsList
-            plantId={id!}
-            onAddTagPress={handleAddTag}
-            refreshTrigger={tagRefreshTrigger}
+        <ScrollView
+          style={styles.container}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <PlantDetailHeader
+            plant={plant}
+            thumbnailPhoto={thumbnailPhoto}
+            onThumbnailPress={handleThumbnailPress}
+            onDeletePlant={handleDeletePlant}
+            onArchivePlant={handleArchivePlant}
           />
-        </View>
 
-        <PlantActionButtons
-          onLogCare={handleLogCare}
-          onAddPhoto={handleAddPhoto}
-          uploadingPhoto={uploadingPhoto}
-        />
-
-        {plant.notes && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes</Text>
-            <Text style={styles.notesText}>{plant.notes}</Text>
+          <View style={styles.tagSection}>
+            <TagsList
+              plantId={id!}
+              onAddTagPress={handleAddTag}
+              refreshTrigger={tagRefreshTrigger}
+            />
           </View>
-        )}
 
-        <PlantPhotosSection
-          photos={typedPhotos}
-          thumbnailPhotoId={currentThumbnailId}
-          isMultiSelectMode={isMultiSelectMode}
-          selectedPhotos={selectedPhotos}
+          <PlantActionButtons
+            onLogCare={handleLogCare}
+            onAddPhoto={handleAddPhoto}
+            uploadingPhoto={uploadingPhoto}
+          />
+
+          {plant.notes && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Notes</Text>
+              <Text style={styles.notesText}>{plant.notes}</Text>
+            </View>
+          )}
+
+          <PlantPhotosSection
+            photos={typedPhotos}
+            thumbnailPhotoId={currentThumbnailId}
+            isMultiSelectMode={isMultiSelectMode}
+            selectedPhotos={selectedPhotos}
+            formattedDates={formattedDates}
+            onPhotoPress={handlePhotoPress}
+            onPhotoLongPress={handlePhotoOptions}
+            onToggleMultiSelect={toggleMultiSelect}
+            onTogglePhotoSelection={togglePhotoSelection}
+            onDeleteSelectedPhotos={handleDeleteSelectedPhotos}
+          />
+
+          <PlantEventsSection
+            events={typedEvents}
+            eventPhotos={eventPhotos}
+            formattedDates={formattedDates}
+            onDeleteEvent={handleDeleteCareEvent}
+            onPhotoPress={handlePhotoPress}
+          />
+        </ScrollView>
+
+        <PhotoViewerModal
+          visible={imageViewerVisible}
+          photos={allPhotos}
+          currentIndex={currentPhotoIndex}
+          currentThumbnailId={currentThumbnailId}
           formattedDates={formattedDates}
-          onPhotoPress={handlePhotoPress}
-          onPhotoLongPress={handlePhotoOptions}
-          onToggleMultiSelect={toggleMultiSelect}
-          onTogglePhotoSelection={togglePhotoSelection}
-          onDeleteSelectedPhotos={handleDeleteSelectedPhotos}
+          onClose={closeImageViewer}
+          onDownload={handleDownloadPhoto}
+          onSetThumbnail={handleSetThumbnail}
         />
 
-        <PlantEventsSection
-          events={typedEvents}
-          eventPhotos={eventPhotos}
-          formattedDates={formattedDates}
-          onDeleteEvent={handleDeleteCareEvent}
-          onPhotoPress={handlePhotoPress}
+        <ThumbnailViewerModal
+          visible={thumbnailViewerVisible}
+          thumbnailPhoto={thumbnailPhoto}
+          onClose={closeThumbnailViewer}
         />
-      </ScrollView>
-
-      <PhotoViewerModal
-        visible={imageViewerVisible}
-        photos={allPhotos}
-        currentIndex={currentPhotoIndex}
-        currentThumbnailId={currentThumbnailId}
-        formattedDates={formattedDates}
-        onClose={closeImageViewer}
-        onDownload={handleDownloadPhoto}
-        onSetThumbnail={handleSetThumbnail}
-      />
-
-      <ThumbnailViewerModal
-        visible={thumbnailViewerVisible}
-        thumbnailPhoto={thumbnailPhoto}
-        onClose={closeThumbnailViewer}
-      />
-
-    </View>
+      </View>
     </WebContainer>
   );
 }
@@ -184,8 +196,8 @@ const createStyles = (theme: Theme) =>
     },
     loadingContainer: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       backgroundColor: theme.colors.background,
     },
     tagSection: {
@@ -205,7 +217,7 @@ const createStyles = (theme: Theme) =>
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       marginBottom: 10,
       color: theme.colors.text,
     },

@@ -7,6 +7,8 @@ export interface Plant {
   thumbnail_photo_id?: string;
   household_id: string;
   pinned: boolean;
+  archived: boolean;
+  archived_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -14,10 +16,21 @@ export interface Plant {
 export interface Event {
   id: string;
   plant_id: string;
-  event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
+  event_type:
+    | "water"
+    | "fertilize"
+    | "fertigate"
+    | "repot"
+    | "prune"
+    | "pest_spotted"
+    | "insecticide_spray"
+    | "new_leaf"
+    | "relocation"
+    | "new_roots_spotted"
+    | "other";
   date: string;
   notes?: string;
-  fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
+  fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
   pest_severity?: number; // 1-10 scale for pest events
   household_id: string;
   created_at: string;

@@ -120,6 +120,13 @@ function ThemedStack() {
             headerBackTitle: "Plant Details",
           }}
         />
+        <Stack.Screen
+          name="archived-plants"
+          options={{
+            title: "Archived Plants",
+            headerBackTitle: "Settings",
+          }}
+        />
       </Stack>
     </>
   );

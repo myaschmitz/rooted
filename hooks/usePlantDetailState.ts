@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Platform } from 'react-native';
-import { useAlert } from '../contexts/AlertContext';
-import { router } from 'expo-router';
-import { useWebModal } from '../contexts/WebModalContext';
-import { Event, PlantPhoto } from '../types/Plant';
-import { PhotoService } from '../services/PhotoService';
-import { DateTimeService } from '../services/DateTimeService';
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { Platform } from "react-native";
+import { useAlert } from "../contexts/AlertContext";
+import { router } from "expo-router";
+import { useWebModal } from "../contexts/WebModalContext";
+import { Event, PlantPhoto } from "../types/Plant";
+import { PhotoService } from "../services/PhotoService";
+import { DateTimeService } from "../services/DateTimeService";
 import {
   usePlant,
   usePlantEvents,
@@ -14,10 +14,11 @@ import {
   useSetThumbnailPhoto,
   useClearThumbnailPhoto,
   useDeletePlant,
+  useArchivePlant,
   useSavePhoto,
   useDeletePhoto,
   useDeleteEvent,
-} from './queries';
+} from "./queries";
 
 // Stable empty arrays to prevent unnecessary re-renders
 const EMPTY_EVENTS: Event[] = [];
@@ -32,25 +33,43 @@ export function usePlantDetailState(plantId: string) {
   const { showAlert } = useAlert();
   const { openModal } = useWebModal();
   // React Query hooks
-  const { data: plant, isLoading: plantLoading, refetch: refetchPlant } = usePlant(plantId);
-  const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = usePlantEvents(plantId);
-  const { data: photos, isLoading: photosLoading, refetch: refetchPhotos } = usePlantPhotos(plantId);
-  const { data: thumbnailPhoto, isLoading: thumbnailLoading } = useThumbnailPhoto(plantId);
+  const {
+    data: plant,
+    isLoading: plantLoading,
+    refetch: refetchPlant,
+  } = usePlant(plantId);
+  const {
+    data: events,
+    isLoading: eventsLoading,
+    refetch: refetchEvents,
+  } = usePlantEvents(plantId);
+  const {
+    data: photos,
+    isLoading: photosLoading,
+    refetch: refetchPhotos,
+  } = usePlantPhotos(plantId);
+  const { data: thumbnailPhoto, isLoading: thumbnailLoading } =
+    useThumbnailPhoto(plantId);
 
   // Mutations
   const setThumbnailMutation = useSetThumbnailPhoto();
   const clearThumbnailMutation = useClearThumbnailPhoto();
   const deletePlantMutation = useDeletePlant();
+  const archivePlantMutation = useArchivePlant();
   const savePhotoMutation = useSavePhoto();
   const deletePhotoMutation = useDeletePhoto();
   const deleteEventMutation = useDeleteEvent();
 
   // Typed arrays with stable references
   const typedEvents: Event[] = useMemo(() => events || EMPTY_EVENTS, [events]);
-  const typedPhotos: PlantPhoto[] = useMemo(() => photos || EMPTY_PHOTOS, [photos]);
+  const typedPhotos: PlantPhoto[] = useMemo(
+    () => photos || EMPTY_PHOTOS,
+    [photos],
+  );
 
   // Loading state
-  const loading = plantLoading || eventsLoading || photosLoading || thumbnailLoading;
+  const loading =
+    plantLoading || eventsLoading || photosLoading || thumbnailLoading;
 
   // Local UI state
   const [refreshing, setRefreshing] = useState(false);
@@ -59,9 +78,13 @@ export function usePlantDetailState(plantId: string) {
   const [thumbnailViewerVisible, setThumbnailViewerVisible] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
-  const [eventPhotos, setEventPhotos] = useState<{ [eventId: string]: PlantPhoto[] }>({});
+  const [eventPhotos, setEventPhotos] = useState<{
+    [eventId: string]: PlantPhoto[];
+  }>({});
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [formattedDates, setFormattedDates] = useState<{ [key: string]: FormattedDate }>({});
+  const [formattedDates, setFormattedDates] = useState<{
+    [key: string]: FormattedDate;
+  }>({});
 
   // Derived state
   const currentThumbnailId = plant?.thumbnail_photo_id || null;
@@ -93,10 +116,15 @@ export function usePlantDetailState(plantId: string) {
         const batch = typedEvents.slice(i, i + batchSize);
         const batchPromises = batch.map(async (event) => {
           try {
-            const eventPhotosData = await PhotoService.getPhotosByEventId(event.id);
+            const eventPhotosData = await PhotoService.getPhotosByEventId(
+              event.id,
+            );
             return { eventId: event.id, photos: eventPhotosData };
           } catch (error) {
-            console.error(`Failed to load photos for event ${event.id}:`, error);
+            console.error(
+              `Failed to load photos for event ${event.id}:`,
+              error,
+            );
             return { eventId: event.id, photos: [] };
           }
         });
@@ -139,10 +167,14 @@ export function usePlantDetailState(plantId: string) {
   useEffect(() => {
     if (typedPhotos.length > 0 && !plant?.thumbnail_photo_id && plant?.id) {
       const sortedPhotos = [...typedPhotos].sort(
-        (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+        (a, b) =>
+          new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime(),
       );
       const oldestPhoto = sortedPhotos[0];
-      setThumbnailMutation.mutate({ plantId: plant.id, photoId: oldestPhoto.id });
+      setThumbnailMutation.mutate({
+        plantId: plant.id,
+        photoId: oldestPhoto.id,
+      });
     }
   }, [typedPhotos, plant?.thumbnail_photo_id, plant?.id, setThumbnailMutation]);
 
@@ -157,13 +189,13 @@ export function usePlantDetailState(plantId: string) {
   }, [refetchPlant, refetchEvents, refetchPhotos]);
 
   const handleLogCare = useCallback(() => {
-    if (!openModal('log-care', { plantId })) {
+    if (!openModal("log-care", { plantId })) {
       router.push(`/log-care?plantId=${plantId}`);
     }
   }, [plantId, openModal]);
 
   const handleAddTag = useCallback(() => {
-    if (!openModal('add-tag', { plantId })) {
+    if (!openModal("add-tag", { plantId })) {
       router.push(`/add-tag?plantId=${plantId}`);
     }
   }, [plantId, openModal]);
@@ -176,12 +208,12 @@ export function usePlantDetailState(plantId: string) {
         await savePhotoMutation.mutateAsync({
           plantId,
           sourceUri: photo.uri,
-          caption: 'Plant photo',
+          caption: "Plant photo",
         });
       }
     } catch (error) {
-      console.error('Failed to take photo:', error);
-      showAlert('Error', 'Failed to take photo');
+      console.error("Failed to take photo:", error);
+      showAlert("Error", "Failed to take photo");
     } finally {
       setUploadingPhoto(false);
     }
@@ -195,25 +227,25 @@ export function usePlantDetailState(plantId: string) {
         await savePhotoMutation.mutateAsync({
           plantId,
           sourceUri: photo.uri,
-          caption: 'Plant photo',
+          caption: "Plant photo",
         });
       }
     } catch (error) {
-      console.error('Failed to pick photo:', error);
-      showAlert('Error', 'Failed to pick photo');
+      console.error("Failed to pick photo:", error);
+      showAlert("Error", "Failed to pick photo");
     } finally {
       setUploadingPhoto(false);
     }
   }, [plantId, savePhotoMutation]);
 
   const handleAddPhoto = useCallback(() => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       handlePickPhoto();
     } else {
-      showAlert('Add Photo', 'Choose how to add a photo', [
-        { text: 'Take Photo', onPress: handleTakePhoto },
-        { text: 'Photo Library', onPress: handlePickPhoto },
-        { text: 'Cancel', style: 'cancel' },
+      showAlert("Add Photo", "Choose how to add a photo", [
+        { text: "Take Photo", onPress: handleTakePhoto },
+        { text: "Photo Library", onPress: handlePickPhoto },
+        { text: "Cancel", style: "cancel" },
       ]);
     }
   }, [handleTakePhoto, handlePickPhoto]);
@@ -222,13 +254,13 @@ export function usePlantDetailState(plantId: string) {
     (photo: PlantPhoto) => {
       const photoIndex = allPhotos.findIndex((p) => p.id === photo.id);
       if (photoIndex === -1 || !allPhotos[photoIndex]) {
-        console.warn('Photo not found in allPhotos array:', photo.id);
+        console.warn("Photo not found in allPhotos array:", photo.id);
         return;
       }
       setCurrentPhotoIndex(photoIndex);
       setImageViewerVisible(true);
     },
-    [allPhotos]
+    [allPhotos],
   );
 
   const handleThumbnailPress = useCallback(() => {
@@ -241,22 +273,22 @@ export function usePlantDetailState(plantId: string) {
         { plantId, photoId },
         {
           onError: (error) => {
-            console.error('Failed to set thumbnail:', error);
-            showAlert('Error', 'Failed to set thumbnail photo');
+            console.error("Failed to set thumbnail:", error);
+            showAlert("Error", "Failed to set thumbnail photo");
           },
-        }
+        },
       );
     },
-    [plantId, setThumbnailMutation]
+    [plantId, setThumbnailMutation],
   );
 
   const handleDeletePhoto = useCallback(
     (photoId: string) => {
-      showAlert('Delete Photo', 'Are you sure you want to delete this photo?', [
-        { text: 'Cancel', style: 'cancel' },
+      showAlert("Delete Photo", "Are you sure you want to delete this photo?", [
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               const isCurrentThumbnail = plant?.thumbnail_photo_id === photoId;
@@ -265,38 +297,52 @@ export function usePlantDetailState(plantId: string) {
               if (isCurrentThumbnail) {
                 await refetchPhotos();
                 if (typedPhotos.length > 1) {
-                  const remainingPhotos = typedPhotos.filter((p) => p.id !== photoId);
+                  const remainingPhotos = typedPhotos.filter(
+                    (p) => p.id !== photoId,
+                  );
                   if (remainingPhotos.length > 0) {
                     const sortedPhotos = [...remainingPhotos].sort(
-                      (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+                      (a, b) =>
+                        new Date(a.taken_at).getTime() -
+                        new Date(b.taken_at).getTime(),
                     );
                     const newThumbnail = sortedPhotos[0];
-                    await PhotoService.setThumbnailPhoto(plantId, newThumbnail.id);
+                    await PhotoService.setThumbnailPhoto(
+                      plantId,
+                      newThumbnail.id,
+                    );
                   }
                 } else {
                   await PhotoService.clearThumbnailPhoto(plantId);
                 }
               }
             } catch (error) {
-              console.error('Failed to delete photo:', error);
-              showAlert('Error', 'Failed to delete photo');
+              console.error("Failed to delete photo:", error);
+              showAlert("Error", "Failed to delete photo");
             }
           },
         },
       ]);
     },
-    [plant, plantId, typedPhotos, deletePhotoMutation, refetchPhotos]
+    [plant, plantId, typedPhotos, deletePhotoMutation, refetchPhotos],
   );
 
   const handlePhotoOptions = useCallback(
     (photo: PlantPhoto) => {
-      showAlert('Photo Options', 'Choose an action', [
-        { text: 'Set as Thumbnail', onPress: () => handleSetThumbnail(photo.id) },
-        { text: 'Delete Photo', onPress: () => handleDeletePhoto(photo.id), style: 'destructive' },
-        { text: 'Cancel', style: 'cancel' },
+      showAlert("Photo Options", "Choose an action", [
+        {
+          text: "Set as Thumbnail",
+          onPress: () => handleSetThumbnail(photo.id),
+        },
+        {
+          text: "Delete Photo",
+          onPress: () => handleDeletePhoto(photo.id),
+          style: "destructive",
+        },
+        { text: "Cancel", style: "cancel" },
       ]);
     },
-    [handleSetThumbnail, handleDeletePhoto]
+    [handleSetThumbnail, handleDeletePhoto],
   );
 
   const handleDeleteSelectedPhotos = useCallback(async () => {
@@ -304,39 +350,47 @@ export function usePlantDetailState(plantId: string) {
     if (selectedCount === 0) return;
 
     showAlert(
-      'Delete Photos',
-      `Are you sure you want to delete ${selectedCount} photo${selectedCount > 1 ? 's' : ''}? This action cannot be undone.`,
+      "Delete Photos",
+      `Are you sure you want to delete ${selectedCount} photo${selectedCount > 1 ? "s" : ""}? This action cannot be undone.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               const selectedPhotoIds = Array.from(selectedPhotos);
               let wasThumbnailDeleted = false;
 
-              if (plant?.thumbnail_photo_id && selectedPhotos.has(plant.thumbnail_photo_id)) {
+              if (
+                plant?.thumbnail_photo_id &&
+                selectedPhotos.has(plant.thumbnail_photo_id)
+              ) {
                 wasThumbnailDeleted = true;
               }
 
               await Promise.all(
                 selectedPhotoIds.map((photoId) =>
-                  deletePhotoMutation.mutateAsync({ photoId, plantId })
-                )
+                  deletePhotoMutation.mutateAsync({ photoId, plantId }),
+                ),
               );
 
               if (wasThumbnailDeleted) {
                 const remainingPhotos = typedPhotos.filter(
-                  (photo) => !selectedPhotoIds.includes(photo.id)
+                  (photo) => !selectedPhotoIds.includes(photo.id),
                 );
 
                 if (remainingPhotos.length > 0) {
                   const sortedPhotos = [...remainingPhotos].sort(
-                    (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+                    (a, b) =>
+                      new Date(a.taken_at).getTime() -
+                      new Date(b.taken_at).getTime(),
                   );
                   const newThumbnail = sortedPhotos[0];
-                  await setThumbnailMutation.mutateAsync({ plantId, photoId: newThumbnail.id });
+                  await setThumbnailMutation.mutateAsync({
+                    plantId,
+                    photoId: newThumbnail.id,
+                  });
                 } else {
                   await clearThumbnailMutation.mutateAsync(plantId);
                 }
@@ -345,12 +399,12 @@ export function usePlantDetailState(plantId: string) {
               setIsMultiSelectMode(false);
               setSelectedPhotos(new Set());
             } catch (error) {
-              console.error('Failed to delete photos:', error);
-              showAlert('Error', 'Failed to delete photos');
+              console.error("Failed to delete photos:", error);
+              showAlert("Error", "Failed to delete photos");
             }
           },
         },
-      ]
+      ],
     );
   }, [
     selectedPhotos,
@@ -366,69 +420,96 @@ export function usePlantDetailState(plantId: string) {
     if (!plant) return;
 
     showAlert(
-      'Delete Plant',
+      "Delete Plant",
       `Are you sure you want to delete "${plant.name || `${plant.type}`}"? This will also delete all events and photos associated with this plant. This action cannot be undone.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: "Cancel", style: "cancel" },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             try {
               await deletePlantMutation.mutateAsync(plantId);
               router.back();
             } catch (error) {
-              console.error('Failed to delete plant:', error);
-              showAlert('Error', 'Failed to delete plant');
+              console.error("Failed to delete plant:", error);
+              showAlert("Error", "Failed to delete plant");
             }
           },
         },
-      ]
+      ],
     );
   }, [plant, plantId, deletePlantMutation]);
+
+  const handleArchivePlant = useCallback(async () => {
+    if (!plant) return;
+
+    showAlert(
+      "Archive Plant",
+      `Are you sure you want to archive "${plant.name || `${plant.type}`}"? You can restore it later from Settings.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Archive",
+          onPress: async () => {
+            try {
+              await archivePlantMutation.mutateAsync(plantId);
+              router.back();
+            } catch (error) {
+              console.error("Failed to archive plant:", error);
+              showAlert("Error", "Failed to archive plant");
+            }
+          },
+        },
+      ],
+    );
+  }, [plant, plantId, archivePlantMutation]);
 
   const handleDeleteCareEvent = useCallback(
     (eventId: string, eventType: string) => {
       showAlert(
-        'Delete Event',
+        "Delete Event",
         `Are you sure you want to delete this ${eventType} event? This action cannot be undone.`,
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: "Cancel", style: "cancel" },
           {
-            text: 'Delete',
-            style: 'destructive',
+            text: "Delete",
+            style: "destructive",
             onPress: async () => {
               try {
                 await deleteEventMutation.mutateAsync({ id: eventId, plantId });
               } catch (error) {
-                console.error('Failed to delete event:', error);
-                showAlert('Error', 'Failed to delete event');
+                console.error("Failed to delete event:", error);
+                showAlert("Error", "Failed to delete event");
               }
             },
           },
-        ]
+        ],
       );
     },
-    [plantId, deleteEventMutation]
+    [plantId, deleteEventMutation],
   );
 
   const handleDownloadPhoto = useCallback(
     async (photo: PlantPhoto) => {
       try {
         const photoUrl = PhotoService.getImageUrl(photo, false);
-        const filename = `${plant?.name || plant?.type}_${new Date(photo.taken_at).toISOString().split('T')[0]}.jpg`;
+        const filename = `${plant?.name || plant?.type}_${new Date(photo.taken_at).toISOString().split("T")[0]}.jpg`;
 
-        const result = await PhotoService.downloadPhotoToDevice(photoUrl, filename);
+        const result = await PhotoService.downloadPhotoToDevice(
+          photoUrl,
+          filename,
+        );
 
         if (!result.success) {
-          showAlert('Error', result.error || 'Failed to download photo');
+          showAlert("Error", result.error || "Failed to download photo");
         }
       } catch (error) {
-        console.error('Error downloading photo:', error);
-        showAlert('Error', 'Failed to download photo');
+        console.error("Error downloading photo:", error);
+        showAlert("Error", "Failed to download photo");
       }
     },
-    [plant]
+    [plant],
   );
 
   const toggleMultiSelect = useCallback(() => {
@@ -491,6 +572,7 @@ export function usePlantDetailState(plantId: string) {
     handlePhotoOptions,
     handleDeleteSelectedPhotos,
     handleDeletePlant,
+    handleArchivePlant,
     handleDeleteCareEvent,
     handleDownloadPhoto,
     toggleMultiSelect,

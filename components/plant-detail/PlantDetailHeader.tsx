@@ -1,18 +1,19 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { SquarePen, Trash2 } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { Plant, PlantPhoto } from '../../types/Plant';
-import { useWebModal } from '../../contexts/WebModalContext';
-import { PhotoService } from '../../services/PhotoService';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Image } from "expo-image";
+import { SquarePen, Trash2, Archive } from "lucide-react-native";
+import { router } from "expo-router";
+import { Plant, PlantPhoto } from "../../types/Plant";
+import { useWebModal } from "../../contexts/WebModalContext";
+import { PhotoService } from "../../services/PhotoService";
+import { useTheme, Theme } from "../../contexts/ThemeContext";
 
 interface PlantDetailHeaderProps {
   plant: Plant;
   thumbnailPhoto: PlantPhoto | null | undefined;
   onThumbnailPress: () => void;
   onDeletePlant: () => void;
+  onArchivePlant: () => void;
 }
 
 export default function PlantDetailHeader({
@@ -20,6 +21,7 @@ export default function PlantDetailHeader({
   thumbnailPhoto,
   onThumbnailPress,
   onDeletePlant,
+  onArchivePlant,
 }: PlantDetailHeaderProps) {
   const { theme } = useTheme();
   const { openModal } = useWebModal();
@@ -40,8 +42,15 @@ export default function PlantDetailHeader({
               />
             </TouchableOpacity>
           )}
-          <View style={[styles.headerContent, thumbnailPhoto && styles.headerContentWithThumbnail]}>
-            <Text style={styles.plantName}>{plant.name || `${plant.type}`}</Text>
+          <View
+            style={[
+              styles.headerContent,
+              thumbnailPhoto && styles.headerContentWithThumbnail,
+            ]}
+          >
+            <Text style={styles.plantName}>
+              {plant.name || `${plant.type}`}
+            </Text>
             <Text style={styles.plantType}>{plant.type}</Text>
             {plant.location && (
               <Text style={styles.location}>{plant.location}</Text>
@@ -51,9 +60,15 @@ export default function PlantDetailHeader({
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => { if (!openModal('edit-plant', { id: plant.id })) router.push(`/edit-plant?id=${plant.id}`); }}
+            onPress={() => {
+              if (!openModal("edit-plant", { id: plant.id }))
+                router.push(`/edit-plant?id=${plant.id}`);
+            }}
           >
             <SquarePen size={16} color="#666" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.editButton} onPress={onArchivePlant}>
+            <Archive size={16} color="#FF9800" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerDeleteButton}
@@ -75,13 +90,13 @@ const createStyles = (theme: Theme) =>
       marginBottom: 10,
     },
     headerTop: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
     },
     headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       flex: 1,
     },
     headerContent: {
@@ -98,7 +113,7 @@ const createStyles = (theme: Theme) =>
     },
     plantName: {
       fontSize: 28,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       marginBottom: 5,
       color: theme.colors.text,
     },
@@ -113,21 +128,21 @@ const createStyles = (theme: Theme) =>
       marginBottom: 10,
     },
     headerButtons: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 8,
     },
     editButton: {
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 6,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     headerDeleteButton: {
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 6,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
   });
