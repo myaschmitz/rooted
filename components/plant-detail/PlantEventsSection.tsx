@@ -1,13 +1,19 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { SquarePen, Trash2 } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { Event, PlantPhoto } from '../../types/Plant';
-import { useWebModal } from '../../contexts/WebModalContext';
-import { PhotoService } from '../../services/PhotoService';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
-import { TextSkeleton } from '../Skeleton';
+import React from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+} from "react-native";
+import { Image } from "expo-image";
+import { SquarePen, Trash2 } from "lucide-react-native";
+import { router } from "expo-router";
+import { Event, PlantPhoto } from "../../types/Plant";
+import { useWebModal } from "../../contexts/WebModalContext";
+import { PhotoService } from "../../services/PhotoService";
+import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { TextSkeleton } from "../Skeleton";
 
 interface FormattedDate {
   date: string;
@@ -23,22 +29,22 @@ interface PlantEventsSectionProps {
 }
 
 const getPestSeverityColor = (severity: number): string => {
-  if (severity <= 3) return '#4CAF50'; // Green for low
-  if (severity <= 6) return '#FF9800'; // Orange for medium
-  return '#F44336'; // Red for high
+  if (severity <= 3) return "#4CAF50"; // Green for low
+  if (severity <= 6) return "#FF9800"; // Orange for medium
+  return "#F44336"; // Red for high
 };
 
 const getPestSeverityLabel = (severity: number): string => {
-  if (severity <= 3) return '(Minor)';
-  if (severity <= 6) return '(Moderate)';
-  return '(Severe)';
+  if (severity <= 3) return "(Minor)";
+  if (severity <= 6) return "(Moderate)";
+  return "(Severe)";
 };
 
 const formatEventTypeTitle = (eventType: string): string => {
   return eventType
-    .split('_')
+    .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+    .join(" ");
 };
 
 export default function PlantEventsSection({
@@ -58,7 +64,7 @@ export default function PlantEventsSection({
       {events.length === 0 ? (
         <Text style={styles.emptyCareText}>No events recorded yet</Text>
       ) : (
-        events.slice(0, 10).map((event) => (
+        events.map((event) => (
           <React.Fragment key={event.id}>
             <View style={styles.careEventItem}>
               <View style={styles.careEventHeader}>
@@ -77,7 +83,10 @@ export default function PlantEventsSection({
                 <View style={styles.careEventActions}>
                   <TouchableOpacity
                     style={styles.editCareButton}
-                    onPress={() => { if (!openModal('edit-care-event', { id: event.id })) router.push(`/edit-care-event?id=${event.id}`); }}
+                    onPress={() => {
+                      if (!openModal("edit-care-event", { id: event.id }))
+                        router.push(`/edit-care-event?id=${event.id}`);
+                    }}
                   >
                     <SquarePen size={16} color="#666" />
                   </TouchableOpacity>
@@ -89,7 +98,9 @@ export default function PlantEventsSection({
                   </TouchableOpacity>
                 </View>
               </View>
-              {event.notes && <Text style={styles.careEventNotes}>{event.notes}</Text>}
+              {event.notes && (
+                <Text style={styles.careEventNotes}>{event.notes}</Text>
+              )}
               {event.fertilizer_concentration && (
                 <Text style={styles.fertilizerInfo}>
                   Strength: {event.fertilizer_concentration}
@@ -102,7 +113,7 @@ export default function PlantEventsSection({
                     { color: getPestSeverityColor(event.pest_severity) },
                   ]}
                 >
-                  Pest Severity: {event.pest_severity}/10{' '}
+                  Pest Severity: {event.pest_severity}/10{" "}
                   {getPestSeverityLabel(event.pest_severity)}
                 </Text>
               )}
@@ -116,7 +127,9 @@ export default function PlantEventsSection({
                         onPress={() => onPhotoPress(photo)}
                       >
                         <Image
-                          source={{ uri: PhotoService.getImageUrl(photo, true) }}
+                          source={{
+                            uri: PhotoService.getImageUrl(photo, true),
+                          }}
                           style={styles.eventPhotoImage}
                           contentFit="cover"
                           cachePolicy="memory-disk"
@@ -146,14 +159,14 @@ const createStyles = (theme: Theme) =>
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       marginBottom: 10,
       color: theme.colors.text,
     },
     emptyCareText: {
       fontSize: 16,
       color: theme.colors.textSecondary,
-      fontStyle: 'italic',
+      fontStyle: "italic",
     },
     careEventItem: {
       paddingVertical: 10,
@@ -161,9 +174,9 @@ const createStyles = (theme: Theme) =>
       borderBottomColor: theme.colors.border,
     },
     careEventHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: 5,
     },
     careEventInfo: {
@@ -171,7 +184,7 @@ const createStyles = (theme: Theme) =>
     },
     careEventType: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
       color: theme.colors.primary,
     },
     careEventDate: {
@@ -186,30 +199,30 @@ const createStyles = (theme: Theme) =>
     fertilizerInfo: {
       fontSize: 12,
       color: theme.colors.textTertiary,
-      fontStyle: 'italic',
+      fontStyle: "italic",
     },
     pestSeverityInfo: {
       fontSize: 12,
-      fontWeight: '500',
-      fontStyle: 'italic',
+      fontWeight: "500",
+      fontStyle: "italic",
     },
     careEventActions: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 8,
     },
     editCareButton: {
       paddingHorizontal: 8,
       paddingVertical: 6,
       borderRadius: 4,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     deleteCareButton: {
       paddingHorizontal: 8,
       paddingVertical: 6,
       borderRadius: 4,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     eventPhotosContainer: {
       marginTop: 8,
