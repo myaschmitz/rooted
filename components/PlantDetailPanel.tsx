@@ -1,12 +1,20 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { X, ChevronRight, ExternalLink } from 'lucide-react-native';
-import { router } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
-import { useTheme, Theme } from '../contexts/ThemeContext';
-import { usePlantDetailState } from '../hooks/usePlantDetailState';
-import { useRealtimeUpdates } from '../hooks/useRealtimeUpdates';
-import TagsList from './TagsList';
+import React, { useCallback, useState } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { X, ChevronRight, ExternalLink } from "lucide-react-native";
+import { router } from "expo-router";
+import { useFocusEffect } from "expo-router";
+import { useTheme, Theme } from "../contexts/ThemeContext";
+import { usePlantDetailState } from "../hooks/usePlantDetailState";
+import { useRealtimeUpdates } from "../hooks/useRealtimeUpdates";
+import TagsList from "./TagsList";
 import {
   PlantDetailHeader,
   PlantActionButtons,
@@ -14,7 +22,7 @@ import {
   PlantEventsSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
-} from './plant-detail';
+} from "./plant-detail";
 
 interface PlantDetailPanelProps {
   plantId: string;
@@ -22,7 +30,11 @@ interface PlantDetailPanelProps {
   style?: any;
 }
 
-export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetailPanelProps) {
+export default function PlantDetailPanel({
+  plantId,
+  onClose,
+  style,
+}: PlantDetailPanelProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const [tagRefreshTrigger, setTagRefreshTrigger] = useState(0);
@@ -41,6 +53,7 @@ export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetai
     uploadingPhoto,
     imageViewerVisible,
     currentPhotoIndex,
+    photoViewerOpenId,
     thumbnailViewerVisible,
     isMultiSelectMode,
     selectedPhotos,
@@ -103,9 +116,14 @@ export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetai
   return (
     <View style={[styles.panel, style]}>
       <View style={styles.panelHeader}>
-        <Text style={styles.panelTitle} numberOfLines={1}>{plant.name || plant.type}</Text>
+        <Text style={styles.panelTitle} numberOfLines={1}>
+          {plant.name || plant.type}
+        </Text>
         <View style={styles.panelHeaderActions}>
-          <TouchableOpacity onPress={handleOpenFullPage} style={styles.expandButton}>
+          <TouchableOpacity
+            onPress={handleOpenFullPage}
+            style={styles.expandButton}
+          >
             <ExternalLink size={18} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -166,6 +184,7 @@ export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetai
       </ScrollView>
 
       <PhotoViewerModal
+        key={photoViewerOpenId}
         visible={imageViewerVisible}
         photos={allPhotos}
         currentIndex={currentPhotoIndex}
@@ -181,7 +200,6 @@ export default function PlantDetailPanel({ plantId, onClose, style }: PlantDetai
         thumbnailPhoto={thumbnailPhoto}
         onClose={closeThumbnailViewer}
       />
-
     </View>
   );
 }
@@ -193,12 +211,12 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.background,
       borderLeftWidth: 1,
       borderLeftColor: theme.colors.border,
-      ...(Platform.OS === 'web' ? { height: '100%' as any } : { flex: 1 }),
+      ...(Platform.OS === "web" ? { height: "100%" as any } : { flex: 1 }),
     },
     panelHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderBottomWidth: 1,
@@ -207,32 +225,32 @@ const createStyles = (theme: Theme) =>
     },
     panelTitle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: "600",
       color: theme.colors.textPrimary,
       flex: 1,
     },
     panelHeaderActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 8,
     },
     expandButton: {
       padding: 8,
       borderRadius: 6,
-      ...(Platform.OS === 'web'
+      ...(Platform.OS === "web"
         ? {
-            cursor: 'pointer' as any,
-            transition: 'background-color 0.15s ease' as any,
+            cursor: "pointer" as any,
+            transition: "background-color 0.15s ease" as any,
           }
         : {}),
     },
     closeButton: {
       padding: 8,
       borderRadius: 6,
-      ...(Platform.OS === 'web'
+      ...(Platform.OS === "web"
         ? {
-            cursor: 'pointer' as any,
-            transition: 'background-color 0.15s ease' as any,
+            cursor: "pointer" as any,
+            transition: "background-color 0.15s ease" as any,
           }
         : {}),
     },
@@ -241,8 +259,8 @@ const createStyles = (theme: Theme) =>
     },
     loadingContainer: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
       padding: 32,
     },
     notFoundText: {
@@ -266,7 +284,7 @@ const createStyles = (theme: Theme) =>
     },
     sectionTitle: {
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: "bold",
       marginBottom: 10,
       color: theme.colors.text,
     },

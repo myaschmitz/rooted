@@ -47,6 +47,7 @@ export default function PlantDetailScreen() {
     // UI state
     imageViewerVisible,
     currentPhotoIndex,
+    photoViewerOpenId,
     thumbnailViewerVisible,
     isMultiSelectMode,
     selectedPhotos,
@@ -168,6 +169,7 @@ export default function PlantDetailScreen() {
         </ScrollView>
 
         <PhotoViewerModal
+          key={photoViewerOpenId}
           visible={imageViewerVisible}
           photos={allPhotos}
           currentIndex={currentPhotoIndex}

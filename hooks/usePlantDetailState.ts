@@ -75,6 +75,8 @@ export function usePlantDetailState(plantId: string) {
   const [refreshing, setRefreshing] = useState(false);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  const [photoViewerOpenId, setPhotoViewerOpenId] = useState(0);
   const [thumbnailViewerVisible, setThumbnailViewerVisible] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
@@ -140,7 +142,12 @@ export function usePlantDetailState(plantId: string) {
     loadEventPhotos();
   }, [typedEvents]);
 
-  // Format dates when events or photos change
+  /*
+   * Format dates when events or photos change.
+   * Note: we format every photo in `allPhotos` (which includes event photos),
+   * not just `typedPhotos`, so that opening an event photo in the viewer
+   * shows the correct date/timeAgo instead of an empty string.
+   */
   useEffect(() => {
     const updateFormattedDates = async () => {
       const dateMap: { [key: string]: FormattedDate } = {};
@@ -151,7 +158,7 @@ export function usePlantDetailState(plantId: string) {
         dateMap[event.id] = { date: formattedDate, timeAgo };
       }
 
-      for (const photo of typedPhotos) {
+      for (const photo of allPhotos) {
         const formattedDate = await DateTimeService.formatDate(photo.taken_at);
         const timeAgo = DateTimeService.formatTimeAgo(photo.taken_at);
         dateMap[photo.id] = { date: formattedDate, timeAgo };
@@ -161,7 +168,7 @@ export function usePlantDetailState(plantId: string) {
     };
 
     updateFormattedDates();
-  }, [typedEvents, typedPhotos]);
+  }, [typedEvents, allPhotos]);
 
   // Auto-set thumbnail for plants without one
   useEffect(() => {
@@ -259,6 +266,8 @@ export function usePlantDetailState(plantId: string) {
       }
       setCurrentPhotoIndex(photoIndex);
       setImageViewerVisible(true);
+      // Bump the open id so the modal remounts cleanly on every open, avoiding stale internal state in the underlying image viewer.
+      setPhotoViewerOpenId((id) => id + 1);
     },
     [allPhotos],
   );
@@ -556,6 +565,7 @@ export function usePlantDetailState(plantId: string) {
     // UI state
     imageViewerVisible,
     currentPhotoIndex,
+    photoViewerOpenId,
     thumbnailViewerVisible,
     isMultiSelectMode,
     selectedPhotos,
