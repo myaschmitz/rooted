@@ -12,10 +12,26 @@ CREATE TABLE plants (
 );
 
 -- Create care_events table
+-- NOTE: The set of allowed `event_type` values is the single source of truth
+-- in code at constants/careTypes.ts (CARE_EVENT_TYPES). Keep this CHECK
+-- constraint in sync with that list, and add a migration whenever you change
+-- it (see 20260525000000_expand_event_type_constraint.sql for an example).
 CREATE TABLE care_events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     plant_id UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
-    event_type TEXT NOT NULL CHECK (event_type IN ('water', 'fertilize', 'fertigate', 'repot', 'prune', 'pest_spotted', 'insecticide_spray', 'other')),
+    event_type TEXT NOT NULL CHECK (event_type IN (
+        'water',
+        'fertilize',
+        'fertigate',
+        'repot',
+        'prune',
+        'pest_spotted',
+        'insecticide_spray',
+        'new_leaf',
+        'relocation',
+        'new_roots_spotted',
+        'other'
+    )),
     date TIMESTAMPTZ NOT NULL,
     notes TEXT,
     fertilizer_concentration TEXT,
