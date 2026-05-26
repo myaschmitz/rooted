@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Image, ImageProps } from 'expo-image';
 import { CachedPhotoService } from '../services/CachedPhotoService';
 import { PlantPhoto } from '../types/Plant';
+
+type CachePolicy = 'memory' | 'disk' | 'memory-disk';
+type ImagePriority = 'high' | 'normal' | 'low';
 
 interface CachedImageProps extends Omit<ImageProps, 'source'> {
   source: string | { uri: string } | PlantPhoto;
   useThumbnail?: boolean;
   showLoader?: boolean;
   fallbackSource?: string;
-  cachePolicy?: 'memory' | 'disk' | 'memory-disk';
-  priority?: 'high' | 'normal' | 'low';
+  cachePolicy?: CachePolicy;
+  priority?: ImagePriority;
   onCacheHit?: () => void;
   onCacheMiss?: () => void;
 }
@@ -21,7 +24,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
   showLoader = true,
   fallbackSource,
   cachePolicy = 'memory-disk',
-  priority = 'medium',
+  priority = 'normal',
   style,
   onCacheHit,
   onCacheMiss,
@@ -33,11 +36,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
-    loadImage();
-  }, [source, useThumbnail]);
-
-  const loadImage = async () => {
+  const loadImage = useCallback(async () => {
     try {
       setIsLoading(true);
       setHasError(false);
@@ -53,7 +52,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
         // PlantPhoto object
         const photo = source as PlantPhoto;
         imageUrl = await CachedPhotoService.getCachedPhotoUrl(photo, useThumbnail);
-        
+
         // Check if we got a cached version
         if (imageUrl !== photo.file_path && imageUrl !== photo.thumbnail_path) {
           onCacheHit?.();
@@ -68,7 +67,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
       if (imageUrl.startsWith('http')) {
         const cachedUrl = await CachedPhotoService.getCachedPhoto(imageUrl, useThumbnail);
         setImageSource(cachedUrl);
-        
+
         if (cachedUrl !== imageUrl) {
           onCacheHit?.();
         } else {
@@ -81,7 +80,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
     } catch (error) {
       console.error('Failed to load cached image:', error);
       setHasError(true);
-      
+
       // Try fallback source
       if (fallbackSource) {
         setImageSource(fallbackSource);
@@ -89,7 +88,11 @@ export const CachedImage: React.FC<CachedImageProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [source, useThumbnail, fallbackSource, onCacheHit, onCacheMiss]);
+
+  useEffect(() => {
+    loadImage();
+  }, [loadImage]);
 
   const handleLoad = (event: any) => {
     setIsLoading(false);
@@ -101,38 +104,14 @@ export const CachedImage: React.FC<CachedImageProps> = ({
     console.warn('Image load error:', error);
     setHasError(true);
     setIsLoading(false);
-    
+
     // Try fallback source
     if (fallbackSource && imageSource !== fallbackSource) {
       setImageSource(fallbackSource);
       return;
     }
-    
+
     onError?.(error);
-  };
-
-  const getCachePolicy = () => {
-    switch (cachePolicy) {
-      case 'memory':
-        return 'memory';
-      case 'disk':
-        return 'disk';
-      case 'memory-disk':
-      default:
-        return 'memory';
-    }
-  };
-
-  const getPriority = () => {
-    switch (priority) {
-      case 'high':
-        return 'high';
-      case 'low':
-        return 'low';
-      case 'normal':
-      default:
-        return 'normal';
-    }
   };
 
   if (!imageSource && !isLoading && !hasError) {
@@ -145,11 +124,11 @@ export const CachedImage: React.FC<CachedImageProps> = ({
         <Image
           {...props}
           source={{ uri: imageSource }}
-          style={[StyleSheet.absoluteFill, style]}
+          style={StyleSheet.absoluteFill}
           onLoad={handleLoad}
           onError={handleError}
-          cachePolicy={getCachePolicy()}
-          priority={getPriority() as any}
+          cachePolicy={cachePolicy}
+          priority={priority}
           placeholder={{
             blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4', // Generic plant-like blurhash
             width: 400,
@@ -283,6 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   loader: {
     position: 'absolute',
