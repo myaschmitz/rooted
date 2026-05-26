@@ -58,11 +58,13 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
 
   const handleButtonPress = useCallback(
     (button: AlertButton) => {
+      // Queue the dismiss first so React batches it with any showAlert call
+      // that `onPress` may make synchronously — that way the modal updates in
+      // place without a fade-out/fade-in flash. For async `onPress`, the
+      // dismiss commits immediately, the modal fades out via its own
+      // animation, and any later showAlert() naturally re-opens it.
       handleDismiss();
-      // Delay onPress slightly so the modal closes first
-      if (button.onPress) {
-        setTimeout(() => button.onPress?.(), 100);
-      }
+      button.onPress?.();
     },
     [handleDismiss]
   );
