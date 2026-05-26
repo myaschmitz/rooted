@@ -54,7 +54,7 @@ export class CacheKeyBuilder {
   }
 
   static batchThumbnails(householdId: string, plantIds: string[]): string {
-    return `thumbnails${this.SEP}batch${this.SEP}${householdId}${this.SEP}${plantIds.sort().join(",")}`;
+    return `thumbnails${this.SEP}batch${this.SEP}${householdId}${this.SEP}${[...plantIds].sort().join(",")}`;
   }
 
   // ============================================================================

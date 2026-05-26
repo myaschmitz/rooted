@@ -133,8 +133,8 @@ export const useBatchLastEvents = (
     {
       queryKey: [
         "batch-last-events",
-        plantIds.sort().join(","),
-        eventTypes.sort().join(","),
+        [...plantIds].sort().join(","),
+        [...eventTypes].sort().join(","),
       ],
       queryFn: () =>
         EventService.getLastEventsByTypeForPlants(plantIds, eventTypes),
@@ -147,7 +147,7 @@ export const useBatchLastEvents = (
 
 export const useBatchThumbnails = (plantIds: string[]) => {
   return useQuery<{ [plantId: string]: PlantPhoto | null }>({
-    queryKey: ["batch-thumbnails", plantIds.sort().join(",")],
+    queryKey: ["batch-thumbnails", [...plantIds].sort().join(",")],
     queryFn: () => PhotoService.getBatchThumbnailPhotos(plantIds),
     staleTime: CACHE_TTL.BATCH_THUMBNAILS,
     gcTime: CACHE_GC_TIME.LONG,
@@ -415,7 +415,7 @@ export const usePlantTags = (plantId: string) => {
 
 export const useBatchPlantTags = (plantIds: string[]) => {
   return useQuery<{ [plantId: string]: Tag[] }>({
-    queryKey: ["batch-plant-tags", plantIds.sort().join(",")],
+    queryKey: ["batch-plant-tags", [...plantIds].sort().join(",")],
     queryFn: async () => {
       if (plantIds.length === 0) return {};
 
