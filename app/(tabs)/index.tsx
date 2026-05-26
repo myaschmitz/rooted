@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -9,10 +15,10 @@ import {
   ScrollView,
   TextInput,
   Platform,
-} from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import WebContainer from '../../components/WebContainer';
-import { useWebModal } from '../../contexts/WebModalContext';
+} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import WebContainer from "../../components/WebContainer";
+import { useWebModal } from "../../contexts/WebModalContext";
 import {
   CheckSquare,
   Square,
@@ -25,17 +31,17 @@ import {
   ArrowDownUp,
   Check,
   Leaf,
-} from 'lucide-react-native';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
+} from "lucide-react-native";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-import { PhotoService } from '../../services/PhotoService';
-import { Plant, Tag } from '../../types/Plant';
-import { useTheme } from '../../contexts/ThemeContext';
-import { createStyles } from '../../styles/MyPlantsStyles';
-import { useRealtimeUpdates } from '../../hooks/useRealtimeUpdates';
-import { useGlobalStyles } from '../../styles';
-import { useBreakpoint } from '../../hooks/useBreakpoint';
+import { PhotoService } from "../../services/PhotoService";
+import { Plant, Tag } from "../../types/Plant";
+import { useTheme } from "../../contexts/ThemeContext";
+import { createStyles } from "../../styles/MyPlantsStyles";
+import { useRealtimeUpdates } from "../../hooks/useRealtimeUpdates";
+import { useGlobalStyles } from "../../styles";
+import { useBreakpoint } from "../../hooks/useBreakpoint";
 import {
   usePlants,
   useCreateEvent,
@@ -43,24 +49,24 @@ import {
   useBatchLastEvents,
   useAllTags,
   useBatchPlantTags,
-} from '../../hooks/queries';
-import { TextSkeleton, PlantCardSkeleton } from '../../components/Skeleton';
+} from "../../hooks/queries";
+import { TextSkeleton, PlantCardSkeleton } from "../../components/Skeleton";
 
 // Custom hooks
-import { usePinnedPlants } from '../../hooks/usePinnedPlants';
-import { usePlantSorting } from '../../hooks/usePlantSorting';
-import { usePlantFiltering } from '../../hooks/usePlantFiltering';
-import { usePlantSearch } from '../../hooks/usePlantSearch';
+import { usePinnedPlants } from "../../hooks/usePinnedPlants";
+import { usePlantSorting } from "../../hooks/usePlantSorting";
+import { usePlantFiltering } from "../../hooks/usePlantFiltering";
+import { usePlantSearch } from "../../hooks/usePlantSearch";
 
 // Components
-import PlantListItem from '../../components/PlantListItem';
-import PlantSectionHeader from '../../components/PlantSectionHeader';
-import BatchCareModal, { CareDetails } from '../../components/BatchCareModal';
-import PlantDetailPanel from '../../components/PlantDetailPanel';
+import PlantListItem from "../../components/PlantListItem";
+import PlantSectionHeader from "../../components/PlantSectionHeader";
+import BatchCareModal, { CareDetails } from "../../components/BatchCareModal";
+import PlantDetailPanel from "../../components/PlantDetailPanel";
 
 // Constants
-import { CareEventType, getCareTypeByType } from '../../constants/careTypes';
-import { useAlert } from '../../contexts/AlertContext';
+import { CareEventType, getCareTypeByType } from "../../constants/careTypes";
+import { useAlert } from "../../contexts/AlertContext";
 
 dayjs.extend(relativeTime);
 
@@ -71,10 +77,14 @@ export default function HomeScreen() {
   const styles = createStyles(theme);
   const { isDesktop, isTablet, isWide, canShowSidePanel } = useBreakpoint();
   const { openModal } = useWebModal();
-  const isGridLayout = Platform.OS === 'web' && isWide;
+  const isGridLayout = Platform.OS === "web" && isWide;
 
   // React Query hooks
-  const { data: plants = [], isLoading: plantsLoading, refetch: refetchPlants } = usePlants();
+  const {
+    data: plants = [],
+    isLoading: plantsLoading,
+    refetch: refetchPlants,
+  } = usePlants();
   const createEventMutation = useCreateEvent();
 
   // Batch queries for plant data
@@ -82,15 +92,19 @@ export default function HomeScreen() {
   const { data: batchThumbnailData = {} } = useBatchThumbnails(plantIds);
   const { data: batchTagsData = {} } = useBatchPlantTags(plantIds);
   const { data: availableTags = [] } = useAllTags();
-  const { data: rawEventData, isLoading: eventsLoading } = useBatchLastEvents(plantIds, [
-    'water',
-    'fertigate',
-  ]);
+  const { data: rawEventData, isLoading: eventsLoading } = useBatchLastEvents(
+    plantIds,
+    ["water", "fertigate"],
+  );
 
   // Custom hooks for state management
   const { pinnedPlantIds, togglePin } = usePinnedPlants();
-  const { sortPreference, updateSortPreference, toggleSortDirection, sortPlants } =
-    usePlantSorting();
+  const {
+    sortPreference,
+    updateSortPreference,
+    toggleSortDirection,
+    sortPlants,
+  } = usePlantSorting();
   const {
     selectedTagIds: selectedTagsForFilter,
     toggleTagFilter,
@@ -98,14 +112,21 @@ export default function HomeScreen() {
     filterPlants,
     hasActiveFilters,
   } = usePlantFiltering();
-  const { searchQuery, isSearching, searchResults, handleSearchChange, clearSearch } =
-    usePlantSearch(plants);
+  const {
+    searchQuery,
+    isSearching,
+    searchResults,
+    handleSearchChange,
+    clearSearch,
+  } = usePlantSearch(plants);
 
   // Local state
   const [refreshing, setRefreshing] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [plantLastPhotoData, setPlantLastPhotoData] = useState<Record<string, string | null>>({});
+  const [plantLastPhotoData, setPlantLastPhotoData] = useState<
+    Record<string, string | null>
+  >({});
 
   // Batch care mode state
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
@@ -113,7 +134,9 @@ export default function HomeScreen() {
   const [showCareModal, setShowCareModal] = useState(false);
 
   // Desktop detail panel state
-  const [detailPanelPlantId, setDetailPanelPlantId] = useState<string | null>(null);
+  const [detailPanelPlantId, setDetailPanelPlantId] = useState<string | null>(
+    null,
+  );
   const showDetailPanel = isGridLayout && detailPanelPlantId !== null;
   // Show panel side-by-side only when wide enough; otherwise overlay it
   const showPanelInline = showDetailPanel && canShowSidePanel;
@@ -134,12 +157,14 @@ export default function HomeScreen() {
     }
 
     Object.entries(rawEventData).forEach(([plantId, events]) => {
-      const lastWatering = events['water'];
-      const lastFertigate = events['fertigate'];
+      const lastWatering = events["water"];
+      const lastFertigate = events["fertigate"];
 
       let mostRecentWatering = null;
       if (lastWatering && lastFertigate) {
-        mostRecentWatering = dayjs(lastWatering.date).isAfter(dayjs(lastFertigate.date))
+        mostRecentWatering = dayjs(lastWatering.date).isAfter(
+          dayjs(lastFertigate.date),
+        )
           ? lastWatering
           : lastFertigate;
       } else if (lastWatering) {
@@ -176,26 +201,33 @@ export default function HomeScreen() {
     if (!plants.length) return [];
 
     const filteredPlants = filterPlants(plants, batchTagsData);
-    const pinnedPlants = filteredPlants.filter((plant) => pinnedPlantIds.has(plant.id));
-    const unpinnedPlants = filteredPlants.filter((plant) => !pinnedPlantIds.has(plant.id));
+    const pinnedPlants = filteredPlants.filter((plant) =>
+      pinnedPlantIds.has(plant.id),
+    );
+    const unpinnedPlants = filteredPlants.filter(
+      (plant) => !pinnedPlantIds.has(plant.id),
+    );
 
     const sections: { title: string; data: Plant[] }[] = [];
 
     if (pinnedPlants.length > 0) {
       sections.push({
-        title: 'Pinned Plants',
+        title: "Pinned Plants",
         data: sortPlants(pinnedPlants, plantWateringData),
       });
     }
 
-    const groupedUnpinnedPlants = unpinnedPlants.reduce((acc, plant) => {
-      const location = plant.location || 'No Location';
-      if (!acc[location]) {
-        acc[location] = [];
-      }
-      acc[location].push(plant);
-      return acc;
-    }, {} as Record<string, Plant[]>);
+    const groupedUnpinnedPlants = unpinnedPlants.reduce(
+      (acc, plant) => {
+        const location = plant.location || "No Location";
+        if (!acc[location]) {
+          acc[location] = [];
+        }
+        acc[location].push(plant);
+        return acc;
+      },
+      {} as Record<string, Plant[]>,
+    );
 
     const locationSections = Object.entries(groupedUnpinnedPlants)
       .map(([location, locationPlants]) => ({
@@ -205,14 +237,21 @@ export default function HomeScreen() {
       .filter((section) => section.data.length > 0);
 
     locationSections.sort((a, b) => {
-      if (a.title === 'No Location') return 1;
-      if (b.title === 'No Location') return -1;
+      if (a.title === "No Location") return 1;
+      if (b.title === "No Location") return -1;
       return a.title.localeCompare(b.title);
     });
 
     sections.push(...locationSections);
     return sections;
-  }, [plants, pinnedPlantIds, sortPlants, filterPlants, batchTagsData, plantWateringData]);
+  }, [
+    plants,
+    pinnedPlantIds,
+    sortPlants,
+    filterPlants,
+    batchTagsData,
+    plantWateringData,
+  ]);
 
   // Load auxiliary photo data
   const loadPlantAuxiliaryData = useCallback(async () => {
@@ -231,10 +270,13 @@ export default function HomeScreen() {
               const photos = await PhotoService.getPhotosByPlantId(plant.id);
               return photos.length > 0 ? photos[0] : null;
             } catch (error) {
-              console.error(`Failed to load photos for plant ${plant.id}:`, error);
+              console.error(
+                `Failed to load photos for plant ${plant.id}:`,
+                error,
+              );
               return null;
             }
-          })
+          }),
         );
 
         batch.forEach((plant, index) => {
@@ -249,7 +291,7 @@ export default function HomeScreen() {
 
       setPlantLastPhotoData(lastPhotoData);
     } catch (error) {
-      console.error('Failed to load plant auxiliary data:', error);
+      console.error("Failed to load plant auxiliary data:", error);
       setPlantLastPhotoData({});
     }
   }, [plants]);
@@ -258,7 +300,7 @@ export default function HomeScreen() {
     if (plants.length > 0) {
       loadPlantAuxiliaryData();
     }
-  }, [plants.length]);
+  }, [plants, loadPlantAuxiliaryData]);
 
   // Set up real-time subscriptions
   useRealtimeUpdates({});
@@ -272,7 +314,7 @@ export default function HomeScreen() {
         lastFocusTime.current = now;
         loadPlantAuxiliaryData();
       }
-    }, [plants.length, loadPlantAuxiliaryData])
+    }, [plants, loadPlantAuxiliaryData]),
   );
 
   // Handlers
@@ -291,11 +333,11 @@ export default function HomeScreen() {
       try {
         await togglePin(plantId);
       } catch (error) {
-        console.error('Failed to toggle pin:', error);
-        showAlert('Error', 'Failed to update pin status');
+        console.error("Failed to toggle pin:", error);
+        showAlert("Error", "Failed to update pin status");
       }
     },
-    [togglePin]
+    [togglePin],
   );
 
   const toggleBatchMode = () => {
@@ -325,7 +367,10 @@ export default function HomeScreen() {
     setSelectedPlants(newSelected);
   };
 
-  const handleBatchCareSubmit = async (careType: CareEventType, details: CareDetails) => {
+  const handleBatchCareSubmit = async (
+    careType: CareEventType,
+    details: CareDetails,
+  ) => {
     if (selectedPlants.size === 0) return;
 
     const selectedPlantsList = Array.from(selectedPlants);
@@ -340,9 +385,9 @@ export default function HomeScreen() {
         notes: details.notes.trim() || `Batch care: ${careTypeLabel}`,
       };
 
-      if (careType === 'fertilize' || careType === 'fertigate') {
+      if (careType === "fertilize" || careType === "fertigate") {
         careEventData.fertilizer_concentration = details.fertilizerStrength;
-      } else if (careType === 'pest_spotted') {
+      } else if (careType === "pest_spotted") {
         careEventData.pest_severity = details.pestSeverity;
       }
 
@@ -380,8 +425,8 @@ export default function HomeScreen() {
   const gridItemStyle = showPanelInline
     ? styles.gridItemTablet // 2 columns when inline panel is open
     : isDesktop
-    ? styles.gridItemDesktop // 3 columns when panel is closed on desktop
-    : styles.gridItemTablet; // 2 columns on tablet
+      ? styles.gridItemDesktop // 3 columns when panel is closed on desktop
+      : styles.gridItemTablet; // 2 columns on tablet
 
   const renderPlantItemInGrid = (item: Plant) => (
     <View key={item.id} style={gridItemStyle}>
@@ -402,7 +447,11 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderSectionHeader = ({ section }: { section: { title: string; data: Plant[] } }) => (
+  const renderSectionHeader = ({
+    section,
+  }: {
+    section: { title: string; data: Plant[] };
+  }) => (
     <PlantSectionHeader
       title={section.title}
       plantCount={section.data.length}
@@ -418,7 +467,9 @@ export default function HomeScreen() {
     <ScrollView
       style={styles.list}
       contentContainerStyle={
-        batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
+        batchModeEnabled && selectedPlants.size > 0
+          ? globalStyles.listContent
+          : undefined
       }
       refreshControl={
         <RefreshControl
@@ -472,7 +523,7 @@ export default function HomeScreen() {
             <Text style={styles.pageTitle}>My Plants</Text>
           </View>
           <Text style={styles.plantCount}>
-            {plants.length} plant{plants.length !== 1 ? 's' : ''}
+            {plants.length} plant{plants.length !== 1 ? "s" : ""}
           </Text>
         </View>
       )}
@@ -486,7 +537,9 @@ export default function HomeScreen() {
                 margin: 16,
                 padding: 8,
                 borderRadius: 8,
-                backgroundColor: batchModeEnabled ? theme.colors.primary : theme.colors.surface,
+                backgroundColor: batchModeEnabled
+                  ? theme.colors.primary
+                  : theme.colors.surface,
               },
             ]}
             onPress={toggleBatchMode}
@@ -501,7 +554,9 @@ export default function HomeScreen() {
                 globalStyles.buttonTextSecondary,
                 {
                   marginLeft: 8,
-                  color: batchModeEnabled ? theme.colors.textOnPrimary : theme.colors.textPrimary,
+                  color: batchModeEnabled
+                    ? theme.colors.textOnPrimary
+                    : theme.colors.textPrimary,
                 },
               ]}
             >
@@ -515,7 +570,12 @@ export default function HomeScreen() {
                 {selectedPlants.size} selected
               </Text>
             ) : (
-              <View style={[globalStyles.flexRowCenter, { marginRight: 16, zIndex: 1000 }]}>
+              <View
+                style={[
+                  globalStyles.flexRowCenter,
+                  { marginRight: 16, zIndex: 1000 },
+                ]}
+              >
                 {/* Filter Button */}
                 <TouchableOpacity
                   style={[styles.sortDropdownButton, { marginRight: 8 }]}
@@ -523,11 +583,17 @@ export default function HomeScreen() {
                 >
                   <Filter
                     size={18}
-                    color={hasActiveFilters ? theme.colors.primary : theme.colors.textSecondary}
+                    color={
+                      hasActiveFilters
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
                   />
                   {hasActiveFilters && (
                     <View style={styles.filterBadge}>
-                      <Text style={styles.filterBadgeText}>{selectedTagsForFilter.size}</Text>
+                      <Text style={styles.filterBadgeText}>
+                        {selectedTagsForFilter.size}
+                      </Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -538,8 +604,13 @@ export default function HomeScreen() {
                   onPress={() => setShowSortDropdown(!showSortDropdown)}
                 >
                   <ArrowDownUp size={18} color={theme.colors.textSecondary} />
-                  <Text style={[styles.sortButtonText, { marginLeft: 6, marginRight: 4 }]}>
-                    {sortPreference.type === 'name' ? 'Name' : 'Last Watered'}
+                  <Text
+                    style={[
+                      styles.sortButtonText,
+                      { marginLeft: 6, marginRight: 4 },
+                    ]}
+                  >
+                    {sortPreference.type === "name" ? "Name" : "Last Watered"}
                   </Text>
                   <ChevronDown size={16} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
@@ -557,17 +628,22 @@ export default function HomeScreen() {
                         style={[
                           styles.sortDropdownItem,
                           styles.sortDropdownItemWithBorder,
-                          sortPreference.type === 'name' && styles.sortDropdownItemSelected,
+                          sortPreference.type === "name" &&
+                            styles.sortDropdownItemSelected,
                         ]}
                         onPress={() => {
-                          updateSortPreference('name', sortPreference.direction);
+                          updateSortPreference(
+                            "name",
+                            sortPreference.direction,
+                          );
                           setShowSortDropdown(false);
                         }}
                       >
                         <Text
                           style={[
                             styles.sortDropdownText,
-                            sortPreference.type === 'name' && styles.sortDropdownTextSelected,
+                            sortPreference.type === "name" &&
+                              styles.sortDropdownTextSelected,
                           ]}
                         >
                           Name
@@ -576,17 +652,22 @@ export default function HomeScreen() {
                       <TouchableOpacity
                         style={[
                           styles.sortDropdownItem,
-                          sortPreference.type === 'lastWatered' && styles.sortDropdownItemSelected,
+                          sortPreference.type === "lastWatered" &&
+                            styles.sortDropdownItemSelected,
                         ]}
                         onPress={() => {
-                          updateSortPreference('lastWatered', sortPreference.direction);
+                          updateSortPreference(
+                            "lastWatered",
+                            sortPreference.direction,
+                          );
                           setShowSortDropdown(false);
                         }}
                       >
                         <Text
                           style={[
                             styles.sortDropdownText,
-                            sortPreference.type === 'lastWatered' && styles.sortDropdownTextSelected,
+                            sortPreference.type === "lastWatered" &&
+                              styles.sortDropdownTextSelected,
                           ]}
                         >
                           Last Watered
@@ -605,12 +686,20 @@ export default function HomeScreen() {
                       activeOpacity={1}
                     />
                     <View style={[styles.sortDropdown, { width: 200 }]}>
-                      <Text style={[styles.filterDropdownTitle, { padding: 12, fontWeight: 'bold' }]}>
+                      <Text
+                        style={[
+                          styles.filterDropdownTitle,
+                          { padding: 12, fontWeight: "bold" },
+                        ]}
+                      >
                         Filter by Tags
                       </Text>
                       {availableTags.length === 0 ? (
                         <Text
-                          style={[styles.sortDropdownText, { padding: 12, fontStyle: 'italic' }]}
+                          style={[
+                            styles.sortDropdownText,
+                            { padding: 12, fontStyle: "italic" },
+                          ]}
                         >
                           No tags available
                         </Text>
@@ -626,7 +715,12 @@ export default function HomeScreen() {
                               ]}
                               onPress={() => toggleTagFilter(tag.id)}
                             >
-                              <View style={[styles.tagColorDot, { backgroundColor: tag.color }]} />
+                              <View
+                                style={[
+                                  styles.tagColorDot,
+                                  { backgroundColor: tag.color },
+                                ]}
+                              />
                               <Text
                                 style={[
                                   styles.sortDropdownText,
@@ -635,7 +729,9 @@ export default function HomeScreen() {
                               >
                                 {tag.name}
                               </Text>
-                              {isSelected && <Check size={16} color={theme.colors.primary} />}
+                              {isSelected && (
+                                <Check size={16} color={theme.colors.primary} />
+                              )}
                             </TouchableOpacity>
                           );
                         })
@@ -644,11 +740,19 @@ export default function HomeScreen() {
                         <TouchableOpacity
                           style={[
                             styles.sortDropdownItem,
-                            { borderTopWidth: 1, borderTopColor: theme.colors.border },
+                            {
+                              borderTopWidth: 1,
+                              borderTopColor: theme.colors.border,
+                            },
                           ]}
                           onPress={clearAllFilters}
                         >
-                          <Text style={[styles.sortDropdownText, { color: theme.colors.error }]}>
+                          <Text
+                            style={[
+                              styles.sortDropdownText,
+                              { color: theme.colors.error },
+                            ]}
+                          >
                             Clear All Filters
                           </Text>
                         </TouchableOpacity>
@@ -658,11 +762,20 @@ export default function HomeScreen() {
                 )}
 
                 {/* Sort Direction Toggle */}
-                <TouchableOpacity style={styles.sortButton} onPress={toggleSortDirection}>
-                  {sortPreference.direction === 'asc' ? (
-                    <ArrowUpNarrowWide size={20} color={theme.colors.textSecondary} />
+                <TouchableOpacity
+                  style={styles.sortButton}
+                  onPress={toggleSortDirection}
+                >
+                  {sortPreference.direction === "asc" ? (
+                    <ArrowUpNarrowWide
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
                   ) : (
-                    <ArrowDownWideNarrow size={20} color={theme.colors.textSecondary} />
+                    <ArrowDownWideNarrow
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
                   )}
                 </TouchableOpacity>
               </View>
@@ -673,7 +786,12 @@ export default function HomeScreen() {
 
       {/* Search Bar */}
       {plants.length > 0 && (
-        <View style={[styles.searchBarContainer, isSearching && styles.searchBarActive]}>
+        <View
+          style={[
+            styles.searchBarContainer,
+            isSearching && styles.searchBarActive,
+          ]}
+        >
           <Search size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={styles.searchInput}
@@ -702,12 +820,20 @@ export default function HomeScreen() {
             <View
               style={[
                 globalStyles.flexRowCenter,
-                { margin: 16, padding: 8, borderRadius: 8, backgroundColor: theme.colors.surface },
+                {
+                  margin: 16,
+                  padding: 8,
+                  borderRadius: 8,
+                  backgroundColor: theme.colors.surface,
+                },
               ]}
             >
               <Square size={20} color={theme.colors.textSecondary} />
               <Text
-                style={[globalStyles.buttonTextSecondary, { marginLeft: 8, color: theme.colors.textPrimary }]}
+                style={[
+                  globalStyles.buttonTextSecondary,
+                  { marginLeft: 8, color: theme.colors.textPrimary },
+                ]}
               >
                 Batch Mode
               </Text>
@@ -733,7 +859,12 @@ export default function HomeScreen() {
             {isGridLayout ? (
               <View style={styles.gridRow}>
                 {Array.from({ length: 6 }).map((_, index) => (
-                  <View key={index} style={isDesktop ? styles.gridItemDesktop : styles.gridItemTablet}>
+                  <View
+                    key={index}
+                    style={
+                      isDesktop ? styles.gridItemDesktop : styles.gridItemTablet
+                    }
+                  >
                     <PlantCardSkeleton />
                   </View>
                 ))}
@@ -751,38 +882,78 @@ export default function HomeScreen() {
 
   return (
     <WebContainer>
-      <View style={[styles.container, showPanelInline && styles.containerWithPanel]}>
-        <View style={[showPanelInline ? styles.mainContent : styles.mainContentFull]}>
-        {renderToolbar()}
+      <View
+        style={[styles.container, showPanelInline && styles.containerWithPanel]}
+      >
+        <View
+          style={[
+            showPanelInline ? styles.mainContent : styles.mainContentFull,
+          ]}
+        >
+          {renderToolbar()}
 
-        {/* Content */}
-        {plants.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No plants yet!</Text>
-            <Text style={styles.emptySubtext}>Add your first plant to get started</Text>
-            <TouchableOpacity style={styles.addButton} onPress={() => openModal('add-plant') || router.navigate('/add-plant')}>
-              <Text style={styles.addButtonText}>Add Plant</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            {isGridLayout ? (
-              renderGridContent()
-            ) : isSearching ? (
-              searchResults.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Search size={48} color={theme.colors.textSecondary} />
-                  <Text style={styles.emptyText}>No plants found</Text>
-                  <Text style={styles.emptySubtext}>Try a different search term</Text>
-                </View>
+          {/* Content */}
+          {plants.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No plants yet!</Text>
+              <Text style={styles.emptySubtext}>
+                Add your first plant to get started
+              </Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() =>
+                  openModal("add-plant") || router.navigate("/add-plant")
+                }
+              >
+                <Text style={styles.addButtonText}>Add Plant</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {isGridLayout ? (
+                renderGridContent()
+              ) : isSearching ? (
+                searchResults.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Search size={48} color={theme.colors.textSecondary} />
+                    <Text style={styles.emptyText}>No plants found</Text>
+                    <Text style={styles.emptySubtext}>
+                      Try a different search term
+                    </Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={searchResults}
+                    renderItem={renderPlantItem}
+                    keyExtractor={(item) => item.id}
+                    style={styles.list}
+                    contentContainerStyle={
+                      batchModeEnabled && selectedPlants.size > 0
+                        ? globalStyles.listContent
+                        : undefined
+                    }
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.colors.primary}
+                        colors={[theme.colors.primary]}
+                      />
+                    }
+                  />
+                )
               ) : (
-                <FlatList
-                  data={searchResults}
+                <SectionList
+                  sections={plantsGrouped}
                   renderItem={renderPlantItem}
+                  renderSectionHeader={renderSectionHeader}
                   keyExtractor={(item) => item.id}
                   style={styles.list}
+                  stickySectionHeadersEnabled={true}
                   contentContainerStyle={
-                    batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
+                    batchModeEnabled && selectedPlants.size > 0
+                      ? globalStyles.listContent
+                      : undefined
                   }
                   refreshControl={
                     <RefreshControl
@@ -793,51 +964,43 @@ export default function HomeScreen() {
                     />
                   }
                 />
-              )
-            ) : (
-              <SectionList
-                sections={plantsGrouped}
-                renderItem={renderPlantItem}
-                renderSectionHeader={renderSectionHeader}
-                keyExtractor={(item) => item.id}
-                style={styles.list}
-                stickySectionHeadersEnabled={true}
-                contentContainerStyle={
-                  batchModeEnabled && selectedPlants.size > 0 ? globalStyles.listContent : undefined
-                }
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                    tintColor={theme.colors.primary}
-                    colors={[theme.colors.primary]}
-                  />
-                }
-              />
-            )}
+              )}
 
-            {/* FAB for adding plants or batch care */}
-            {batchModeEnabled && selectedPlants.size > 0 ? (
-              <TouchableOpacity style={globalStyles.fab} onPress={() => setShowCareModal(true)}>
-                <Text style={[globalStyles.buttonText, { fontSize: 12, textAlign: 'center' }]}>
-                  Add Event ({selectedPlants.size})
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.fab} onPress={() => openModal('add-plant') || router.navigate('/add-plant')}>
-                <Text style={styles.fabText}>+</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
+              {/* FAB for adding plants or batch care */}
+              {batchModeEnabled && selectedPlants.size > 0 ? (
+                <TouchableOpacity
+                  style={globalStyles.fab}
+                  onPress={() => setShowCareModal(true)}
+                >
+                  <Text
+                    style={[
+                      globalStyles.buttonText,
+                      { fontSize: 12, textAlign: "center" },
+                    ]}
+                  >
+                    Add Event ({selectedPlants.size})
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.fab}
+                  onPress={() =>
+                    openModal("add-plant") || router.navigate("/add-plant")
+                  }
+                >
+                  <Text style={styles.fabText}>+</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
 
-        {/* Batch Care Modal */}
-        <BatchCareModal
-          visible={showCareModal}
-          selectedCount={selectedPlants.size}
-          onClose={() => setShowCareModal(false)}
-          onSubmit={handleBatchCareSubmit}
-        />
+          {/* Batch Care Modal */}
+          <BatchCareModal
+            visible={showCareModal}
+            selectedCount={selectedPlants.size}
+            onClose={() => setShowCareModal(false)}
+            onSubmit={handleBatchCareSubmit}
+          />
         </View>
 
         {/* Desktop Detail Panel - inline when wide enough */}
@@ -860,7 +1023,7 @@ export default function HomeScreen() {
               <PlantDetailPanel
                 plantId={detailPanelPlantId}
                 onClose={() => setDetailPanelPlantId(null)}
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
               />
             </View>
           </View>

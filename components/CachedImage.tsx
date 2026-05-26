@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Image, ImageProps } from 'expo-image';
-import { CachedPhotoService } from '../services/CachedPhotoService';
-import { PlantPhoto } from '../types/Plant';
+import React, { useState, useEffect, useCallback } from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { Image, ImageProps } from "expo-image";
+import { CachedPhotoService } from "../services/CachedPhotoService";
+import { PlantPhoto } from "../types/Plant";
 
-type CachePolicy = 'memory' | 'disk' | 'memory-disk';
-type ImagePriority = 'high' | 'normal' | 'low';
+type CachePolicy = "memory" | "disk" | "memory-disk";
+type ImagePriority = "high" | "normal" | "low";
 
-interface CachedImageProps extends Omit<ImageProps, 'source'> {
+interface CachedImageProps extends Omit<ImageProps, "source"> {
   source: string | { uri: string } | PlantPhoto;
   useThumbnail?: boolean;
   showLoader?: boolean;
@@ -23,8 +23,8 @@ export const CachedImage: React.FC<CachedImageProps> = ({
   useThumbnail = false,
   showLoader = true,
   fallbackSource,
-  cachePolicy = 'memory-disk',
-  priority = 'normal',
+  cachePolicy = "memory-disk",
+  priority = "normal",
   style,
   onCacheHit,
   onCacheMiss,
@@ -44,14 +44,21 @@ export const CachedImage: React.FC<CachedImageProps> = ({
       let imageUrl: string;
 
       // Handle different source types
-      if (typeof source === 'string') {
+      if (typeof source === "string") {
         imageUrl = source;
-      } else if (source && typeof source === 'object' && 'uri' in source) {
+      } else if (source && typeof source === "object" && "uri" in source) {
         imageUrl = source.uri;
-      } else if (source && typeof source === 'object' && 'file_path' in source) {
+      } else if (
+        source &&
+        typeof source === "object" &&
+        "file_path" in source
+      ) {
         // PlantPhoto object
         const photo = source as PlantPhoto;
-        imageUrl = await CachedPhotoService.getCachedPhotoUrl(photo, useThumbnail);
+        imageUrl = await CachedPhotoService.getCachedPhotoUrl(
+          photo,
+          useThumbnail,
+        );
 
         // Check if we got a cached version
         if (imageUrl !== photo.file_path && imageUrl !== photo.thumbnail_path) {
@@ -60,12 +67,15 @@ export const CachedImage: React.FC<CachedImageProps> = ({
           onCacheMiss?.();
         }
       } else {
-        throw new Error('Invalid image source');
+        throw new Error("Invalid image source");
       }
 
       // For HTTP URLs, use our caching service
-      if (imageUrl.startsWith('http')) {
-        const cachedUrl = await CachedPhotoService.getCachedPhoto(imageUrl, useThumbnail);
+      if (imageUrl.startsWith("http")) {
+        const cachedUrl = await CachedPhotoService.getCachedPhoto(
+          imageUrl,
+          useThumbnail,
+        );
         setImageSource(cachedUrl);
 
         if (cachedUrl !== imageUrl) {
@@ -78,7 +88,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
         setImageSource(imageUrl);
       }
     } catch (error) {
-      console.error('Failed to load cached image:', error);
+      console.error("Failed to load cached image:", error);
       setHasError(true);
 
       // Try fallback source
@@ -101,7 +111,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
   };
 
   const handleError = (error: any) => {
-    console.warn('Image load error:', error);
+    console.warn("Image load error:", error);
     setHasError(true);
     setIsLoading(false);
 
@@ -130,20 +140,20 @@ export const CachedImage: React.FC<CachedImageProps> = ({
           cachePolicy={cachePolicy}
           priority={priority}
           placeholder={{
-            blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4', // Generic plant-like blurhash
+            blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4", // Generic plant-like blurhash
             width: 400,
             height: 300,
           }}
           transition={200}
         />
       )}
-      
+
       {showLoader && isLoading && (
         <View style={styles.loader}>
           <ActivityIndicator size="small" color="#4CAF50" />
         </View>
       )}
-      
+
       {hasError && fallbackSource && imageSource === fallbackSource && (
         <View style={styles.error}>
           <View style={styles.errorPlaceholder} />
@@ -154,7 +164,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
 };
 
 // Specialized component for plant photos
-interface PlantPhotoImageProps extends Omit<CachedImageProps, 'source'> {
+interface PlantPhotoImageProps extends Omit<CachedImageProps, "source"> {
   photo: PlantPhoto;
   useThumbnail?: boolean;
 }
@@ -164,17 +174,14 @@ export const PlantPhotoImage: React.FC<PlantPhotoImageProps> = ({
   useThumbnail = false,
   ...props
 }) => {
-  return (
-    <CachedImage
-      {...props}
-      source={photo}
-      useThumbnail={useThumbnail}
-    />
-  );
+  return <CachedImage {...props} source={photo} useThumbnail={useThumbnail} />;
 };
 
 // Component for plant thumbnails specifically
-interface PlantThumbnailImageProps extends Omit<CachedImageProps, 'source' | 'useThumbnail'> {
+interface PlantThumbnailImageProps extends Omit<
+  CachedImageProps,
+  "source" | "useThumbnail"
+> {
   photo: PlantPhoto;
   size?: number;
 }
@@ -205,7 +212,7 @@ export const PlantThumbnailImage: React.FC<PlantThumbnailImageProps> = ({
 };
 
 // Progressive image component that loads thumbnail first, then full image
-interface ProgressiveImageProps extends Omit<CachedImageProps, 'source'> {
+interface ProgressiveImageProps extends Omit<CachedImageProps, "source"> {
   photo: PlantPhoto;
 }
 
@@ -238,16 +245,16 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
         onLoad={handleThumbnailLoad}
         showLoader={!thumbnailLoaded}
       />
-      
+
       {/* Full image layer - loads after thumbnail */}
       <CachedImage
         {...props}
         source={photo}
         useThumbnail={false}
         style={[
-          StyleSheet.absoluteFill, 
-          style, 
-          { opacity: fullImageLoaded ? 1 : 0 }
+          StyleSheet.absoluteFill,
+          style,
+          { opacity: fullImageLoaded ? 1 : 0 },
         ]}
         onLoad={handleFullImageLoad}
         showLoader={false}
@@ -259,40 +266,43 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   loader: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 245, 245, 0.8)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(245, 245, 245, 0.8)",
   },
   error: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorPlaceholder: {
     width: 40,
     height: 40,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 20,
   },
 });
 
 // Utility functions for preloading
-export const preloadImages = async (photos: PlantPhoto[], priority: 'high' | 'medium' | 'low' = 'medium') => {
+export const preloadImages = async (
+  photos: PlantPhoto[],
+  priority: "high" | "medium" | "low" = "medium",
+) => {
   await CachedPhotoService.preloadThumbnails(photos, priority);
 };
 
