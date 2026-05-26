@@ -264,10 +264,17 @@ export class EventService {
   }
 
   static async deleteAllEvents(): Promise<void> {
+    // Get current household session — only delete events for the current
+    // household, never every row in the table.
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { error } = await supabase
       .from(DB_TABLES.EVENTS)
       .delete()
-      .neq("id", ""); // Delete all rows
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting all events:", error);

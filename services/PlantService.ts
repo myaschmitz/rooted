@@ -151,6 +151,12 @@ export class PlantService {
     id: string,
     updates: Partial<Omit<Plant, "id" | "created_at">>,
   ): Promise<Plant | null> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const plantUpdate: PlantUpdate = {
       ...updates,
       updated_at: new Date().toISOString(),
@@ -160,6 +166,7 @@ export class PlantService {
       .from(DB_TABLES.PLANTS)
       .update(plantUpdate)
       .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .select()
       .single();
 
@@ -198,13 +205,21 @@ export class PlantService {
   }
 
   static async deletePlant(id: string): Promise<boolean> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     // Get plant info before deleting for activity log
+    // (getPlantById already scopes to this household, so this also acts as access check)
     const plant = await this.getPlantById(id);
 
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting plant:", error);
@@ -317,10 +332,17 @@ export class PlantService {
   }
 
   static async deleteAllPlants(): Promise<void> {
+    // Get current household session — only delete plants for the current
+    // household, never every row in the table.
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .delete()
-      .neq("id", ""); // Delete all rows
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting all plants:", error);
@@ -458,12 +480,19 @@ export class PlantService {
   }
 
   static async archivePlant(id: string): Promise<boolean> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const plant = await this.getPlantById(id);
 
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .update({ archived: true, archived_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       throw ErrorMapper.mapDatabaseError(error, "archive", "plant");
@@ -485,10 +514,17 @@ export class PlantService {
   }
 
   static async restorePlant(id: string): Promise<boolean> {
+    // Get current household session for filtering
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .update({ archived: false, archived_at: null })
-      .eq("id", id);
+      .eq("id", id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       throw ErrorMapper.mapDatabaseError(error, "restore", "plant");

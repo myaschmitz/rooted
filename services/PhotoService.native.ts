@@ -773,6 +773,12 @@ export class PhotoService {
 
   static async deletePhoto(photoId: string): Promise<boolean> {
     try {
+      // Get current household session for filtering
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error("No household session found");
+      }
+
       const photo = await this.getPhotoById(photoId);
       if (!photo) return false;
 
@@ -825,7 +831,8 @@ export class PhotoService {
       const { error } = await supabase
         .from(DB_TABLES.PLANT_PHOTOS)
         .delete()
-        .eq("id", photoId);
+        .eq("id", photoId)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
       if (error) {
         console.error("Error deleting photo from database:", error);
@@ -925,7 +932,14 @@ export class PhotoService {
 
   static async deleteAllPhotos(): Promise<void> {
     try {
-      // Get all photos before deleting from database
+      // Get current household session — only delete photos for the current
+      // household, never every row in the table.
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error("No household session found");
+      }
+
+      // Get all photos before deleting from database (already scoped to household)
       const photos = await this.getAllPhotos();
 
       // Delete all files (both local and cloud)
@@ -951,11 +965,11 @@ export class PhotoService {
         }
       }
 
-      // Delete all database records
+      // Delete all database records for this household
       const { error } = await supabase
         .from(DB_TABLES.PLANT_PHOTOS)
         .delete()
-        .neq("id", ""); // Delete all rows
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
       if (error) {
         console.error("Error deleting all photos from database:", error);
