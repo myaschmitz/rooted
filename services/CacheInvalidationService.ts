@@ -521,6 +521,8 @@ export class CacheInvalidationService {
         case "photo_updated":
         case "photo_deleted":
           patterns.push("photos:all");
+          // Invalidate batched last-photo-date cache used by the plants list to drive the "needs photo" camera icon
+          patterns.push("photos:last-dates");
           if (entityId) {
             patterns.push(
               `photos:plant:${entityId}`,

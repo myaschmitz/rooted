@@ -3,7 +3,6 @@ import React, {
   useState,
   useCallback,
   useMemo,
-  useRef,
 } from "react";
 import {
   View,
@@ -279,13 +278,10 @@ export default function HomeScreen() {
   // Set up real-time subscriptions
   useRealtimeUpdates({});
 
-  // Reload data on screen focus (throttled)
-  const lastFocusTime = useRef<number>(0);
+  // Refresh on focus so camera icon clears after a new photo.
   useFocusEffect(
     useCallback(() => {
-      const now = Date.now();
-      if (plants.length > 0 && now - lastFocusTime.current > 2 * 60 * 1000) {
-        lastFocusTime.current = now;
+      if (plants.length > 0) {
         loadPlantAuxiliaryData();
       }
     }, [plants, loadPlantAuxiliaryData]),
