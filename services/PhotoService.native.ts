@@ -1284,6 +1284,75 @@ export class PhotoService {
     }
   }
 
+  /**
+   * Returns the `taken_at` timestamp of the most recent photo for each given
+   * plant in a single round-trip. Replaces the N+1 pattern of calling
+   * `getPhotosByPlantId` once per plant.
+   *
+   * Returns null for any plant with no photos.
+   */
+  static async getLastPhotoDatesByPlantIds(
+    plantIds: string[],
+  ): Promise<{ [plantId: string]: string | null }> {
+    const result: { [plantId: string]: string | null } = {};
+    plantIds.forEach((id) => {
+      result[id] = null;
+    });
+
+    if (plantIds.length === 0) return result;
+
+    try {
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error("No household session found");
+      }
+
+      const cacheKey = CacheKeyBuilder.batchLastPhotoDates(
+        session.household_id,
+        plantIds,
+      );
+
+      const cached = await CacheService.getCachedResponse<{
+        [plantId: string]: string | null;
+      }>(cacheKey);
+      if (cached) return cached;
+
+      // Single query: every photo for these plants, newest first.
+      // We only need plant_id + taken_at, no need to fetch full rows.
+      const { data, error } = await supabase
+        .from(DB_TABLES.PLANT_PHOTOS)
+        .select("plant_id, taken_at")
+        .in("plant_id", plantIds)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .order("taken_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching last photo dates:", error);
+        throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
+      }
+
+      // Order-DESC means the first row per plant_id is the newest.
+      if (data) {
+        for (const row of data) {
+          if (result[row.plant_id] == null) {
+            result[row.plant_id] = row.taken_at;
+          }
+        }
+      }
+
+      await CacheService.cacheApiResponse(
+        cacheKey,
+        result,
+        CACHE_TTL.PHOTOS_LIST,
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error in getLastPhotoDatesByPlantIds:", error);
+      return result;
+    }
+  }
+
   static async generateThumbnailsForExistingPhotos(): Promise<{
     success: number;
     failed: number;

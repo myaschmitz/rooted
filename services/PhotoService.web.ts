@@ -146,19 +146,28 @@ export class PhotoService {
 
     const photos = (data || []) as PlantPhoto[];
 
-    await CacheService.cacheApiResponse(cacheKey, photos, CACHE_TTL.PHOTOS_LIST);
+    await CacheService.cacheApiResponse(
+      cacheKey,
+      photos,
+      CACHE_TTL.PHOTOS_LIST,
+    );
     CachedPhotoService.preloadThumbnails(photos, "medium").catch(() => {});
 
     return photos;
   }
 
-  static async getPhotosByPlantIdOldestFirst(plantId: string): Promise<PlantPhoto[]> {
+  static async getPhotosByPlantIdOldestFirst(
+    plantId: string,
+  ): Promise<PlantPhoto[]> {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.plantPhotosOldest(plantId, session.household_id);
+    const cacheKey = CacheKeyBuilder.plantPhotosOldest(
+      plantId,
+      session.household_id,
+    );
 
     const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
     if (cached) return cached;
@@ -180,11 +189,18 @@ export class PhotoService {
     }
 
     const photos = (data || []) as PlantPhoto[];
-    await CacheService.cacheApiResponse(cacheKey, photos, CACHE_TTL.PHOTOS_LIST);
+    await CacheService.cacheApiResponse(
+      cacheKey,
+      photos,
+      CACHE_TTL.PHOTOS_LIST,
+    );
     return photos;
   }
 
-  static async pickAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
+  static async pickAndSavePhoto(
+    plantId: string,
+    caption?: string,
+  ): Promise<PlantPhoto | null> {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
@@ -201,7 +217,10 @@ export class PhotoService {
     }
   }
 
-  static async takeAndSavePhoto(plantId: string, caption?: string): Promise<PlantPhoto | null> {
+  static async takeAndSavePhoto(
+    plantId: string,
+    caption?: string,
+  ): Promise<PlantPhoto | null> {
     // Camera API may not be available on web — fall back to file picker
     return this.pickAndSavePhoto(plantId, caption);
   }
@@ -319,7 +338,12 @@ export class PhotoService {
     const savedPhotos: PlantPhoto[] = [];
     for (const sourceUri of sourceUris) {
       try {
-        const photo = await this.saveEventPhoto(plantId, eventId, sourceUri, caption);
+        const photo = await this.saveEventPhoto(
+          plantId,
+          eventId,
+          sourceUri,
+          caption,
+        );
         savedPhotos.push(photo);
       } catch (error) {
         console.error(`Failed to save photo ${sourceUri}:`, error);
@@ -348,7 +372,10 @@ export class PhotoService {
     return (data || []) as PlantPhoto[];
   }
 
-  static async linkPhotoToEvent(photoId: string, eventId: string): Promise<PlantPhoto | null> {
+  static async linkPhotoToEvent(
+    photoId: string,
+    eventId: string,
+  ): Promise<PlantPhoto | null> {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error("No household session found");
@@ -356,7 +383,10 @@ export class PhotoService {
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANT_PHOTOS)
-      .update({ event_id: eventId, updated_at: new Date().toISOString() } as PlantPhotoUpdate)
+      .update({
+        event_id: eventId,
+        updated_at: new Date().toISOString(),
+      } as PlantPhotoUpdate)
       .eq("id", photoId)
       .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .select()
@@ -370,7 +400,9 @@ export class PhotoService {
     return data as PlantPhoto;
   }
 
-  static async unlinkPhotoFromEvent(photoId: string): Promise<PlantPhoto | null> {
+  static async unlinkPhotoFromEvent(
+    photoId: string,
+  ): Promise<PlantPhoto | null> {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error("No household session found");
@@ -378,7 +410,10 @@ export class PhotoService {
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANT_PHOTOS)
-      .update({ event_id: null, updated_at: new Date().toISOString() } as PlantPhotoUpdate)
+      .update({
+        event_id: null,
+        updated_at: new Date().toISOString(),
+      } as PlantPhotoUpdate)
       .eq("id", photoId)
       .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .select()
@@ -392,7 +427,11 @@ export class PhotoService {
     return data as PlantPhoto;
   }
 
-  static async savePhoto(plantId: string, sourceUri: string, caption?: string): Promise<PlantPhoto> {
+  static async savePhoto(
+    plantId: string,
+    sourceUri: string,
+    caption?: string,
+  ): Promise<PlantPhoto> {
     try {
       const { fullSize: fullSizeFileName, thumbnail: thumbnailFileName } =
         generatePhotoFilename(plantId);
@@ -463,7 +502,10 @@ export class PhotoService {
     }
   }
 
-  static async updatePhotoCaption(photoId: string, caption: string): Promise<PlantPhoto | null> {
+  static async updatePhotoCaption(
+    photoId: string,
+    caption: string,
+  ): Promise<PlantPhoto | null> {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error("No household session found");
@@ -471,7 +513,10 @@ export class PhotoService {
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANT_PHOTOS)
-      .update({ caption, updated_at: new Date().toISOString() } as PlantPhotoUpdate)
+      .update({
+        caption,
+        updated_at: new Date().toISOString(),
+      } as PlantPhotoUpdate)
       .eq("id", photoId)
       .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .select()
@@ -532,9 +577,14 @@ export class PhotoService {
 
       if (filesToDelete.length > 0) {
         try {
-          await supabase.storage.from(this.STORAGE_BUCKET).remove(filesToDelete);
+          await supabase.storage
+            .from(this.STORAGE_BUCKET)
+            .remove(filesToDelete);
         } catch (storageError) {
-          console.warn("Failed to delete files from cloud storage:", storageError);
+          console.warn(
+            "Failed to delete files from cloud storage:",
+            storageError,
+          );
         }
       }
 
@@ -613,7 +663,9 @@ export class PhotoService {
           if (isCloudUrl(photo.file_path)) {
             const fileName = extractFilenameFromPath(photo.file_path);
             if (fileName) {
-              await supabase.storage.from(this.STORAGE_BUCKET).remove([fileName]);
+              await supabase.storage
+                .from(this.STORAGE_BUCKET)
+                .remove([fileName]);
             }
           }
         } catch (error) {
@@ -635,7 +687,10 @@ export class PhotoService {
     }
   }
 
-  static async setThumbnailPhoto(plantId: string, photoId: string): Promise<void> {
+  static async setThumbnailPhoto(
+    plantId: string,
+    photoId: string,
+  ): Promise<void> {
     try {
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
@@ -650,7 +705,10 @@ export class PhotoService {
 
       const { error } = await supabase
         .from(DB_TABLES.PLANTS)
-        .update({ thumbnail_photo_id: photoId, updated_at: new Date().toISOString() })
+        .update({
+          thumbnail_photo_id: photoId,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", plantId)
         .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
@@ -678,7 +736,10 @@ export class PhotoService {
 
       const { error } = await supabase
         .from(DB_TABLES.PLANTS)
-        .update({ thumbnail_photo_id: null, updated_at: new Date().toISOString() })
+        .update({
+          thumbnail_photo_id: null,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", plantId)
         .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
@@ -702,10 +763,20 @@ export class PhotoService {
         .list("", { limit: 1 });
 
       if (error) {
-        if (error.message?.includes("bucket") && error.message?.includes("not found")) {
-          return { success: false, error: "Bucket does not exist", bucketExists: false };
+        if (
+          error.message?.includes("bucket") &&
+          error.message?.includes("not found")
+        ) {
+          return {
+            success: false,
+            error: "Bucket does not exist",
+            bucketExists: false,
+          };
         }
-        return { success: false, error: error.message || "Unknown storage error" };
+        return {
+          success: false,
+          error: error.message || "Unknown storage error",
+        };
       }
 
       return { success: true, bucketExists: true };
@@ -717,13 +788,19 @@ export class PhotoService {
     }
   }
 
-  static async createStorageBucket(): Promise<{ success: boolean; error?: string }> {
+  static async createStorageBucket(): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
     try {
-      const { data, error } = await supabase.storage.createBucket(this.STORAGE_BUCKET, {
-        public: true,
-        allowedMimeTypes: [...STORAGE_CONFIG.ALLOWED_MIME_TYPES],
-        fileSizeLimit: STORAGE_CONFIG.MAX_FILE_SIZE_BYTES,
-      });
+      const { data, error } = await supabase.storage.createBucket(
+        this.STORAGE_BUCKET,
+        {
+          public: true,
+          allowedMimeTypes: [...STORAGE_CONFIG.ALLOWED_MIME_TYPES],
+          fileSizeLimit: STORAGE_CONFIG.MAX_FILE_SIZE_BYTES,
+        },
+      );
 
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -762,7 +839,10 @@ export class PhotoService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = CacheKeyBuilder.batchThumbnails(session.household_id, plantIds);
+      const cacheKey = CacheKeyBuilder.batchThumbnails(
+        session.household_id,
+        plantIds,
+      );
 
       const cached = await CacheService.getCachedResponse<{
         [plantId: string]: PlantPhoto | null;
@@ -780,10 +860,16 @@ export class PhotoService {
       }
 
       const result: { [plantId: string]: PlantPhoto | null } = {};
-      plantIds.forEach((id) => { result[id] = null; });
+      plantIds.forEach((id) => {
+        result[id] = null;
+      });
 
       if (!plants || plants.length === 0) {
-        await CacheService.cacheApiResponse(cacheKey, result, CACHE_TTL.BATCH_THUMBNAILS);
+        await CacheService.cacheApiResponse(
+          cacheKey,
+          result,
+          CACHE_TTL.BATCH_THUMBNAILS,
+        );
         return result;
       }
 
@@ -810,18 +896,93 @@ export class PhotoService {
         });
 
         plants.forEach((plant) => {
-          if (plant.thumbnail_photo_id && photoMap.has(plant.thumbnail_photo_id)) {
+          if (
+            plant.thumbnail_photo_id &&
+            photoMap.has(plant.thumbnail_photo_id)
+          ) {
             result[plant.id] = photoMap.get(plant.thumbnail_photo_id)!;
           }
         });
       }
 
-      await CacheService.cacheApiResponse(cacheKey, result, CACHE_TTL.BATCH_THUMBNAILS);
+      await CacheService.cacheApiResponse(
+        cacheKey,
+        result,
+        CACHE_TTL.BATCH_THUMBNAILS,
+      );
       return result;
     } catch (error) {
       console.error("Error getting batch thumbnail photos:", error);
       const result: { [plantId: string]: PlantPhoto | null } = {};
-      plantIds.forEach((id) => { result[id] = null; });
+      plantIds.forEach((id) => {
+        result[id] = null;
+      });
+      return result;
+    }
+  }
+
+  /**
+   * Returns the `taken_at` timestamp of the most recent photo for each given
+   * plant in a single round-trip. Replaces the N+1 pattern of calling
+   * `getPhotosByPlantId` once per plant.
+   *
+   * Returns null for any plant with no photos.
+   */
+  static async getLastPhotoDatesByPlantIds(
+    plantIds: string[],
+  ): Promise<{ [plantId: string]: string | null }> {
+    const result: { [plantId: string]: string | null } = {};
+    plantIds.forEach((id) => {
+      result[id] = null;
+    });
+
+    if (plantIds.length === 0) return result;
+
+    try {
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error("No household session found");
+      }
+
+      const cacheKey = CacheKeyBuilder.batchLastPhotoDates(
+        session.household_id,
+        plantIds,
+      );
+
+      const cached = await CacheService.getCachedResponse<{
+        [plantId: string]: string | null;
+      }>(cacheKey);
+      if (cached) return cached;
+
+      const { data, error } = await supabase
+        .from(DB_TABLES.PLANT_PHOTOS)
+        .select("plant_id, taken_at")
+        .in("plant_id", plantIds)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .order("taken_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching last photo dates:", error);
+        throw ErrorMapper.mapDatabaseError(error, "fetch", "photo");
+      }
+
+      if (data) {
+        for (const row of data) {
+          if (result[row.plant_id] == null) {
+            result[row.plant_id] = row.taken_at;
+          }
+        }
+      }
+
+      await CacheService.cacheApiResponse(
+        cacheKey,
+        result,
+        CACHE_TTL.PHOTOS_LIST,
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error in getLastPhotoDatesByPlantIds:", error);
       return result;
     }
   }
@@ -868,7 +1029,8 @@ export class PhotoService {
                 return;
               }
 
-              const thumbnailFileName = generateThumbnailFilename(originalFileName);
+              const thumbnailFileName =
+                generateThumbnailFilename(originalFileName);
               const cloudThumbnailPath = await this.uploadFileToStorage(
                 thumbnailUri,
                 thumbnailFileName,
@@ -881,7 +1043,10 @@ export class PhotoService {
 
               const { error: updateError } = await supabase
                 .from(DB_TABLES.PLANT_PHOTOS)
-                .update({ thumbnail_path: cloudThumbnailPath, updated_at: new Date().toISOString() })
+                .update({
+                  thumbnail_path: cloudThumbnailPath,
+                  updated_at: new Date().toISOString(),
+                })
                 .eq("id", photo.id);
 
               if (updateError) {
@@ -890,7 +1055,10 @@ export class PhotoService {
                 success++;
               }
             } catch (error) {
-              console.error(`Failed to generate thumbnail for photo ${photo.id}:`, error);
+              console.error(
+                `Failed to generate thumbnail for photo ${photo.id}:`,
+                error,
+              );
               failed++;
             }
           }),
@@ -912,7 +1080,7 @@ export class PhotoService {
     // On web, open the image in a new tab for download
     try {
       const url = this.getImageUrl(_photo, false);
-      window.open(url, '_blank');
+      window.open(url, "_blank");
       return true;
     } catch (error) {
       console.error("Error downloading photo on web:", error);

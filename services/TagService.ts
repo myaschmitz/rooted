@@ -360,6 +360,70 @@ export class TagService {
     return tags;
   }
 
+  /**
+   * Returns tags for many plants in a single round-trip. Replaces the N+1
+   * pattern of calling `getTagsByPlantId` once per plant.
+   *
+   * Returns an empty array for any plant with no tags.
+   */
+  static async getTagsByPlantIds(
+    plantIds: string[],
+  ): Promise<{ [plantId: string]: Tag[] }> {
+    const result: { [plantId: string]: Tag[] } = {};
+    plantIds.forEach((id) => {
+      result[id] = [];
+    });
+
+    if (plantIds.length === 0) return result;
+
+    try {
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error("No household session found");
+      }
+
+      const cacheKey = CacheKeyBuilder.batchPlantTags(
+        session.household_id,
+        plantIds,
+      );
+
+      const cached = await CacheService.getCachedResponse<{
+        [plantId: string]: Tag[];
+      }>(cacheKey);
+      if (cached) return cached;
+
+      // Single query: join plant_tags → tags for the requested plant set.
+      const { data, error } = await supabase
+        .from(DB_TABLES.PLANT_TAGS)
+        .select(`*, tag:tags(*)`)
+        .in(DB_COLUMNS.PLANT_ID, plantIds)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching batch plant tags:", error);
+        throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
+      }
+
+      const rows = (data || []) as (PlantTagRow & { tag: TagRow | null })[];
+      for (const row of rows) {
+        if (!row.tag) continue; // junction row with no joined tag (shouldn't happen, but safe)
+        const bucket = result[row.plant_id];
+        if (bucket) bucket.push(row.tag as Tag);
+      }
+
+      await CacheService.cacheApiResponse(
+        cacheKey,
+        result,
+        CACHE_TTL.TAGS_BY_PLANT,
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error in getTagsByPlantIds:", error);
+      return result;
+    }
+  }
+
   static async addTagToPlant(
     plantId: string,
     tagId: string,

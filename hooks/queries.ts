@@ -416,34 +416,7 @@ export const usePlantTags = (plantId: string) => {
 export const useBatchPlantTags = (plantIds: string[]) => {
   return useQuery<{ [plantId: string]: Tag[] }>({
     queryKey: ["batch-plant-tags", [...plantIds].sort().join(",")],
-    queryFn: async () => {
-      if (plantIds.length === 0) return {};
-
-      const result: { [plantId: string]: Tag[] } = {};
-
-      // Batch the requests to reduce API overhead
-      const batchSize = BATCH_CONFIG.TAGS_BATCH_SIZE;
-      for (let i = 0; i < plantIds.length; i += batchSize) {
-        const batch = plantIds.slice(i, i + batchSize);
-
-        const tagPromises = batch.map(async (plantId) => {
-          try {
-            const tags = await TagService.getTagsByPlantId(plantId);
-            return { plantId, tags };
-          } catch (error) {
-            console.error(`Failed to load tags for plant ${plantId}:`, error);
-            return { plantId, tags: [] };
-          }
-        });
-
-        const batchResults = await Promise.all(tagPromises);
-        batchResults.forEach(({ plantId, tags }) => {
-          result[plantId] = tags;
-        });
-      }
-
-      return result;
-    },
+    queryFn: () => TagService.getTagsByPlantIds(plantIds),
     staleTime: CACHE_TTL.TAGS_BY_PLANT,
     gcTime: CACHE_GC_TIME.MEDIUM,
     enabled: plantIds.length > 0,

@@ -258,37 +258,11 @@ export default function HomeScreen() {
     if (!plants.length) return;
 
     try {
-      const lastPhotoData: Record<string, string | null> = {};
-      const batchSize = 20;
-
-      for (let i = 0; i < plants.length; i += batchSize) {
-        const batch = plants.slice(i, i + batchSize);
-
-        const photoPromises = await Promise.all(
-          batch.map(async (plant) => {
-            try {
-              const photos = await PhotoService.getPhotosByPlantId(plant.id);
-              return photos.length > 0 ? photos[0] : null;
-            } catch (error) {
-              console.error(
-                `Failed to load photos for plant ${plant.id}:`,
-                error,
-              );
-              return null;
-            }
-          }),
-        );
-
-        batch.forEach((plant, index) => {
-          const firstPhoto = photoPromises[index];
-          lastPhotoData[plant.id] = firstPhoto?.taken_at || null;
-        });
-
-        if (i + batchSize < plants.length) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        }
-      }
-
+      // Single batched query for every plant's most-recent photo date,
+      // replacing the previous N+1 (one getPhotosByPlantId per plant).
+      const plantIds = plants.map((p) => p.id);
+      const lastPhotoData =
+        await PhotoService.getLastPhotoDatesByPlantIds(plantIds);
       setPlantLastPhotoData(lastPhotoData);
     } catch (error) {
       console.error("Failed to load plant auxiliary data:", error);

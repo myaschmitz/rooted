@@ -57,6 +57,10 @@ export class CacheKeyBuilder {
     return `thumbnails${this.SEP}batch${this.SEP}${householdId}${this.SEP}${[...plantIds].sort().join(",")}`;
   }
 
+  static batchLastPhotoDates(householdId: string, plantIds: string[]): string {
+    return `photos${this.SEP}last-dates${this.SEP}batch${this.SEP}${householdId}${this.SEP}${[...plantIds].sort().join(",")}`;
+  }
+
   // ============================================================================
   // TAG KEYS
   // ============================================================================
@@ -67,6 +71,10 @@ export class CacheKeyBuilder {
 
   static plantTags(plantId: string, householdId: string): string {
     return `tags${this.SEP}plant${this.SEP}${plantId}${this.SEP}household${this.SEP}${householdId}`;
+  }
+
+  static batchPlantTags(householdId: string, plantIds: string[]): string {
+    return `tags${this.SEP}batch${this.SEP}${householdId}${this.SEP}${[...plantIds].sort().join(",")}`;
   }
 
   // ============================================================================
