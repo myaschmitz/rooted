@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,17 +10,17 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
-} from 'react-native';
-import { useTheme, Theme } from '../contexts/ThemeContext';
-import { useGlobalStyles } from '../styles';
+} from "react-native";
+import { useTheme, Theme } from "../contexts/ThemeContext";
+import { useGlobalStyles } from "../styles";
 import {
-  CARE_TYPES,
+  CARE_ACTIONS,
   CareEventType,
   FertilizerStrength,
   FERTILIZER_STRENGTHS,
   PEST_SEVERITY_LEVELS,
   getCareTypeByType,
-} from '../constants/careTypes';
+} from "../constants/careTypes";
 
 export interface CareDetails {
   notes: string;
@@ -35,7 +35,7 @@ interface BatchCareModalProps {
   onSubmit: (careType: CareEventType, details: CareDetails) => Promise<void>;
 }
 
-type ModalStep = 'select' | 'details';
+type ModalStep = "select" | "details";
 
 export default function BatchCareModal({
   visible,
@@ -47,22 +47,23 @@ export default function BatchCareModal({
   const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
 
-  const [step, setStep] = useState<ModalStep>('select');
-  const [selectedCareType, setSelectedCareType] = useState<CareEventType | null>(null);
+  const [step, setStep] = useState<ModalStep>("select");
+  const [selectedCareType, setSelectedCareType] =
+    useState<CareEventType | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [careDetails, setCareDetails] = useState<CareDetails>({
-    notes: '',
-    fertilizerStrength: '1x',
+    notes: "",
+    fertilizerStrength: "1x",
     pestSeverity: 1,
   });
 
   const resetState = () => {
-    setStep('select');
+    setStep("select");
     setSelectedCareType(null);
     setSubmitting(false);
     setCareDetails({
-      notes: '',
-      fertilizerStrength: '1x',
+      notes: "",
+      fertilizerStrength: "1x",
       pestSeverity: 1,
     });
   };
@@ -74,11 +75,11 @@ export default function BatchCareModal({
 
   const handleCareTypeSelect = (careType: CareEventType) => {
     setSelectedCareType(careType);
-    setStep('details');
+    setStep("details");
   };
 
   const handleBack = () => {
-    setStep('select');
+    setStep("select");
     setSelectedCareType(null);
   };
 
@@ -90,7 +91,7 @@ export default function BatchCareModal({
       await onSubmit(selectedCareType, careDetails);
       resetState();
     } catch (error) {
-      console.error('Failed to submit batch care:', error);
+      console.error("Failed to submit batch care:", error);
     } finally {
       setSubmitting(false);
     }
@@ -100,11 +101,11 @@ export default function BatchCareModal({
     <View style={globalStyles.modalContent}>
       <Text style={globalStyles.modalTitle}>Select Event Type</Text>
       <Text style={globalStyles.bodySmall}>
-        {selectedCount} plant{selectedCount !== 1 ? 's' : ''} selected
+        {selectedCount} plant{selectedCount !== 1 ? "s" : ""} selected
       </Text>
 
       <ScrollView style={styles.careTypeList}>
-        {CARE_TYPES.map((careType) => {
+        {CARE_ACTIONS.map((careType) => {
           const IconComponent = careType.icon;
           return (
             <TouchableOpacity
@@ -119,8 +120,16 @@ export default function BatchCareModal({
         })}
       </ScrollView>
 
-      <TouchableOpacity style={globalStyles.buttonSecondary} onPress={handleClose}>
-        <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>
+      <TouchableOpacity
+        style={globalStyles.buttonSecondary}
+        onPress={handleClose}
+      >
+        <Text
+          style={[
+            globalStyles.buttonTextSecondary,
+            { color: theme.colors.textPrimary },
+          ]}
+        >
           Cancel
         </Text>
       </TouchableOpacity>
@@ -135,12 +144,12 @@ export default function BatchCareModal({
 
     const IconComponent = careTypeInfo.icon;
     const showFertilizerOptions =
-      selectedCareType === 'fertilize' || selectedCareType === 'fertigate';
-    const showPestSeverity = selectedCareType === 'pest_spotted';
+      selectedCareType === "fertilize" || selectedCareType === "fertigate";
+    const showPestSeverity = selectedCareType === "pest_spotted";
 
     return (
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
       >
         <View style={[globalStyles.modalContent, styles.detailsModalContent]}>
@@ -160,7 +169,7 @@ export default function BatchCareModal({
             contentContainerStyle={styles.detailsScrollContent}
           >
             <Text style={styles.selectedCountText}>
-              {selectedCount} plant{selectedCount !== 1 ? 's' : ''} selected
+              {selectedCount} plant{selectedCount !== 1 ? "s" : ""} selected
             </Text>
 
             {showFertilizerOptions && (
@@ -172,16 +181,21 @@ export default function BatchCareModal({
                       key={strength}
                       style={[
                         styles.strengthOption,
-                        careDetails.fertilizerStrength === strength && styles.strengthOptionSelected,
+                        careDetails.fertilizerStrength === strength &&
+                          styles.strengthOptionSelected,
                       ]}
                       onPress={() =>
-                        setCareDetails((prev) => ({ ...prev, fertilizerStrength: strength }))
+                        setCareDetails((prev) => ({
+                          ...prev,
+                          fertilizerStrength: strength,
+                        }))
                       }
                     >
                       <Text
                         style={[
                           styles.strengthText,
-                          careDetails.fertilizerStrength === strength && styles.strengthTextSelected,
+                          careDetails.fertilizerStrength === strength &&
+                            styles.strengthTextSelected,
                         ]}
                       >
                         {strength}
@@ -194,18 +208,31 @@ export default function BatchCareModal({
 
             {showPestSeverity && (
               <View style={globalStyles.inputGroup}>
-                <Text style={globalStyles.label}>Pest Severity (1-10 scale)</Text>
-                <Text style={globalStyles.sublabel}>1 = Minor issue, 10 = Severe infestation</Text>
+                <Text style={globalStyles.label}>
+                  Pest Severity (1-10 scale)
+                </Text>
+                <Text style={globalStyles.sublabel}>
+                  1 = Minor issue, 10 = Severe infestation
+                </Text>
                 <View style={styles.severityContainer}>
                   {PEST_SEVERITY_LEVELS.map((severity) => {
                     const isSelected = careDetails.pestSeverity === severity;
-                    const severityStyle = getSeverityStyle(severity, isSelected, styles);
+                    const severityStyle = getSeverityStyle(
+                      severity,
+                      isSelected,
+                      styles,
+                    );
 
                     return (
                       <TouchableOpacity
                         key={severity}
                         style={[styles.severityButton, severityStyle]}
-                        onPress={() => setCareDetails((prev) => ({ ...prev, pestSeverity: severity }))}
+                        onPress={() =>
+                          setCareDetails((prev) => ({
+                            ...prev,
+                            pestSeverity: severity,
+                          }))
+                        }
                       >
                         <Text
                           style={[
@@ -227,7 +254,9 @@ export default function BatchCareModal({
               <TextInput
                 style={globalStyles.inputTextArea}
                 value={careDetails.notes}
-                onChangeText={(text) => setCareDetails((prev) => ({ ...prev, notes: text }))}
+                onChangeText={(text) =>
+                  setCareDetails((prev) => ({ ...prev, notes: text }))
+                }
                 placeholder="Additional notes about this event..."
                 placeholderTextColor={theme.colors.textSecondary}
                 multiline
@@ -242,12 +271,21 @@ export default function BatchCareModal({
               style={[globalStyles.buttonSecondary, styles.backButton]}
               onPress={handleBack}
             >
-              <Text style={[globalStyles.buttonTextSecondary, { color: theme.colors.textPrimary }]}>
+              <Text
+                style={[
+                  globalStyles.buttonTextSecondary,
+                  { color: theme.colors.textPrimary },
+                ]}
+              >
                 Back
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[globalStyles.button, styles.confirmButton, submitting && styles.buttonDisabled]}
+              style={[
+                globalStyles.button,
+                styles.confirmButton,
+                submitting && styles.buttonDisabled,
+              ]}
               onPress={handleConfirm}
               disabled={submitting}
             >
@@ -271,9 +309,14 @@ export default function BatchCareModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={handleClose}
+    >
       <View style={globalStyles.modalOverlay}>
-        {step === 'select' ? renderCareTypeSelection() : renderDetailsForm()}
+        {step === "select" ? renderCareTypeSelection() : renderDetailsForm()}
       </View>
     </Modal>
   );
@@ -282,7 +325,7 @@ export default function BatchCareModal({
 const getSeverityStyle = (
   severity: number,
   isSelected: boolean,
-  styles: ReturnType<typeof createStyles>
+  styles: ReturnType<typeof createStyles>,
 ) => {
   if (severity <= 3) {
     return isSelected ? styles.severityLowSelected : styles.severityLow;
@@ -299,8 +342,8 @@ const createStyles = (theme: Theme) =>
       maxHeight: 400,
     },
     careTypeItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingVertical: 12,
       paddingHorizontal: 16,
       borderBottomWidth: 1,
@@ -313,10 +356,10 @@ const createStyles = (theme: Theme) =>
     },
     keyboardAvoidingView: {
       flex: 1,
-      justifyContent: 'center',
+      justifyContent: "center",
     },
     detailsModalContent: {
-      maxHeight: '80%',
+      maxHeight: "80%",
       minHeight: 300,
     },
     detailsTitle: {
@@ -334,8 +377,8 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
     },
     strengthContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
       marginTop: 8,
     },
     strengthOption: {
@@ -346,7 +389,7 @@ const createStyles = (theme: Theme) =>
       borderRadius: 8,
       paddingVertical: 12,
       paddingHorizontal: 8,
-      alignItems: 'center',
+      alignItems: "center",
       marginHorizontal: 4,
     },
     strengthOptionSelected: {
@@ -355,36 +398,36 @@ const createStyles = (theme: Theme) =>
     },
     strengthText: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: "600",
       color: theme.colors.textSecondary,
     },
     strengthTextSelected: {
       color: theme.colors.primary,
-      fontWeight: 'bold',
+      fontWeight: "bold",
     },
     severityContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      justifyContent: "space-between",
       marginTop: 8,
     },
     severityButton: {
       width: 32,
       height: 32,
       borderRadius: 16,
-      justifyContent: 'center',
-      alignItems: 'center',
+      justifyContent: "center",
+      alignItems: "center",
     },
     severityLow: {
-      backgroundColor: '#4CAF50',
+      backgroundColor: "#4CAF50",
     },
     severityMedium: {
-      backgroundColor: '#ffcb2e',
+      backgroundColor: "#ffcb2e",
     },
     severityHigh: {
-      backgroundColor: '#F44336',
+      backgroundColor: "#F44336",
     },
     severityLowSelected: {
-      backgroundColor: '#2E7D32',
+      backgroundColor: "#2E7D32",
       transform: [{ scale: 1.1 }],
       shadowColor: theme.colors.textPrimary,
       shadowOffset: { width: 0, height: 2 },
@@ -393,7 +436,7 @@ const createStyles = (theme: Theme) =>
       elevation: 6,
     },
     severityMediumSelected: {
-      backgroundColor: '#e6ad00',
+      backgroundColor: "#e6ad00",
       transform: [{ scale: 1.1 }],
       shadowColor: theme.colors.textPrimary,
       shadowOffset: { width: 0, height: 2 },
@@ -402,7 +445,7 @@ const createStyles = (theme: Theme) =>
       elevation: 6,
     },
     severityHighSelected: {
-      backgroundColor: '#C62828',
+      backgroundColor: "#C62828",
       transform: [{ scale: 1.1 }],
       shadowColor: theme.colors.textPrimary,
       shadowOffset: { width: 0, height: 2 },
@@ -412,14 +455,14 @@ const createStyles = (theme: Theme) =>
     },
     severityText: {
       fontSize: 14,
-      color: '#FFFFFF',
+      color: "#FFFFFF",
     },
     severityTextSelected: {
-      fontWeight: 'bold',
+      fontWeight: "bold",
       fontSize: 16,
     },
     buttonRow: {
-      flexDirection: 'row',
+      flexDirection: "row",
       marginTop: 16,
     },
     backButton: {

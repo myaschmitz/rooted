@@ -1,3 +1,5 @@
+import type { CareEventType } from "../constants/careTypes";
+
 export type Database = {
   public: {
     Tables: {
@@ -26,7 +28,7 @@ export type Database = {
           household_id: string;
           user_id?: string;
           user_name: string;
-          role: 'admin' | 'member';
+          role: "admin" | "member";
           joined_at: string;
         };
         Insert: {
@@ -34,7 +36,7 @@ export type Database = {
           household_id: string;
           user_id?: string;
           user_name: string;
-          role?: 'admin' | 'member';
+          role?: "admin" | "member";
           joined_at?: string;
         };
         Update: {
@@ -42,7 +44,7 @@ export type Database = {
           household_id?: string;
           user_id?: string;
           user_name?: string;
-          role?: 'admin' | 'member';
+          role?: "admin" | "member";
         };
       };
       activity_log: {
@@ -114,10 +116,10 @@ export type Database = {
         Row: {
           id: string;
           plant_id: string;
-          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
+          event_type: CareEventType;
           date: string;
           notes?: string;
-          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
+          fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           household_id: string;
           created_at: string;
@@ -126,10 +128,10 @@ export type Database = {
         Insert: {
           id?: string;
           plant_id: string;
-          event_type: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
+          event_type: CareEventType;
           date: string;
           notes?: string;
-          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
+          fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           household_id: string;
           created_at?: string;
@@ -138,10 +140,10 @@ export type Database = {
         Update: {
           id?: string;
           plant_id?: string;
-          event_type?: 'water' | 'fertilize' | 'fertigate' | 'repot' | 'prune' | 'pest_spotted' | 'insecticide_spray' | 'new_leaf' | 'relocation' | 'new_roots_spotted' | 'other';
+          event_type?: CareEventType;
           date?: string;
           notes?: string;
-          fertilizer_concentration?: '1/4' | '1/2' | '1x' | '1.5x' | '2x';
+          fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           household_id?: string;
           updated_at?: string;

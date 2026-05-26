@@ -4,42 +4,154 @@ import {
   Scissors,
   Bug,
   Sprout,
+  Leaf,
+  Move,
+  TreePine,
   MoreHorizontal,
+  LucideIcon,
 } from "lucide-react-native";
-import { LucideIcon } from "lucide-react-native";
 
-export type CareEventType =
-  | "water"
-  | "fertilize"
-  | "fertigate"
-  | "prune"
-  | "pest_spotted"
-  | "insecticide_spray"
-  | "repot"
-  | "other";
+/**
+ * SINGLE SOURCE OF TRUTH for the set of event types the app supports.
+ *
+ * This list must stay in sync with:
+ *   - the `events.event_type` CHECK constraint in supabase/migrations
+ *   - `Event.event_type` in types/Plant.ts (imports `CareEventType`)
+ *   - `Database.public.Tables.events` rows in types/Database.ts
+ *     (imports `CareEventType`)
+ *
+ * Anything that adds a new event type should add it here first.
+ */
+export const CARE_EVENT_TYPES = [
+  "water",
+  "fertilize",
+  "fertigate",
+  "repot",
+  "prune",
+  "pest_spotted",
+  "insecticide_spray",
+  "new_leaf",
+  "relocation",
+  "new_roots_spotted",
+  "other",
+] as const;
+
+export type CareEventType = (typeof CARE_EVENT_TYPES)[number];
+
+/**
+ * `care`  — actions the user performs on a plant (water, prune, …).
+ *           Shown in the "Care" tab and available for bulk-apply.
+ * `event` — observations / one-off events (new leaf, relocation, …).
+ *           Shown in the "Events" tab; not exposed in bulk-apply.
+ */
+export type CareEventCategory = "care" | "event";
 
 export interface CareTypeDefinition {
   type: CareEventType;
   label: string;
   icon: LucideIcon;
   color: string;
+  category: CareEventCategory;
 }
 
 export const CARE_TYPES: CareTypeDefinition[] = [
-  { type: "water", label: "Watered", icon: Droplets, color: "#2196F3" },
-  { type: "fertilize", label: "Fertilized", icon: Calendar, color: "#4CAF50" },
-  { type: "fertigate", label: "Fertigated", icon: Droplets, color: "#00BCD4" },
-  { type: "prune", label: "Pruned", icon: Scissors, color: "#FF9800" },
-  { type: "pest_spotted", label: "Pest Spotted", icon: Bug, color: "#F44336" },
+  // ----- Care actions -----
+  {
+    type: "water",
+    label: "Water",
+    icon: Droplets,
+    color: "#2196F3",
+    category: "care",
+  },
+  {
+    type: "fertilize",
+    label: "Fertilize",
+    icon: Calendar,
+    color: "#4CAF50",
+    category: "care",
+  },
+  {
+    type: "fertigate",
+    label: "Fertigate",
+    icon: Droplets,
+    color: "#00BCD4",
+    category: "care",
+  },
+  {
+    type: "repot",
+    label: "Repot",
+    icon: Sprout,
+    color: "#795548",
+    category: "care",
+  },
+  {
+    type: "prune",
+    label: "Prune",
+    icon: Scissors,
+    color: "#FF9800",
+    category: "care",
+  },
   {
     type: "insecticide_spray",
     label: "Insecticide",
     icon: Sprout,
     color: "#9C27B0",
+    category: "care",
   },
-  { type: "repot", label: "Repotted", icon: Sprout, color: "#795548" },
-  { type: "other", label: "Other", icon: MoreHorizontal, color: "#607D8B" },
+
+  // ----- Observation events -----
+  {
+    type: "pest_spotted",
+    label: "Pest Spotted",
+    icon: Bug,
+    color: "#F44336",
+    category: "event",
+  },
+  {
+    type: "new_leaf",
+    label: "New Leaf",
+    icon: Leaf,
+    color: "#8BC34A",
+    category: "event",
+  },
+  {
+    type: "relocation",
+    label: "Relocation",
+    icon: Move,
+    color: "#5D4037",
+    category: "event",
+  },
+  {
+    type: "new_roots_spotted",
+    label: "New Roots",
+    icon: TreePine,
+    color: "#33691E",
+    category: "event",
+  },
+  {
+    type: "other",
+    label: "Other",
+    icon: MoreHorizontal,
+    color: "#607D8B",
+    category: "event",
+  },
 ];
+
+/**
+ * Care actions — bulk-applyable. Used by `BatchCareModal` and the
+ * "Care" tab on the log-care / edit-care-event screens.
+ */
+export const CARE_ACTIONS: CareTypeDefinition[] = CARE_TYPES.filter(
+  (c) => c.category === "care",
+);
+
+/**
+ * Observation events. Used by the "Events" tab on the log-care /
+ * edit-care-event screens. Not exposed in `BatchCareModal`.
+ */
+export const OBSERVATION_EVENTS: CareTypeDefinition[] = CARE_TYPES.filter(
+  (c) => c.category === "event",
+);
 
 export const getCareTypeByType = (
   type: CareEventType,
