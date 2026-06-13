@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useGlobalStyles } from "../styles";
+import DateTimeInput from "./DateTimeInput";
 import {
   CARE_ACTIONS,
   CareEventType,
@@ -26,6 +27,7 @@ export interface CareDetails {
   notes: string;
   fertilizerStrength: FertilizerStrength;
   pestSeverity: number;
+  date: Date;
 }
 
 interface BatchCareModalProps {
@@ -55,6 +57,7 @@ export default function BatchCareModal({
     notes: "",
     fertilizerStrength: "1x",
     pestSeverity: 1,
+    date: new Date(),
   });
 
   const resetState = () => {
@@ -65,6 +68,7 @@ export default function BatchCareModal({
       notes: "",
       fertilizerStrength: "1x",
       pestSeverity: 1,
+      date: new Date(),
     });
   };
 
@@ -171,6 +175,41 @@ export default function BatchCareModal({
             <Text style={styles.selectedCountText}>
               {selectedCount} plant{selectedCount !== 1 ? "s" : ""} selected
             </Text>
+
+            <View style={globalStyles.inputGroup}>
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeSection}>
+                  <DateTimeInput
+                    value={careDetails.date}
+                    mode="date"
+                    label="Date"
+                    onChange={(date) =>
+                      setCareDetails((prev) => ({ ...prev, date }))
+                    }
+                  />
+                </View>
+                <View style={styles.dateTimeSection}>
+                  <DateTimeInput
+                    value={careDetails.date}
+                    mode="time"
+                    label="Time"
+                    onChange={(date) =>
+                      setCareDetails((prev) => ({ ...prev, date }))
+                    }
+                  />
+                </View>
+                <View style={styles.buttonSection}>
+                  <TouchableOpacity
+                    style={styles.nowButton}
+                    onPress={() =>
+                      setCareDetails((prev) => ({ ...prev, date: new Date() }))
+                    }
+                  >
+                    <Text style={styles.nowButtonText}>Set to Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
 
             {showFertilizerOptions && (
               <View style={globalStyles.inputGroup}>
@@ -375,6 +414,33 @@ const createStyles = (theme: Theme) =>
       marginBottom: 16,
       fontSize: 14,
       color: theme.colors.textSecondary,
+    },
+    dateTimeRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    dateTimeSection: {
+      flex: 1,
+      marginHorizontal: 4,
+      marginBottom: 8,
+    },
+    buttonSection: {
+      justifyContent: "flex-end",
+      alignItems: "center",
+      paddingHorizontal: 4,
+      paddingTop: 26,
+    },
+    nowButton: {
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 6,
+    },
+    nowButtonText: {
+      color: theme.colors.background,
+      fontSize: 12,
+      fontWeight: "600",
     },
     strengthContainer: {
       flexDirection: "row",

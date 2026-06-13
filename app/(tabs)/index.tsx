@@ -346,7 +346,7 @@ export default function HomeScreen() {
       const careEventData: any = {
         plant_id: plantId,
         event_type: careType,
-        date: new Date().toISOString(),
+        date: details.date.toISOString(),
         notes: details.notes.trim() || `Batch care: ${careTypeLabel}`,
       };
 
