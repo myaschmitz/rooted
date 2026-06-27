@@ -129,33 +129,70 @@ describe('EventService', () => {
       expect(mockSupabase.select).toHaveBeenCalled();
       expect(mockSupabase.single).toHaveBeenCalled();
 
+      expect(PlantService.getPlantById).toHaveBeenCalledWith(createdEvent.plant_id);
+      expect(HouseholdService.logActivity).toHaveBeenCalledWith(
+        'watered',
+        expect.objectContaining({
+          plant_id: createdEvent.plant_id,
+          event_type: createdEvent.event_type,
+          notes: createdEvent.notes,
+        }),
+        mockPlant.name
+      );
+
       expect(result).toEqual(createdEvent);
     });
 
-    it('should insert each event type with the household id', async () => {
-      const eventTypes = [
-        'fertilize', 'fertigate', 'repot', 'prune',
-        'pest_spotted', 'insecticide_spray', 'other',
-      ] as const;
+    it('should map each event type to the correct activity action', async () => {
+      const cases = [
+        { event_type: 'fertilize' as const, action: 'fertilized' },
+        { event_type: 'fertigate' as const, action: 'fertigated' },
+        { event_type: 'repot' as const, action: 'repotted' },
+        { event_type: 'prune' as const, action: 'pruned' },
+        { event_type: 'pest_spotted' as const, action: 'pest spotted' },
+        { event_type: 'insecticide_spray' as const, action: 'insecticide spray' },
+        { event_type: 'other' as const, action: 'other care' },
+      ];
 
-      for (const eventType of eventTypes) {
+      for (const { event_type, action } of cases) {
         jest.clearAllMocks();
         (HouseholdService.getUserSession as jest.Mock).mockResolvedValue(mockSession);
+        (PlantService.getPlantById as jest.Mock).mockResolvedValue(mockPlant);
         mockSupabase.from.mockReturnValue(mockSupabase);
         mockSupabase.insert.mockReturnValue(mockSupabase);
         mockSupabase.select.mockReturnValue(mockSupabase);
 
-        const eventData = { ...newEventData, event_type: eventType };
+        const eventData = { ...newEventData, event_type };
         const createdEvent = { ...mockEvent, ...eventData };
         mockSupabase.single.mockResolvedValue({ data: createdEvent, error: null });
 
-        const result = await EventService.createEvent(eventData);
+        await EventService.createEvent(eventData);
 
         expect(mockSupabase.insert).toHaveBeenCalledWith(
-          expect.objectContaining({ event_type: eventType, household_id: 'household-123' })
+          expect.objectContaining({ event_type, household_id: 'household-123' })
         );
-        expect(result).toEqual(createdEvent);
+        expect(HouseholdService.logActivity).toHaveBeenCalledWith(
+          action,
+          expect.anything(),
+          expect.anything()
+        );
       }
+    });
+
+    it('should fall back to plant type when plant name is unavailable', async () => {
+      const plantWithoutName = { ...mockPlant, name: undefined };
+      (PlantService.getPlantById as jest.Mock).mockResolvedValue(plantWithoutName);
+
+      const createdEvent = { ...mockEvent, ...newEventData };
+      mockSupabase.single.mockResolvedValue({ data: createdEvent, error: null });
+
+      await EventService.createEvent(newEventData);
+
+      expect(HouseholdService.logActivity).toHaveBeenCalledWith(
+        'watered',
+        expect.anything(),
+        plantWithoutName.type
+      );
     });
 
     it('should throw error when creation fails', async () => {
