@@ -920,9 +920,9 @@ export class PhotoService {
             .map((p) => extractFilenameFromPath(p.file_path)),
         );
 
-        for (const fileName of files) {
-          if (!dbPhotoPaths.has(fileName)) {
-            await new File(this.PHOTOS_DIR, fileName).delete();
+        for (const entry of files) {
+          if (!dbPhotoPaths.has(entry.name)) {
+            await new File(this.PHOTOS_DIR, entry.name).delete();
           }
         }
       }

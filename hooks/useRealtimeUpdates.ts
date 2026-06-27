@@ -73,10 +73,12 @@ class RealtimeSubscriptionManager {
           table: 'plants'
         },
         async (payload) => {
-          logger.debug('Plants table changed:', payload.eventType, payload.new?.id || payload.old?.id);
+          const newRecord = payload.new as { id?: string };
+          const oldRecord = payload.old as { id?: string };
+          logger.debug('Plants table changed:', payload.eventType, newRecord?.id || oldRecord?.id);
           
           // Trigger React Query cache invalidation instead of full reloads
-          const plantId = payload.new?.id || payload.old?.id;
+          const plantId = newRecord?.id || oldRecord?.id;
           if (plantId && this.queryClient) {
             try {
               if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -105,10 +107,12 @@ class RealtimeSubscriptionManager {
           table: 'events'
         },
         async (payload) => {
-          logger.debug('Events table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          const newRecord = payload.new as { plant_id?: string };
+          const oldRecord = payload.old as { plant_id?: string };
+          logger.debug('Events table changed:', payload.eventType, newRecord?.plant_id || oldRecord?.plant_id);
           
           // Trigger React Query cache invalidation instead of full reloads
-          const plantId = payload.new?.plant_id || payload.old?.plant_id;
+          const plantId = newRecord?.plant_id || oldRecord?.plant_id;
           if (plantId && this.queryClient) {
             try {
               // Invalidate all event-related queries for this plant
@@ -132,10 +136,12 @@ class RealtimeSubscriptionManager {
           table: 'plant_photos'
         },
         async (payload) => {
-          logger.debug('Plant photos table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          const newRecord = payload.new as { plant_id?: string };
+          const oldRecord = payload.old as { plant_id?: string };
+          logger.debug('Plant photos table changed:', payload.eventType, newRecord?.plant_id || oldRecord?.plant_id);
           
           // Trigger React Query cache invalidation instead of full reloads
-          const plantId = payload.new?.plant_id || payload.old?.plant_id;
+          const plantId = newRecord?.plant_id || oldRecord?.plant_id;
           if (plantId && this.queryClient) {
             try {
               // Invalidate all photo-related queries for this plant

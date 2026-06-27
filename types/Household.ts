@@ -89,6 +89,7 @@ export type ActivityAction =
   | 'added plant'
   | 'updated plant'
   | 'deleted plant'
+  | 'archived plant'
   | 'watered'
   | 'fertilized'
   | 'fertigated'
@@ -101,6 +102,7 @@ export type ActivityAction =
   | 'updated note'
   | 'deleted note'
   | 'added tag'
+  | 'added multiple tags'
   | 'updated tag'
   | 'deleted tag'
   | 'other care';

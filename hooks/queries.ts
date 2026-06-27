@@ -166,7 +166,13 @@ export const useCreatePlant = () => {
     mutationFn: (
       plantData: Omit<
         Plant,
-        "id" | "created_at" | "updated_at" | "household_id" | "pinned"
+        | "id"
+        | "created_at"
+        | "updated_at"
+        | "household_id"
+        | "pinned"
+        | "archived"
+        | "archived_at"
       >,
     ) => PlantService.createPlant(plantData),
     onSuccess: () => {
