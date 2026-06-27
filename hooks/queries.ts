@@ -131,11 +131,7 @@ export const useBatchLastEvents = (
 ) => {
   return useQuery<{ [plantId: string]: { [eventType: string]: Event | null } }>(
     {
-      queryKey: [
-        "batch-last-events",
-        [...plantIds].sort().join(","),
-        [...eventTypes].sort().join(","),
-      ],
+      queryKey: queryKeys.batchLastEvents(plantIds, eventTypes),
       queryFn: () =>
         EventService.getLastEventsByTypeForPlants(plantIds, eventTypes),
       staleTime: CACHE_TTL.BATCH_LAST_EVENTS,
@@ -147,7 +143,7 @@ export const useBatchLastEvents = (
 
 export const useBatchThumbnails = (plantIds: string[]) => {
   return useQuery<{ [plantId: string]: PlantPhoto | null }>({
-    queryKey: ["batch-thumbnails", [...plantIds].sort().join(",")],
+    queryKey: queryKeys.batchThumbnails(plantIds),
     queryFn: () => PhotoService.getBatchThumbnailPhotos(plantIds),
     staleTime: CACHE_TTL.BATCH_THUMBNAILS,
     gcTime: CACHE_GC_TIME.LONG,
@@ -210,7 +206,7 @@ export const useUpdatePlant = () => {
         // Invalidate location-based queries if location changed
         if ("location" in updatedPlant) {
           queryClient.invalidateQueries({
-            queryKey: ["plants-by-location"],
+            queryKey: queryKeys.plantsByLocationRoot,
             exact: false,
           });
         }
@@ -236,7 +232,7 @@ export const useDeletePlant = () => {
 
       // Invalidate location-based queries
       queryClient.invalidateQueries({
-        queryKey: ["plants-by-location"],
+        queryKey: queryKeys.plantsByLocationRoot,
         exact: false,
       });
 
@@ -280,7 +276,7 @@ export const useCreateEvent = () => {
 
       // Invalidate batch last events (for home page)
       queryClient.invalidateQueries({
-        queryKey: ["batch-last-events"],
+        queryKey: queryKeys.batchLastEventsRoot,
         exact: false,
       });
     },
@@ -318,7 +314,7 @@ export const useUpdateEvent = () => {
 
         // Invalidate batch last events (for home page)
         queryClient.invalidateQueries({
-          queryKey: ["batch-last-events"],
+          queryKey: queryKeys.batchLastEventsRoot,
           exact: false,
         });
       }
@@ -351,7 +347,7 @@ export const useDeleteEvent = () => {
 
       // Invalidate batch last events (for home page)
       queryClient.invalidateQueries({
-        queryKey: ["batch-last-events"],
+        queryKey: queryKeys.batchLastEventsRoot,
         exact: false,
       });
     },
@@ -402,7 +398,7 @@ export const useSavePhoto = () => {
 
 export const useAllTags = () => {
   return useQuery<Tag[]>({
-    queryKey: ["all-tags"],
+    queryKey: queryKeys.allTags,
     queryFn: () => TagService.getAllTags(),
     staleTime: CACHE_TTL.TAGS_ALL,
     gcTime: CACHE_GC_TIME.MEDIUM,
@@ -411,7 +407,7 @@ export const useAllTags = () => {
 
 export const usePlantTags = (plantId: string) => {
   return useQuery<Tag[]>({
-    queryKey: ["plant-tags", plantId],
+    queryKey: queryKeys.plantTags(plantId),
     queryFn: () => TagService.getTagsByPlantId(plantId),
     staleTime: CACHE_TTL.TAGS_BY_PLANT,
     gcTime: CACHE_GC_TIME.MEDIUM,
@@ -421,7 +417,7 @@ export const usePlantTags = (plantId: string) => {
 
 export const useBatchPlantTags = (plantIds: string[]) => {
   return useQuery<{ [plantId: string]: Tag[] }>({
-    queryKey: ["batch-plant-tags", [...plantIds].sort().join(",")],
+    queryKey: queryKeys.batchPlantTags(plantIds),
     queryFn: () => TagService.getTagsByPlantIds(plantIds),
     staleTime: CACHE_TTL.TAGS_BY_PLANT,
     gcTime: CACHE_GC_TIME.MEDIUM,
@@ -438,16 +434,16 @@ export const useAddTagToPlant = () => {
     },
     onSuccess: (result, { plantId, tagId }) => {
       // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: ["plant-tags", plantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
 
       // Invalidate batch plant tags
       queryClient.invalidateQueries({
-        queryKey: ["batch-plant-tags"],
+        queryKey: queryKeys.batchPlantTagsRoot,
         exact: false,
       });
 
       // Invalidate all tags (in case a new tag was created)
-      queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
 
       // Invalidate plant data to reflect tags
       queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
@@ -469,11 +465,11 @@ export const useRemoveTagFromPlant = () => {
       TagService.removeTagFromPlant(plantId, tagId),
     onSuccess: (_, { plantId, tagId }) => {
       // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: ["plant-tags", plantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
 
       // Invalidate batch plant tags
       queryClient.invalidateQueries({
-        queryKey: ["batch-plant-tags"],
+        queryKey: queryKeys.batchPlantTagsRoot,
         exact: false,
       });
 
@@ -497,7 +493,7 @@ export const useCreateTag = () => {
       TagService.createTag(name, color),
     onSuccess: () => {
       // Invalidate all tags
-      queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
     },
     onError: (error) => {
       console.error("Failed to create tag:", error);
@@ -518,11 +514,11 @@ export const useUpdateTag = () => {
     }) => TagService.updateTag(id, updates),
     onSuccess: () => {
       // Invalidate all tags
-      queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
 
       // Invalidate batch plant tags to reflect name/color changes
       queryClient.invalidateQueries({
-        queryKey: ["batch-plant-tags"],
+        queryKey: queryKeys.batchPlantTagsRoot,
         exact: false,
       });
 
@@ -552,16 +548,16 @@ export const useCreateTagAndAddToPlant = () => {
     },
     onSuccess: (result, { plantId }) => {
       // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: ["plant-tags", plantId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
 
       // Invalidate batch plant tags
       queryClient.invalidateQueries({
-        queryKey: ["batch-plant-tags"],
+        queryKey: queryKeys.batchPlantTagsRoot,
         exact: false,
       });
 
       // Invalidate all tags (new tag was created)
-      queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
 
       // Invalidate plant data to reflect tags
       queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
@@ -686,7 +682,7 @@ export const usePrefetchPlantData = () => {
 // Archive hooks
 export const useArchivedPlants = () => {
   return useQuery({
-    queryKey: ["archived-plants"] as const,
+    queryKey: queryKeys.archivedPlants,
     queryFn: () => PlantService.getArchivedPlants(),
   });
 };
@@ -699,9 +695,9 @@ export const useArchivePlant = () => {
     onSuccess: (_, archivedId) => {
       queryClient.removeQueries({ queryKey: queryKeys.plant(archivedId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({ queryKey: ["archived-plants"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archivedPlants });
       queryClient.invalidateQueries({
-        queryKey: ["plants-by-location"],
+        queryKey: queryKeys.plantsByLocationRoot,
         exact: false,
       });
     },
@@ -715,9 +711,9 @@ export const useRestorePlant = () => {
     mutationFn: (id: string) => PlantService.restorePlant(id),
     onSuccess: (_, restoredId) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({ queryKey: ["archived-plants"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.archivedPlants });
       queryClient.invalidateQueries({
-        queryKey: ["plants-by-location"],
+        queryKey: queryKeys.plantsByLocationRoot,
         exact: false,
       });
     },

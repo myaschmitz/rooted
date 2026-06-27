@@ -425,17 +425,17 @@ export class CacheInvalidationService {
         case "tag_deleted":
         case "all_tags_deleted":
           // Invalidate all tags queries
-          await queryClient.invalidateQueries({ queryKey: ["all-tags"] });
+          await queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
 
           if (additionalData.plant_id) {
             // Invalidate plant-specific tag queries
             await queryClient.invalidateQueries({
-              queryKey: ["plant-tags", additionalData.plant_id],
+              queryKey: queryKeys.plantTags(additionalData.plant_id),
             });
 
             // Invalidate batch plant tags queries
             await queryClient.invalidateQueries({
-              queryKey: ["batch-plant-tags"],
+              queryKey: queryKeys.batchPlantTagsRoot,
               exact: false,
             });
 
@@ -449,7 +449,7 @@ export class CacheInvalidationService {
           } else {
             // If no specific plant_id, invalidate all batch queries
             await queryClient.invalidateQueries({
-              queryKey: ["batch-plant-tags"],
+              queryKey: queryKeys.batchPlantTagsRoot,
               exact: false,
             });
 
