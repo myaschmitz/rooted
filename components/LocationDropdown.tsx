@@ -33,21 +33,26 @@ export default function LocationDropdown({
   const [filteredLocations, setFilteredLocations] = useState<PlantLocation[]>([]);
 
   useEffect(() => {
+    let active = true;
+
+    const loadLocations = async () => {
+      try {
+        const allLocations = await LocationService.getAllLocations();
+        if (active) setLocations(allLocations);
+      } catch (error) {
+        console.error('Failed to load locations:', error);
+      }
+    };
+
     loadLocations();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     filterLocations();
   }, [searchQuery, locations]);
-
-  const loadLocations = async () => {
-    try {
-      const allLocations = await LocationService.getAllLocations();
-      setLocations(allLocations);
-    } catch (error) {
-      console.error('Failed to load locations:', error);
-    }
-  };
 
   const filterLocations = () => {
     if (!searchQuery.trim()) {
