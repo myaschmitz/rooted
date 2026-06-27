@@ -14,25 +14,31 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    checkHouseholdMembership();
-  }, []);
+    let active = true;
 
-  const checkHouseholdMembership = async () => {
-    try {
-      const isInHousehold = await HouseholdService.isUserInHousehold();
-      
-      if (isInHousehold) {
-        setIsAuthenticated(true);
-      } else {
-        router.replace('/welcome');
+    const checkHouseholdMembership = async () => {
+      try {
+        const isInHousehold = await HouseholdService.isUserInHousehold();
+        if (!active) return;
+
+        if (isInHousehold) {
+          setIsAuthenticated(true);
+        } else {
+          router.replace('/welcome');
+        }
+      } catch (error) {
+        console.error('Error checking household membership:', error);
+        if (active) router.replace('/welcome');
+      } finally {
+        if (active) setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking household membership:', error);
-      router.replace('/welcome');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    checkHouseholdMembership();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const styles = StyleSheet.create({
     loadingContainer: {

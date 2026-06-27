@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,9 +30,13 @@ export default function WelcomeScreen() {
     step: 'name',
   });
   const [loading, setLoading] = useState(false);
-  
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     checkExistingSession();
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
   }, []);
 
   const checkExistingSession = async () => {
@@ -85,7 +89,7 @@ export default function WelcomeScreen() {
             text: 'Continue',
             onPress: () => {
               setState(prev => ({ ...prev, step: 'complete' }));
-              setTimeout(() => router.replace('/(tabs)'), 1000);
+              redirectTimerRef.current = setTimeout(() => router.replace('/(tabs)'), 1000);
             },
           },
         ]
@@ -152,7 +156,7 @@ export default function WelcomeScreen() {
           householdName: response.household_name || undefined,
           userName: finalUserName,
         }));
-        setTimeout(() => router.replace('/(tabs)'), 1000);
+        redirectTimerRef.current = setTimeout(() => router.replace('/(tabs)'), 1000);
       } else {
         showAlert('Error', response.error_message || 'Failed to join household');
         setState(prev => ({ ...prev, step: 'join_household', error: response.error_message || 'Failed to join household' }));

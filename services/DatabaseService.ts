@@ -1,4 +1,5 @@
 import { supabase } from "./SupabaseService";
+import { logger } from "../utils/logger";
 import { DB_TABLES } from "../constants/domain";
 
 /**
@@ -81,7 +82,7 @@ export class DatabaseService {
       await supabase.from(DB_TABLES.EVENTS).delete().neq("id", "");
       await supabase.from(DB_TABLES.PLANTS).delete().neq("id", "");
 
-      console.log("Database reset completed successfully");
+      logger.debug("Database reset completed successfully");
     } catch (error) {
       console.error("Error resetting database:", error);
       throw new Error(`Failed to reset database: ${error}`);

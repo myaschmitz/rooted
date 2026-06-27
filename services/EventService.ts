@@ -6,10 +6,23 @@ import type { Database } from "../types/Database";
 import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
 import { CacheKeyBuilder } from "./CacheKeyBuilder";
+import type { ActivityAction } from "../types/Household";
+import type { CareEventType } from "../constants/careTypes";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type EventInsert = Database["public"]["Tables"]["events"]["Insert"];
 type EventUpdate = Database["public"]["Tables"]["events"]["Update"];
+
+// Maps an event type to its activity-log verb; unmapped types log as "other care".
+const EVENT_ACTIVITY_ACTIONS: Partial<Record<CareEventType, ActivityAction>> = {
+  water: "watered",
+  fertilize: "fertilized",
+  fertigate: "fertigated",
+  repot: "repotted",
+  prune: "pruned",
+  pest_spotted: "pest spotted",
+  insecticide_spray: "insecticide spray",
+};
 
 export class EventService {
   static async getEventsByPlantId(plantId: string): Promise<Event[]> {
@@ -65,7 +78,22 @@ export class EventService {
       throw ErrorMapper.mapDatabaseError(error, "create", "event");
     }
 
-    return data as Event;
+    const event = data as Event;
+
+    // Log activity for the care event
+    const plant = await PlantService.getPlantById(event.plant_id);
+    const action = EVENT_ACTIVITY_ACTIONS[event.event_type] ?? "other care";
+    await HouseholdService.logActivity(
+      action,
+      {
+        plant_id: event.plant_id,
+        event_type: event.event_type,
+        notes: event.notes,
+      },
+      plant?.name || plant?.type,
+    );
+
+    return event;
   }
 
   static async updateEvent(

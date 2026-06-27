@@ -1,4 +1,5 @@
 import { File, Directory, Paths } from "expo-file-system";
+import { logger } from "../utils/logger";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as MediaLibrary from "expo-media-library";
@@ -83,7 +84,7 @@ export class PhotoService {
     fileName: string,
   ): Promise<string | null> {
     try {
-      console.log("Starting cloud upload for file:", fileName);
+      logger.debug("Starting cloud upload for file:", fileName);
       const file = new File(filePath);
       if (!file.exists) {
         console.error("Local file does not exist:", filePath);
@@ -91,11 +92,11 @@ export class PhotoService {
       }
 
       const fileInfo = await file.info();
-      console.log("Local file exists, size:", fileInfo.size);
+      logger.debug("Local file exists, size:", fileInfo.size);
 
       // Read file as base64
       const fileContent = await file.base64();
-      console.log("File read as base64, length:", fileContent.length);
+      logger.debug("File read as base64, length:", fileContent.length);
 
       // Convert base64 to Uint8Array for React Native
       const binaryString = atob(fileContent);
@@ -103,10 +104,10 @@ export class PhotoService {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      console.log("Converted to Uint8Array, size:", bytes.length);
+      logger.debug("Converted to Uint8Array, size:", bytes.length);
 
       // Upload to Supabase Storage
-      console.log("Uploading to bucket:", this.STORAGE_BUCKET);
+      logger.debug("Uploading to bucket:", this.STORAGE_BUCKET);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(this.STORAGE_BUCKET)
         .upload(fileName, bytes, {
@@ -120,14 +121,14 @@ export class PhotoService {
       }
 
       if (uploadData) {
-        console.log("Upload successful:", uploadData);
+        logger.debug("Upload successful:", uploadData);
         // Get public URL
         const { data: urlData } = supabase.storage
           .from(this.STORAGE_BUCKET)
           .getPublicUrl(fileName);
 
         if (urlData?.publicUrl) {
-          console.log("Public URL obtained:", urlData.publicUrl);
+          logger.debug("Public URL obtained:", urlData.publicUrl);
           return urlData.publicUrl;
         } else {
           console.error("Failed to get public URL for uploaded file");
@@ -397,7 +398,7 @@ export class PhotoService {
       await new File(sourceUri).copy(localFullSizeFile);
 
       // Create thumbnail
-      console.log("Creating thumbnail...");
+      logger.debug("Creating thumbnail...");
       const thumbnailUri = await this.createThumbnail(sourceUri);
       const localThumbnailFile = new File(this.PHOTOS_DIR, thumbnailFileName);
 
@@ -405,7 +406,7 @@ export class PhotoService {
       await new File(thumbnailUri).copy(localThumbnailFile);
 
       // Upload both versions to Supabase Storage in parallel
-      console.log("Uploading full-size and thumbnail to cloud storage...");
+      logger.debug("Uploading full-size and thumbnail to cloud storage...");
       const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
         this.uploadFileToStorage(localFullSizeFile.uri, fullSizeFileName),
         this.uploadFileToStorage(localThumbnailFile.uri, thumbnailFileName),
@@ -465,7 +466,7 @@ export class PhotoService {
         throw ErrorMapper.mapDatabaseError(error, "create", "photo");
       }
 
-      console.log("Event photo saved successfully");
+      logger.debug("Event photo saved successfully");
 
       // Invalidate relevant caches
       await CacheInvalidationService.invalidateOnUserAction("photo_added", {
@@ -608,7 +609,7 @@ export class PhotoService {
       await new File(sourceUri).copy(localFullSizeFile);
 
       // Create thumbnail
-      console.log("Creating thumbnail...");
+      logger.debug("Creating thumbnail...");
       const thumbnailUri = await this.createThumbnail(sourceUri);
       const localThumbnailFile = new File(this.PHOTOS_DIR, thumbnailFileName);
 
@@ -616,7 +617,7 @@ export class PhotoService {
       await new File(thumbnailUri).copy(localThumbnailFile);
 
       // Upload both versions to Supabase Storage in parallel
-      console.log("Uploading full-size and thumbnail to cloud storage...");
+      logger.debug("Uploading full-size and thumbnail to cloud storage...");
       const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
         this.uploadFileToStorage(localFullSizeFile.uri, fullSizeFileName),
         this.uploadFileToStorage(localThumbnailFile.uri, thumbnailFileName),
@@ -696,7 +697,7 @@ export class PhotoService {
           .eq("id", plantId);
       }
 
-      console.log(
+      logger.debug(
         "Photo saved successfully with full-size and thumbnail versions",
       );
 
@@ -807,7 +808,7 @@ export class PhotoService {
           await supabase.storage
             .from(this.STORAGE_BUCKET)
             .remove(filesToDelete);
-          console.log(
+          logger.debug(
             `Deleted ${filesToDelete.length} files from cloud storage:`,
             filesToDelete,
           );
@@ -1075,8 +1076,8 @@ export class PhotoService {
     bucketExists?: boolean;
   }> {
     try {
-      console.log("Testing Supabase storage connection...");
-      console.log("Testing bucket:", this.STORAGE_BUCKET);
+      logger.debug("Testing Supabase storage connection...");
+      logger.debug("Testing bucket:", this.STORAGE_BUCKET);
 
       // Try to list files in the bucket to test permissions
       const { data, error } = await supabase.storage
@@ -1107,7 +1108,7 @@ export class PhotoService {
         };
       }
 
-      console.log("Storage bucket access test successful:", data);
+      logger.debug("Storage bucket access test successful:", data);
       return { success: true, bucketExists: true };
     } catch (error) {
       console.error("Storage connection test error:", error);
@@ -1123,7 +1124,7 @@ export class PhotoService {
     error?: string;
   }> {
     try {
-      console.log("Creating storage bucket:", this.STORAGE_BUCKET);
+      logger.debug("Creating storage bucket:", this.STORAGE_BUCKET);
 
       const { data, error } = await supabase.storage.createBucket(
         this.STORAGE_BUCKET,
@@ -1139,7 +1140,7 @@ export class PhotoService {
         return { success: false, error: error.message };
       }
 
-      console.log("Storage bucket created successfully:", data);
+      logger.debug("Storage bucket created successfully:", data);
       return { success: true };
     } catch (error) {
       console.error("Error creating storage bucket:", error);
@@ -1359,7 +1360,7 @@ export class PhotoService {
     skipped: number;
   }> {
     try {
-      console.log("Starting thumbnail generation for existing photos...");
+      logger.debug("Starting thumbnail generation for existing photos...");
 
       // Get all photos that don't have thumbnails yet
       const { data: photosWithoutThumbnails, error } = await supabase
@@ -1373,11 +1374,11 @@ export class PhotoService {
       }
 
       if (!photosWithoutThumbnails || photosWithoutThumbnails.length === 0) {
-        console.log("No photos found that need thumbnails generated");
+        logger.debug("No photos found that need thumbnails generated");
         return { success: 0, failed: 0, skipped: 0 };
       }
 
-      console.log(
+      logger.debug(
         `Found ${photosWithoutThumbnails.length} photos that need thumbnails`,
       );
 
@@ -1393,11 +1394,11 @@ export class PhotoService {
         await Promise.all(
           batch.map(async (photo) => {
             try {
-              console.log(`Processing photo ${photo.id}...`);
+              logger.debug(`Processing photo ${photo.id}...`);
 
               // Skip if photo doesn't have a valid cloud URL
               if (!isCloudUrl(photo.file_path)) {
-                console.log(`Skipping photo ${photo.id} - not a cloud URL`);
+                logger.debug(`Skipping photo ${photo.id} - not a cloud URL`);
                 skipped++;
                 return;
               }
@@ -1466,7 +1467,7 @@ export class PhotoService {
                 return;
               }
 
-              console.log(
+              logger.debug(
                 `Successfully generated thumbnail for photo ${photo.id}`,
               );
               success++;
@@ -1488,7 +1489,7 @@ export class PhotoService {
         }
       }
 
-      console.log(
+      logger.debug(
         `Thumbnail generation complete: ${success} success, ${failed} failed, ${skipped} skipped`,
       );
       return { success, failed, skipped };
@@ -1503,7 +1504,7 @@ export class PhotoService {
     filename?: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log("Starting photo download to device...");
+      logger.debug("Starting photo download to device...");
 
       // Request media library permissions
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -1519,8 +1520,8 @@ export class PhotoService {
       const tempFilename = filename || `plant_photo_${Date.now()}.jpg`;
       const downloadFile = new File(Paths.document, tempFilename);
 
-      console.log("Downloading photo from:", photoUrl);
-      console.log("Temp download path:", downloadFile.uri);
+      logger.debug("Downloading photo from:", photoUrl);
+      logger.debug("Temp download path:", downloadFile.uri);
 
       // Download the photo to temporary storage
       const downloadedFile = await File.downloadFileAsync(
@@ -1535,11 +1536,11 @@ export class PhotoService {
         };
       }
 
-      console.log("Photo downloaded to temp location:", downloadedFile.uri);
+      logger.debug("Photo downloaded to temp location:", downloadedFile.uri);
 
       // Save to device's media library
       const asset = await MediaLibrary.createAssetAsync(downloadedFile.uri);
-      console.log("Photo saved to media library:", asset);
+      logger.debug("Photo saved to media library:", asset);
 
       // Clean up temporary file
       try {

@@ -27,6 +27,7 @@ describe('EventService', () => {
     location: 'Living Room',
     household_id: 'household-123',
     pinned: false,
+    archived: false,
     created_at: '2024-01-15T10:00:00.000Z',
     updated_at: '2024-01-15T10:00:00.000Z',
   };
@@ -65,12 +66,14 @@ describe('EventService', () => {
     mockSupabase.eq.mockReturnValue(mockSupabase);
     mockSupabase.order.mockReturnValue(mockSupabase);
     mockSupabase.limit.mockReturnValue(mockSupabase);
+    // Reset awaitable response for list/delete query terminals
+    mockSupabase._response = { data: null, error: null };
   });
 
   describe('getEventsByPlantId', () => {
     it('should fetch events for a plant', async () => {
       const mockEvents = [mockEvent, { ...mockEvent, id: 'event-456', event_type: 'fertilize' as const }];
-      mockSupabase.single.mockResolvedValue({ data: mockEvents, error: null });
+      mockSupabase._response = { data: mockEvents, error: null };
 
       const result = await EventService.getEventsByPlantId('plant-123');
 
@@ -98,9 +101,9 @@ describe('EventService', () => {
 
     it('should throw error when Supabase returns an error', async () => {
       const mockError = { message: 'Database error' };
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabase._response = { data: null, error: mockError };
 
-      await expect(EventService.getEventsByPlantId('plant-123')).rejects.toThrow('Failed to fetch events: Database error');
+      await expect(EventService.getEventsByPlantId('plant-123')).rejects.toThrow('Database error during fetch');
     });
   });
 
@@ -125,9 +128,8 @@ describe('EventService', () => {
       });
       expect(mockSupabase.select).toHaveBeenCalled();
       expect(mockSupabase.single).toHaveBeenCalled();
-      
+
       expect(PlantService.getPlantById).toHaveBeenCalledWith(createdEvent.plant_id);
-      
       expect(HouseholdService.logActivity).toHaveBeenCalledWith(
         'watered',
         expect.objectContaining({
@@ -137,45 +139,50 @@ describe('EventService', () => {
         }),
         mockPlant.name
       );
-      
-      
+
       expect(result).toEqual(createdEvent);
     });
 
-    it('should map different event types to correct activity names', async () => {
-      const testCases = [
-        { event_type: 'fertilize' as const, expected: 'fertilized' },
-        { event_type: 'fertigate' as const, expected: 'fertigated' },
-        { event_type: 'repot' as const, expected: 'repotted' },
-        { event_type: 'prune' as const, expected: 'pruned' },
-        { event_type: 'pest_spotted' as const, expected: 'pest spotted' },
-        { event_type: 'insecticide_spray' as const, expected: 'insecticide spray' },
-        { event_type: 'other' as const, expected: 'other care' },
+    it('should map each event type to the correct activity action', async () => {
+      const cases = [
+        { event_type: 'fertilize' as const, action: 'fertilized' },
+        { event_type: 'fertigate' as const, action: 'fertigated' },
+        { event_type: 'repot' as const, action: 'repotted' },
+        { event_type: 'prune' as const, action: 'pruned' },
+        { event_type: 'pest_spotted' as const, action: 'pest spotted' },
+        { event_type: 'insecticide_spray' as const, action: 'insecticide spray' },
+        { event_type: 'other' as const, action: 'other care' },
       ];
 
-      for (const testCase of testCases) {
+      for (const { event_type, action } of cases) {
         jest.clearAllMocks();
         (HouseholdService.getUserSession as jest.Mock).mockResolvedValue(mockSession);
         (PlantService.getPlantById as jest.Mock).mockResolvedValue(mockPlant);
-        
-        const eventData = { ...newEventData, event_type: testCase.event_type };
+        mockSupabase.from.mockReturnValue(mockSupabase);
+        mockSupabase.insert.mockReturnValue(mockSupabase);
+        mockSupabase.select.mockReturnValue(mockSupabase);
+
+        const eventData = { ...newEventData, event_type };
         const createdEvent = { ...mockEvent, ...eventData };
         mockSupabase.single.mockResolvedValue({ data: createdEvent, error: null });
 
         await EventService.createEvent(eventData);
 
+        expect(mockSupabase.insert).toHaveBeenCalledWith(
+          expect.objectContaining({ event_type, household_id: 'household-123' })
+        );
         expect(HouseholdService.logActivity).toHaveBeenCalledWith(
-          testCase.expected,
+          action,
           expect.anything(),
           expect.anything()
         );
       }
     });
 
-    it('should use plant type when plant name is not available', async () => {
+    it('should fall back to plant type when plant name is unavailable', async () => {
       const plantWithoutName = { ...mockPlant, name: undefined };
       (PlantService.getPlantById as jest.Mock).mockResolvedValue(plantWithoutName);
-      
+
       const createdEvent = { ...mockEvent, ...newEventData };
       mockSupabase.single.mockResolvedValue({ data: createdEvent, error: null });
 
@@ -192,7 +199,7 @@ describe('EventService', () => {
       const mockError = { message: 'Insert failed' };
       mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
 
-      await expect(EventService.createEvent(newEventData)).rejects.toThrow('Failed to create event: Insert failed');
+      await expect(EventService.createEvent(newEventData)).rejects.toThrow('Database error during create');
     });
 
     it('should throw error when no household session', async () => {
@@ -237,7 +244,7 @@ describe('EventService', () => {
       const mockError = { message: 'Update failed', code: 'OTHER' };
       mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
 
-      await expect(EventService.updateEvent('event-123', updateData)).rejects.toThrow('Failed to update event: Update failed');
+      await expect(EventService.updateEvent('event-123', updateData)).rejects.toThrow('Database error during update');
     });
   });
 
@@ -266,7 +273,7 @@ describe('EventService', () => {
   describe('deleteEvent', () => {
     it('should delete an event successfully', async () => {
       jest.spyOn(EventService, 'getEventById').mockResolvedValue(mockEvent);
-      mockSupabase.delete.mockResolvedValue({ error: null });
+      mockSupabase._response = { error: null };
 
       const result = await EventService.deleteEvent('event-123');
 
@@ -290,16 +297,16 @@ describe('EventService', () => {
     it('should throw error when deletion fails', async () => {
       jest.spyOn(EventService, 'getEventById').mockResolvedValue(mockEvent);
       const mockError = { message: 'Delete failed' };
-      mockSupabase.delete.mockResolvedValue({ error: mockError });
+      mockSupabase._response = { error: mockError };
 
-      await expect(EventService.deleteEvent('event-123')).rejects.toThrow('Failed to delete event: Delete failed');
+      await expect(EventService.deleteEvent('event-123')).rejects.toThrow('Database error during delete');
     });
   });
 
   describe('getRecentEvents', () => {
     it('should fetch recent events with default limit', async () => {
       const recentEvents = [mockEvent];
-      mockSupabase.single.mockResolvedValue({ data: recentEvents, error: null });
+      mockSupabase._response = { data: recentEvents, error: null };
 
       const result = await EventService.getRecentEvents();
 
@@ -323,7 +330,7 @@ describe('EventService', () => {
 
   describe('getLastEventByType', () => {
     it('should fetch the last event of a specific type', async () => {
-      mockSupabase.single.mockResolvedValue({ data: mockEvent, error: null });
+      mockSupabase._response = { data: [mockEvent], error: null };
 
       const result = await EventService.getLastEventByType('plant-123', 'water');
 
@@ -349,12 +356,8 @@ describe('EventService', () => {
 
   describe('getEventStats', () => {
     it('should calculate event statistics for a plant', async () => {
-      // Mock count query
-      const mockCountResponse = { count: 5, error: null };
-      mockSupabase.select.mockReturnValueOnce({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue(mockCountResponse)
-      });
+      // Mock count query terminal
+      mockSupabase._response = { count: 5, error: null };
 
       // Mock individual event queries
       const lastWatered = { ...mockEvent, event_type: 'water' as const, date: '2024-01-10T10:00:00.000Z' };

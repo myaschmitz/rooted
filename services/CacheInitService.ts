@@ -1,4 +1,5 @@
 import { CacheService } from './CacheService';
+import { logger } from "../utils/logger";
 import { CachedPhotoService } from './CachedPhotoService';
 import { CacheInvalidationService } from './CacheInvalidationService';
 
@@ -15,12 +16,12 @@ export class CacheInitService {
    */
   static async initialize(): Promise<void> {
     if (this.initialized) {
-      console.log('Cache system already initialized');
+      logger.debug('Cache system already initialized');
       return;
     }
 
     try {
-      console.log('Initializing cache system...');
+      logger.debug('Initializing cache system...');
       
       // Initialize all cache services
       await Promise.all([
@@ -33,7 +34,7 @@ export class CacheInitService {
       this.setupPeriodicCleanup();
 
       this.initialized = true;
-      console.log('Cache system initialized successfully');
+      logger.debug('Cache system initialized successfully');
       
       // Log cache health status
       this.logCacheHealth();
@@ -97,14 +98,14 @@ export class CacheInitService {
    */
   static async clearAllCaches(): Promise<void> {
     try {
-      console.log('Clearing all caches...');
+      logger.debug('Clearing all caches...');
       
       await Promise.all([
         CacheService.clearAllCache(),
         CachedPhotoService.clearAllCache(),
       ]);
       
-      console.log('All caches cleared successfully');
+      logger.debug('All caches cleared successfully');
     } catch (error) {
       console.error('Failed to clear all caches:', error);
       throw error;
@@ -116,7 +117,7 @@ export class CacheInitService {
    */
   static async optimizeCaches(): Promise<void> {
     try {
-      console.log('Optimizing caches...');
+      logger.debug('Optimizing caches...');
       
       await Promise.all([
         CacheService.performMaintenance(),
@@ -124,7 +125,7 @@ export class CacheInitService {
         CacheInvalidationService.performPeriodicCleanup(),
       ]);
       
-      console.log('Cache optimization completed');
+      logger.debug('Cache optimization completed');
     } catch (error) {
       console.error('Failed to optimize caches:', error);
     }
@@ -153,7 +154,7 @@ export class CacheInitService {
   private static async logCacheHealth(): Promise<void> {
     try {
       const health = await CacheInvalidationService.getCacheHealth();
-      console.log(`Cache system health: ${health.overall}`);
+      logger.debug(`Cache system health: ${health.overall}`);
       
       if (health.overall !== 'healthy') {
         console.warn('Cache system issues detected:', health);
@@ -169,12 +170,12 @@ export class CacheInitService {
    */
   static async warmUpCaches(userId?: string): Promise<void> {
     try {
-      console.log('Warming up caches...');
+      logger.debug('Warming up caches...');
       
       // This could be extended to preload user-specific data
       // For now, we'll just let the natural app usage warm up the cache
       
-      console.log('Cache warm-up completed');
+      logger.debug('Cache warm-up completed');
     } catch (error) {
       console.error('Failed to warm up caches:', error);
     }
@@ -194,7 +195,7 @@ export class CacheInitService {
       this.initialized = false;
       await this.initialize();
       
-      console.log('Emergency cache reset completed');
+      logger.debug('Emergency cache reset completed');
     } catch (error) {
       console.error('Emergency cache reset failed:', error);
       throw error;

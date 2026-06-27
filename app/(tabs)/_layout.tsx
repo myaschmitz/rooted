@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { logger } from "../../utils/logger";
 import { View, Platform, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { AppInitializer } from '../../utils/AppInitializer';
@@ -14,10 +15,10 @@ export default function TabLayout() {
   const isDesktopWeb = Platform.OS === 'web' && isWide;
 
   useEffect(() => {
-    console.log('TabLayout: Starting app initialization...');
+    logger.debug('TabLayout: Starting app initialization...');
     AppInitializer.initialize()
       .then(() => {
-        console.log('TabLayout: App initialization completed successfully');
+        logger.debug('TabLayout: App initialization completed successfully');
       })
       .catch((error) => {
         console.error('TabLayout: App initialization failed:', error);

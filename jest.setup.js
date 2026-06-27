@@ -52,6 +52,13 @@ const mockSupabaseClient = {
   rpc: jest.fn(() => Promise.resolve({ data: null, error: null })),
 };
 
+// Make the query builder awaitable so a chain terminating on any builder
+// method (e.g. .order() / .eq() / .limit()) resolves to _response. Tests set
+// mockSupabaseClient._response to control list/delete query results.
+mockSupabaseClient._response = { data: null, error: null };
+mockSupabaseClient.then = (onFulfilled, onRejected) =>
+  Promise.resolve(mockSupabaseClient._response).then(onFulfilled, onRejected);
+
 jest.mock('./services/SupabaseService', () => ({
   supabase: mockSupabaseClient,
 }));
@@ -109,6 +116,8 @@ jest.mock('./services/CacheService', () => ({
     getMemoryStats: jest.fn(() => ({ used: 0, total: 1000 })),
     getCachedResponse: jest.fn(() => Promise.resolve(null)), // Add missing method
     setCachedResponse: jest.fn(() => Promise.resolve()),
+    cacheApiResponse: jest.fn(() => Promise.resolve()),
+    invalidateCache: jest.fn(() => Promise.resolve()),
   }
 }));
 
@@ -117,6 +126,7 @@ jest.mock('./services/CacheInvalidationService', () => ({
   CacheInvalidationService: {
     invalidate: jest.fn(),
     batchInvalidate: jest.fn(),
+    invalidateOnUserAction: jest.fn(() => Promise.resolve()),
   }
 }));
 

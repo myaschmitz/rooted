@@ -1,4 +1,5 @@
 import { Tag, PlantTag, PlantTagWithDetails } from "../types/Plant";
+import { logger } from "../utils/logger";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { CacheService } from "./CacheService";
@@ -61,10 +62,16 @@ export class TagService {
   }
 
   static async getTagById(tagId: string): Promise<Tag> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { data, error } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
       .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .single();
 
     if (error) {
@@ -212,11 +219,17 @@ export class TagService {
   }
 
   static async deleteTag(tagId: string): Promise<boolean> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     // Get tag info before deleting for activity log
     const { data: tag, error: fetchError } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
       .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .single();
 
     if (fetchError) {
@@ -228,7 +241,8 @@ export class TagService {
     const { error } = await supabase
       .from(DB_TABLES.TAGS)
       .delete()
-      .eq("id", tagId);
+      .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting tag:", error);
@@ -682,13 +696,13 @@ export class TagService {
       console.error("Error in getAvailableTagsForPlant:", error);
       // If there's an error with cached data, try without cache
       if (!bypassCache) {
-        console.log(
+        logger.debug(
           "[TagService] Retrying getAvailableTagsForPlant without cache",
         );
         return this.getAvailableTagsForPlant(plantId, true);
       }
       // If still failing, return empty array to allow tag creation
-      console.log("[TagService] Falling back to empty available tags array");
+      logger.debug("[TagService] Falling back to empty available tags array");
       return [];
     }
   }
@@ -718,13 +732,13 @@ export class TagService {
       console.error("Error in getAllTagsWithPlantStatus:", error);
       // If there's an error with cached data, try without cache
       if (!bypassCache) {
-        console.log(
+        logger.debug(
           "[TagService] Retrying getAllTagsWithPlantStatus without cache",
         );
         return this.getAllTagsWithPlantStatus(plantId, true);
       }
       // If still failing, return empty array to allow tag creation
-      console.log("[TagService] Falling back to empty tags array");
+      logger.debug("[TagService] Falling back to empty tags array");
       return [];
     }
   }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { logger } from "../utils/logger";
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../services/SupabaseService';
 import { queryKeys } from '../constants/queryKeys';
@@ -61,7 +62,7 @@ class RealtimeSubscriptionManager {
       this.destroySubscription();
     }
 
-    console.log('Creating shared realtime subscription');
+    logger.debug('Creating shared realtime subscription');
     this.channel = supabase
       .channel('rooted-db-changes')
       .on(
@@ -72,7 +73,7 @@ class RealtimeSubscriptionManager {
           table: 'plants'
         },
         async (payload) => {
-          console.log('Plants table changed:', payload.eventType, payload.new?.id || payload.old?.id);
+          logger.debug('Plants table changed:', payload.eventType, payload.new?.id || payload.old?.id);
           
           // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.id || payload.old?.id;
@@ -104,7 +105,7 @@ class RealtimeSubscriptionManager {
           table: 'events'
         },
         async (payload) => {
-          console.log('Events table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          logger.debug('Events table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
           
           // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.plant_id || payload.old?.plant_id;
@@ -131,7 +132,7 @@ class RealtimeSubscriptionManager {
           table: 'plant_photos'
         },
         async (payload) => {
-          console.log('Plant photos table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
+          logger.debug('Plant photos table changed:', payload.eventType, payload.new?.plant_id || payload.old?.plant_id);
           
           // Trigger React Query cache invalidation instead of full reloads
           const plantId = payload.new?.plant_id || payload.old?.plant_id;
@@ -153,7 +154,7 @@ class RealtimeSubscriptionManager {
         }
       )
       .subscribe((status, err) => {
-        console.log('Subscription status:', status);
+        logger.debug('Subscription status:', status);
         this.handleSubscriptionStatus(status, err);
       });
   }
@@ -161,7 +162,7 @@ class RealtimeSubscriptionManager {
   private handleSubscriptionStatus(status: string, err?: any): void {
     switch (status) {
       case 'SUBSCRIBED':
-        console.log('Real-time subscriptions active');
+        logger.debug('Real-time subscriptions active');
         this.isSubscribed = true;
         this.retryCount = 0;
         if (this.retryTimeout) {
@@ -180,7 +181,7 @@ class RealtimeSubscriptionManager {
         this.retrySubscription();
         break;
       case 'CLOSED':
-        console.log('Real-time subscription closed');
+        logger.debug('Real-time subscription closed');
         this.isSubscribed = false;
         break;
     }
@@ -191,7 +192,7 @@ class RealtimeSubscriptionManager {
       this.retryCount++;
       const delay = Math.min(1000 * Math.pow(2, this.retryCount - 1), 10000); // Exponential backoff, max 10s
       
-      console.log(`Retrying subscription in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
+      logger.debug(`Retrying subscription in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
       
       this.retryTimeout = setTimeout(() => {
         this.destroySubscription();
@@ -214,7 +215,7 @@ class RealtimeSubscriptionManager {
 
   private destroySubscription(): void {
     if (this.channel) {
-      console.log('Destroying realtime subscription');
+      logger.debug('Destroying realtime subscription');
       try {
         supabase.removeChannel(this.channel);
       } catch (error) {

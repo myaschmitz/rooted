@@ -36,72 +36,85 @@ export const CachedImage: React.FC<CachedImageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const loadImage = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setHasError(false);
+  const loadImage = useCallback(
+    async (isActive: () => boolean) => {
+      try {
+        setIsLoading(true);
+        setHasError(false);
 
-      let imageUrl: string;
+        let imageUrl: string;
 
-      // Handle different source types
-      if (typeof source === "string") {
-        imageUrl = source;
-      } else if (source && typeof source === "object" && "uri" in source) {
-        imageUrl = source.uri;
-      } else if (
-        source &&
-        typeof source === "object" &&
-        "file_path" in source
-      ) {
-        // PlantPhoto object
-        const photo = source as PlantPhoto;
-        imageUrl = await CachedPhotoService.getCachedPhotoUrl(
-          photo,
-          useThumbnail,
-        );
+        // Handle different source types
+        if (typeof source === "string") {
+          imageUrl = source;
+        } else if (source && typeof source === "object" && "uri" in source) {
+          imageUrl = source.uri;
+        } else if (
+          source &&
+          typeof source === "object" &&
+          "file_path" in source
+        ) {
+          // PlantPhoto object
+          const photo = source as PlantPhoto;
+          imageUrl = await CachedPhotoService.getCachedPhotoUrl(
+            photo,
+            useThumbnail,
+          );
+          if (!isActive()) return;
 
-        // Check if we got a cached version
-        if (imageUrl !== photo.file_path && imageUrl !== photo.thumbnail_path) {
-          onCacheHit?.();
+          // Check if we got a cached version
+          if (
+            imageUrl !== photo.file_path &&
+            imageUrl !== photo.thumbnail_path
+          ) {
+            onCacheHit?.();
+          } else {
+            onCacheMiss?.();
+          }
         } else {
-          onCacheMiss?.();
+          throw new Error("Invalid image source");
         }
-      } else {
-        throw new Error("Invalid image source");
-      }
 
-      // For HTTP URLs, use our caching service
-      if (imageUrl.startsWith("http")) {
-        const cachedUrl = await CachedPhotoService.getCachedPhoto(
-          imageUrl,
-          useThumbnail,
-        );
-        setImageSource(cachedUrl);
+        // For HTTP URLs, use our caching service
+        if (imageUrl.startsWith("http")) {
+          const cachedUrl = await CachedPhotoService.getCachedPhoto(
+            imageUrl,
+            useThumbnail,
+          );
+          if (!isActive()) return;
+          setImageSource(cachedUrl);
 
-        if (cachedUrl !== imageUrl) {
-          onCacheHit?.();
+          if (cachedUrl !== imageUrl) {
+            onCacheHit?.();
+          } else {
+            onCacheMiss?.();
+          }
         } else {
-          onCacheMiss?.();
+          // For local files, use directly
+          setImageSource(imageUrl);
         }
-      } else {
-        // For local files, use directly
-        setImageSource(imageUrl);
-      }
-    } catch (error) {
-      console.error("Failed to load cached image:", error);
-      setHasError(true);
+      } catch (error) {
+        if (!isActive()) return;
+        console.error("Failed to load cached image:", error);
+        setHasError(true);
 
-      // Try fallback source
-      if (fallbackSource) {
-        setImageSource(fallbackSource);
+        // Try fallback source
+        if (fallbackSource) {
+          setImageSource(fallbackSource);
+        }
+      } finally {
+        if (isActive()) setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [source, useThumbnail, fallbackSource, onCacheHit, onCacheMiss]);
+    },
+    [source, useThumbnail, fallbackSource, onCacheHit, onCacheMiss],
+  );
 
   useEffect(() => {
-    loadImage();
+    let active = true;
+    loadImage(() => active);
+    return () => {
+      active = false;
+    };
   }, [loadImage]);
 
   const handleLoad = (event: any) => {

@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { logger } from "../utils/logger";
 import { CacheService } from "./CacheService";
 import { CachedPhotoService } from "./CachedPhotoService";
 import { queryKeys } from "../constants/queryKeys";
@@ -87,7 +88,7 @@ export class CacheInvalidationService {
     this.pendingInvalidations = [];
     this.batchTimeout = null;
 
-    console.log(`Processing cache invalidation batch: ${batch.length} actions`);
+    logger.debug(`Processing cache invalidation batch: ${batch.length} actions`);
 
     // Group by action type for optimization
     const grouped = batch.reduce(
@@ -581,7 +582,7 @@ export class CacheInvalidationService {
         }, 0);
 
         if (totalInvalidated > 0) {
-          console.log(
+          logger.debug(
             `MMKV cache invalidation: ${totalInvalidated} entries removed for ${action}`,
           );
         }
@@ -676,7 +677,7 @@ export class CacheInvalidationService {
       options?: CacheInvalidationOptions;
     }>,
   ): Promise<void> {
-    console.log(
+    logger.debug(
       `Manual batch cache invalidation for ${actions.length} actions`,
     );
 
@@ -690,7 +691,7 @@ export class CacheInvalidationService {
   // Periodic cache optimization
   static async performPeriodicCleanup(): Promise<void> {
     try {
-      console.log("Performing periodic cache cleanup...");
+      logger.debug("Performing periodic cache cleanup...");
 
       await Promise.all([
         // Clean up expired MMKV cache
@@ -706,7 +707,7 @@ export class CacheInvalidationService {
         CacheService.performMaintenance(),
       ]);
 
-      console.log("Periodic cache cleanup completed");
+      logger.debug("Periodic cache cleanup completed");
     } catch (error) {
       console.error("Failed to perform periodic cache cleanup:", error);
     }
@@ -766,7 +767,7 @@ export class CacheInvalidationService {
         CachedPhotoService.initialize(),
         CacheService.isHealthy(), // This initializes MMKV if needed
       ]);
-      console.log("Cache system initialized successfully");
+      logger.debug("Cache system initialized successfully");
     } catch (error) {
       console.error("Failed to initialize cache system:", error);
     }
