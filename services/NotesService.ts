@@ -202,10 +202,15 @@ export class NotesService {
   }
 
   static async deleteAllNotes(): Promise<void> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { error } = await supabase
       .from(DB_TABLES.NOTES)
       .delete()
-      .neq("id", ""); // Delete all rows
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting all notes:", error);

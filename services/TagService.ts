@@ -61,10 +61,16 @@ export class TagService {
   }
 
   static async getTagById(tagId: string): Promise<Tag> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     const { data, error } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
       .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .single();
 
     if (error) {
@@ -212,11 +218,17 @@ export class TagService {
   }
 
   static async deleteTag(tagId: string): Promise<boolean> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
     // Get tag info before deleting for activity log
     const { data: tag, error: fetchError } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
       .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
       .single();
 
     if (fetchError) {
@@ -228,7 +240,8 @@ export class TagService {
     const { error } = await supabase
       .from(DB_TABLES.TAGS)
       .delete()
-      .eq("id", tagId);
+      .eq("id", tagId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
 
     if (error) {
       console.error("Error deleting tag:", error);

@@ -26,6 +26,7 @@ describe('PlantService', () => {
     notes: 'Growing well',
     household_id: 'household-123',
     pinned: false,
+    archived: false,
     created_at: '2024-01-15T10:00:00.000Z',
     updated_at: '2024-01-15T10:00:00.000Z',
   };
@@ -52,13 +53,15 @@ describe('PlantService', () => {
     mockSupabase.or.mockReturnValue(mockSupabase);
     mockSupabase.order.mockReturnValue(mockSupabase);
     mockSupabase.limit.mockReturnValue(mockSupabase);
+    // Reset awaitable response for list/delete query terminals
+    mockSupabase._response = { data: null, error: null };
   });
 
   describe('getAllPlants', () => {
     it('should fetch all plants for the current household', async () => {
       const mockPlants = [mockPlant, { ...mockPlant, id: 'plant-456', name: 'Snake Plant' }];
       
-      mockSupabase.single.mockResolvedValue({ data: mockPlants, error: null });
+      mockSupabase._response = { data: mockPlants, error: null };
 
       const result = await PlantService.getAllPlants();
 
@@ -78,13 +81,13 @@ describe('PlantService', () => {
 
     it('should throw error when Supabase returns an error', async () => {
       const mockError = { message: 'Database error' };
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabase._response = { data: null, error: mockError };
 
-      await expect(PlantService.getAllPlants()).rejects.toThrow('Failed to fetch plants: Database error');
+      await expect(PlantService.getAllPlants()).rejects.toThrow('Database error during fetch plants');
     });
 
     it('should return empty array when no plants found', async () => {
-      mockSupabase.single.mockResolvedValue({ data: [], error: null });
+      mockSupabase._response = { data: [], error: null };
 
       const result = await PlantService.getAllPlants();
       expect(result).toEqual([]);
@@ -117,7 +120,7 @@ describe('PlantService', () => {
       const mockError = { message: 'Database error', code: 'OTHER' };
       mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
 
-      await expect(PlantService.getPlantById('plant-123')).rejects.toThrow('Failed to fetch plant: Database error');
+      await expect(PlantService.getPlantById('plant-123')).rejects.toThrow('Database error during fetch');
     });
   });
 
@@ -127,6 +130,7 @@ describe('PlantService', () => {
       type: 'Fiddle Leaf Fig',
       location: 'Bedroom',
       notes: 'Just purchased',
+      archived: false,
     };
 
     it('should create a new plant successfully', async () => {
@@ -159,7 +163,7 @@ describe('PlantService', () => {
     });
 
     it('should create plant without name', async () => {
-      const plantWithoutName = { type: 'Spider Plant', location: 'Kitchen' };
+      const plantWithoutName = { type: 'Spider Plant', location: 'Kitchen', archived: false };
       const createdPlant = { ...mockPlant, ...plantWithoutName, name: undefined };
       mockSupabase.single.mockResolvedValue({ data: createdPlant, error: null });
 
@@ -177,7 +181,7 @@ describe('PlantService', () => {
       const mockError = { message: 'Insert failed' };
       mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
 
-      await expect(PlantService.createPlant(newPlantData)).rejects.toThrow('Failed to create plant: Insert failed');
+      await expect(PlantService.createPlant(newPlantData)).rejects.toThrow('Database error during create');
     });
 
     it('should throw error when no household session', async () => {
@@ -239,7 +243,7 @@ describe('PlantService', () => {
       const mockError = { message: 'Update failed', code: 'OTHER' };
       mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
 
-      await expect(PlantService.updatePlant('plant-123', updateData)).rejects.toThrow('Failed to update plant: Update failed');
+      await expect(PlantService.updatePlant('plant-123', updateData)).rejects.toThrow('Database error during update');
     });
   });
 
@@ -247,7 +251,7 @@ describe('PlantService', () => {
     it('should delete a plant successfully', async () => {
       // Mock getPlantById to return the plant
       jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
-      mockSupabase.delete.mockResolvedValue({ error: null });
+      mockSupabase._response = { error: null };
 
       const result = await PlantService.deletePlant('plant-123');
 
@@ -270,17 +274,18 @@ describe('PlantService', () => {
     });
 
     it('should throw error when deletion fails', async () => {
+      jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
       const mockError = { message: 'Delete failed' };
-      mockSupabase.delete.mockResolvedValue({ error: mockError });
+      mockSupabase._response = { error: mockError };
 
-      await expect(PlantService.deletePlant('plant-123')).rejects.toThrow('Failed to delete plant: Delete failed');
+      await expect(PlantService.deletePlant('plant-123')).rejects.toThrow('Database error during delete');
     });
   });
 
   describe('searchPlants', () => {
     it('should search plants by query', async () => {
       const searchResults = [mockPlant];
-      mockSupabase.single.mockResolvedValue({ data: searchResults, error: null });
+      mockSupabase._response = { data: searchResults, error: null };
 
       const result = await PlantService.searchPlants('monstera');
 
@@ -293,7 +298,7 @@ describe('PlantService', () => {
 
     it('should handle case-insensitive search', async () => {
       const searchResults = [mockPlant];
-      mockSupabase.single.mockResolvedValue({ data: searchResults, error: null });
+      mockSupabase._response = { data: searchResults, error: null };
 
       await PlantService.searchPlants('MONSTERA');
 

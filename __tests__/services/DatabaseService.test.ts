@@ -11,17 +11,12 @@ describe('DatabaseService', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
-    
-    // Create a chainable mock that resolves for delete operations
-    const chainableMock = {
-      neq: jest.fn(() => Promise.resolve({ error: null })),
-    };
-    
-    // Reset Supabase mock chain
+
+    // Reset Supabase mock chain (delete().neq() must be chainable)
     mockSupabase.from.mockReturnValue(mockSupabase);
     mockSupabase.select.mockReturnValue(mockSupabase);
-    mockSupabase.delete.mockReturnValue(chainableMock); // Return object with neq method
-    mockSupabase.neq.mockReturnValue(mockSupabase);
+    mockSupabase.delete.mockReturnValue(mockSupabase);
+    mockSupabase.neq.mockResolvedValue({ error: null });
     mockSupabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null }, error: null });
   });
@@ -76,7 +71,7 @@ describe('DatabaseService', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('plants');
       expect(mockSupabase.from).toHaveBeenCalledWith('events');
       expect(mockSupabase.from).toHaveBeenCalledWith('plant_photos');
-      expect(mockSupabase.from).toHaveBeenCalledWith('plant_notes');
+      expect(mockSupabase.from).toHaveBeenCalledWith('notes');
       
       expect(result).toEqual({
         connected: true,
@@ -129,13 +124,10 @@ describe('DatabaseService', () => {
 
   describe('resetDatabase', () => {
     it('should delete data from all tables in correct order', async () => {
-      // Mock successful deletion for all tables
-      mockSupabase.delete.mockResolvedValue({ error: null });
-
       await DatabaseService.resetDatabase();
 
       // Verify tables are deleted in correct order (respecting foreign key constraints)
-      expect(mockSupabase.from).toHaveBeenCalledWith('plant_notes');
+      expect(mockSupabase.from).toHaveBeenCalledWith('notes');
       expect(mockSupabase.from).toHaveBeenCalledWith('plant_photos');
       expect(mockSupabase.from).toHaveBeenCalledWith('events');
       expect(mockSupabase.from).toHaveBeenCalledWith('plants');

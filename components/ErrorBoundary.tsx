@@ -96,7 +96,7 @@ function ErrorFallback({ onRestart, errorMessage }: {
       borderColor: theme.colors.border,
     },
     buttonText: {
-      color: theme.colors.buttonText,
+      color: theme.colors.textOnPrimary,
       fontSize: 16,
       fontWeight: '600',
     },
