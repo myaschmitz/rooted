@@ -27,6 +27,7 @@ describe('Plant and Event Integration Tests', () => {
     location: 'Test Room',
     household_id: 'household-123',
     pinned: false,
+    archived: false,
     created_at: '2024-01-15T10:00:00.000Z',
     updated_at: '2024-01-15T10:00:00.000Z',
   };

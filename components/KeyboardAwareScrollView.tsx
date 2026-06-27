@@ -100,15 +100,19 @@ function enhanceInputs(
     return element;
   }
 
+  const el = element as React.ReactElement<any> & {
+    ref?: React.Ref<TextInput> | ((input: TextInput | null) => void);
+  };
+
   // Check if it's a TextInput by checking the displayName or component type
-  const isTextInput = element.type === TextInput || 
-                     (element.type as any)?.displayName === 'TextInput' ||
-                     (element.type as any)?.name === 'TextInput';
+  const isTextInput = el.type === TextInput || 
+                     (el.type as any)?.displayName === 'TextInput' ||
+                     (el.type as any)?.name === 'TextInput';
 
   if (isTextInput) {
     const inputId = `input_${inputCounter.current++}`;
     
-    return React.cloneElement(element as React.ReactElement<any>, {
+    return React.cloneElement(el, {
       ref: (input: TextInput) => {
         if (input) {
           registerInput(input, inputId);
@@ -116,18 +120,18 @@ function enhanceInputs(
           unregisterInput(inputId);
         }
         // Call original ref if it exists
-        if (element.ref) {
-          if (typeof element.ref === 'function') {
-            element.ref(input);
+        if (el.ref) {
+          if (typeof el.ref === 'function') {
+            el.ref(input);
           } else {
-            element.ref.current = input;
+            (el.ref as React.MutableRefObject<TextInput>).current = input;
           }
         }
       },
       onFocus: (e: any) => {
         // Call original onFocus if it exists
-        if (element.props.onFocus) {
-          element.props.onFocus(e);
+        if (el.props.onFocus) {
+          el.props.onFocus(e);
         }
         // Get the TextInput reference and pass it to our handler
         const input = e.target as TextInput;
@@ -137,8 +141,8 @@ function enhanceInputs(
       },
       onBlur: (e: any) => {
         // Call original onBlur if it exists
-        if (element.props.onBlur) {
-          element.props.onBlur(e);
+        if (el.props.onBlur) {
+          el.props.onBlur(e);
         }
         // Add our blur handling
         onBlur();
@@ -147,14 +151,14 @@ function enhanceInputs(
   }
 
   // If it has children, recursively enhance them
-  if (element.props?.children) {
+  if (el.props?.children) {
     const enhancedChildren = React.Children.map(
-      element.props.children,
+      el.props.children,
       (child) => enhanceInputs(child, onFocus, onBlur, registerInput, unregisterInput, inputCounter)
     );
 
-    return React.cloneElement(element as React.ReactElement<any>, {
-      ...element.props,
+    return React.cloneElement(el, {
+      ...el.props,
       children: enhancedChildren,
     });
   }

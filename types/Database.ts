@@ -84,6 +84,8 @@ export type Database = {
           notes?: string;
           thumbnail_photo_id?: string;
           pinned: boolean;
+          archived: boolean;
+          archived_at?: string;
           household_id: string;
           created_at: string;
           updated_at: string;
@@ -96,6 +98,8 @@ export type Database = {
           notes?: string;
           thumbnail_photo_id?: string;
           pinned?: boolean;
+          archived?: boolean;
+          archived_at?: string;
           household_id: string;
           created_at?: string;
           updated_at?: string;
@@ -108,6 +112,8 @@ export type Database = {
           notes?: string;
           thumbnail_photo_id?: string;
           pinned?: boolean;
+          archived?: boolean;
+          archived_at?: string;
           household_id?: string;
           updated_at?: string;
         };

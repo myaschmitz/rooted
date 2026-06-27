@@ -67,6 +67,7 @@ export default function PlantDetailPanel({
     handlePhotoOptions,
     handleDeleteSelectedPhotos,
     handleDeletePlant,
+    handleArchivePlant,
     handleDeleteCareEvent,
     handleDownloadPhoto,
     toggleMultiSelect,
@@ -138,6 +139,7 @@ export default function PlantDetailPanel({
           thumbnailPhoto={thumbnailPhoto}
           onThumbnailPress={handleThumbnailPress}
           onDeletePlant={handleDeletePlant}
+          onArchivePlant={handleArchivePlant}
         />
 
         <View style={styles.tagSection}>

@@ -100,7 +100,13 @@ export class PlantService {
   static async createPlant(
     plantData: Omit<
       Plant,
-      "id" | "created_at" | "updated_at" | "household_id" | "pinned"
+      | "id"
+      | "created_at"
+      | "updated_at"
+      | "household_id"
+      | "pinned"
+      | "archived"
+      | "archived_at"
     >,
   ): Promise<Plant> {
     // Get current household session
@@ -113,6 +119,7 @@ export class PlantService {
       ...plantData,
       household_id: session.household_id,
       pinned: false,
+      archived: false,
     };
 
     const { data, error } = await supabase
