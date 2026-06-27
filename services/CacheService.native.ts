@@ -1,4 +1,5 @@
 import { MMKV } from 'react-native-mmkv';
+import { logger } from "../utils/logger";
 
 interface CacheEntry {
   data: any;
@@ -227,7 +228,7 @@ export class CacheService {
       }
 
       if (cleaned > 0) {
-        console.log(`Cleaned up ${cleaned} expired cache entries`);
+        logger.debug(`Cleaned up ${cleaned} expired cache entries`);
       }
       
       return { cleaned, errors: 0 };
@@ -248,7 +249,7 @@ export class CacheService {
         }
       }
       this.memoryCache.clear();
-      console.log('All cache cleared successfully');
+      logger.debug('All cache cleared successfully');
       return { success: true };
     } catch (error) {
       console.error('Failed to clear all cache:', error);
@@ -363,7 +364,7 @@ export class CacheService {
         this.memoryCache.set(entry.key, cacheEntry);
       });
       
-      console.log(`Successfully cached ${entries.length} entries`);
+      logger.debug(`Successfully cached ${entries.length} entries`);
     } catch (error) {
       console.error('Failed to cache multiple entries:', error);
     }
@@ -399,7 +400,7 @@ export class CacheService {
       // Clean up expired entries
       await this.cleanupExpiredCache();
       
-      console.log('Cache maintenance completed');
+      logger.debug('Cache maintenance completed');
     } catch (error) {
       console.error('Cache maintenance failed:', error);
     }

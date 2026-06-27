@@ -1,4 +1,5 @@
 import { File, Directory, Paths } from 'expo-file-system';
+import { logger } from "../utils/logger";
 import { Image } from 'expo-image';
 import { PlantPhoto } from '../types/Plant';
 import { CacheService } from './CacheService';
@@ -237,7 +238,7 @@ export class CachedPhotoService {
       }
     }
     
-    console.log(`Batch caching completed: ${results.cached} cached, ${results.failed} failed`);
+    logger.debug(`Batch caching completed: ${results.cached} cached, ${results.failed} failed`);
     return results;
   }
 
@@ -327,7 +328,7 @@ export class CachedPhotoService {
       }
       
       if (cleaned > 0) {
-        console.log(`Cache cleanup: ${cleaned} files removed, ${(sizeFreed / 1024 / 1024).toFixed(2)}MB freed`);
+        logger.debug(`Cache cleanup: ${cleaned} files removed, ${(sizeFreed / 1024 / 1024).toFixed(2)}MB freed`);
       }
     } catch (error) {
       console.error('Failed to clean expired cache:', error);
@@ -442,7 +443,7 @@ export class CachedPhotoService {
       const stats = await this.getCacheStats();
       
       if (stats.totalSize > this.MAX_CACHE_SIZE * 0.8) { // 80% threshold
-        console.log('Cache optimization needed, current size:', (stats.totalSize / 1024 / 1024).toFixed(2), 'MB');
+        logger.debug('Cache optimization needed, current size:', (stats.totalSize / 1024 / 1024).toFixed(2), 'MB');
         await this.cleanExpiredCache();
       }
     } catch (error) {

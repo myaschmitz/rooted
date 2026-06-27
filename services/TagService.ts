@@ -1,4 +1,5 @@
 import { Tag, PlantTag, PlantTagWithDetails } from "../types/Plant";
+import { logger } from "../utils/logger";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { CacheService } from "./CacheService";
@@ -695,13 +696,13 @@ export class TagService {
       console.error("Error in getAvailableTagsForPlant:", error);
       // If there's an error with cached data, try without cache
       if (!bypassCache) {
-        console.log(
+        logger.debug(
           "[TagService] Retrying getAvailableTagsForPlant without cache",
         );
         return this.getAvailableTagsForPlant(plantId, true);
       }
       // If still failing, return empty array to allow tag creation
-      console.log("[TagService] Falling back to empty available tags array");
+      logger.debug("[TagService] Falling back to empty available tags array");
       return [];
     }
   }
@@ -731,13 +732,13 @@ export class TagService {
       console.error("Error in getAllTagsWithPlantStatus:", error);
       // If there's an error with cached data, try without cache
       if (!bypassCache) {
-        console.log(
+        logger.debug(
           "[TagService] Retrying getAllTagsWithPlantStatus without cache",
         );
         return this.getAllTagsWithPlantStatus(plantId, true);
       }
       // If still failing, return empty array to allow tag creation
-      console.log("[TagService] Falling back to empty tags array");
+      logger.debug("[TagService] Falling back to empty tags array");
       return [];
     }
   }

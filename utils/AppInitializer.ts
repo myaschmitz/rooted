@@ -1,8 +1,9 @@
 import { DatabaseService } from '../services/DatabaseService';
+import { logger } from "./logger";
 
 export class AppInitializer {
   static async initialize(): Promise<void> {
-    console.log('Starting app initialization...');
+    logger.debug('Starting app initialization...');
     
     try {
 
@@ -10,7 +11,7 @@ export class AppInitializer {
       try {
         const isConnected = await DatabaseService.testConnection();
         if (isConnected) {
-          console.log('Supabase connection successful');
+          logger.debug('Supabase connection successful');
         } else {
           console.warn('Supabase connection failed - app will work in offline mode');
         }
@@ -19,7 +20,7 @@ export class AppInitializer {
         console.warn('App will work in offline mode');
       }
       
-      console.log('App initialization completed');
+      logger.debug('App initialization completed');
     } catch (error) {
       console.error('App initialization failed:', error);
       // Even if everything fails, let the app continue
@@ -33,7 +34,7 @@ export class AppInitializer {
       // Reset Supabase database
       await DatabaseService.resetDatabase();
       
-      console.log('App data reset successfully');
+      logger.debug('App data reset successfully');
     } catch (error) {
       console.error('Failed to reset app:', error);
       throw error;

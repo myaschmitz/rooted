@@ -1,4 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
+import { logger } from "../utils/logger";
 import * as ImageManipulator from "expo-image-manipulator";
 import { PlantPhoto } from "../types/Plant";
 import { supabase } from "./SupabaseService";
@@ -78,11 +79,11 @@ export class PhotoService {
     fileName: string,
   ): Promise<string | null> {
     try {
-      console.log("Starting web upload for file:", fileName);
+      logger.debug("Starting web upload for file:", fileName);
 
       const response = await fetch(fileUri);
       const blob = await response.blob();
-      console.log("Blob created, size:", blob.size);
+      logger.debug("Blob created, size:", blob.size);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(this.STORAGE_BUCKET)
@@ -644,7 +645,7 @@ export class PhotoService {
 
   static async cleanupOrphanedPhotos(): Promise<void> {
     // No local file system on web — only cloud cleanup needed
-    console.log("Orphaned photo cleanup is not available on web");
+    logger.debug("Orphaned photo cleanup is not available on web");
   }
 
   static async deleteAllPhotos(): Promise<void> {
