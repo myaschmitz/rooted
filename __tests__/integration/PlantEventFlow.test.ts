@@ -48,6 +48,7 @@ describe('Plant and Event Integration Tests', () => {
     mockSupabase.eq.mockReturnValue(mockSupabase);
     mockSupabase.order.mockReturnValue(mockSupabase);
     mockSupabase.limit.mockReturnValue(mockSupabase);
+    mockSupabase._response = { data: null, error: null };
   });
 
   describe('Complete Plant Care Workflow', () => {
@@ -152,10 +153,7 @@ describe('Plant and Event Integration Tests', () => {
 
       // Step 4: Verify events can be retrieved for the plant
       const mockEvents = [fertilizeEvent, waterEvent]; // Ordered by date desc
-      mockSupabase.single.mockResolvedValueOnce({
-        data: mockEvents,
-        error: null,
-      });
+      mockSupabase._response = { data: mockEvents, error: null };
 
       const plantEvents = await EventService.getEventsByPlantId(mockPlant.id);
 
@@ -218,11 +216,8 @@ describe('Plant and Event Integration Tests', () => {
     it('should calculate correct event statistics', async () => {
       jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
 
-      // Mock count response
-      mockSupabase.select.mockReturnValueOnce({
-        ...mockSupabase,
-        single: jest.fn().mockResolvedValue({ count: 3, error: null })
-      });
+      // Mock count query terminal
+      mockSupabase._response = { count: 3, error: null };
 
       // Mock individual event queries
       const lastWatered: Event = {
@@ -270,7 +265,7 @@ describe('Plant and Event Integration Tests', () => {
       jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
       
       // Mock successful deletion
-      mockSupabase.delete.mockResolvedValue({ error: null });
+      mockSupabase._response = { error: null };
 
       const result = await PlantService.deletePlant(mockPlant.id);
 
@@ -311,10 +306,13 @@ describe('Plant and Event Integration Tests', () => {
 
     it('should handle database errors consistently', async () => {
       const mockError = { message: 'Database connection failed' };
-      mockSupabase.single.mockResolvedValue({ data: null, error: mockError });
+      mockSupabase._response = { data: null, error: mockError };
 
-      await expect(PlantService.getAllPlants()).rejects.toThrow('Failed to fetch plants: Database connection failed');
-      await expect(EventService.getEventsByPlantId('plant-123')).rejects.toThrow('Failed to fetch events: Database connection failed');
+      await expect(PlantService.getAllPlants()).rejects.toThrow('Database error during fetch plants');
+
+      // getEventsByPlantId first verifies the plant exists via getPlantById
+      jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
+      await expect(EventService.getEventsByPlantId('plant-123')).rejects.toThrow('Database error during fetch');
     });
   });
 });

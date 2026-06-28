@@ -7,6 +7,7 @@ module.exports = {
   },
   testMatch: [
     '**/__tests__/services/**/*.(test|spec).(js|ts)',
+    '**/__tests__/integration/**/*.(test|spec).(js|ts)',
   ],
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
