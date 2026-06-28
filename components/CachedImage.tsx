@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { Image, ImageProps } from "expo-image";
+import { BaseColors } from "../styles/theme";
 import { CachedPhotoService } from "../services/CachedPhotoService";
 import { PlantPhoto } from "../types/Plant";
 
@@ -163,7 +164,7 @@ export const CachedImage: React.FC<CachedImageProps> = ({
 
       {showLoader && isLoading && (
         <View style={styles.loader}>
-          <ActivityIndicator size="small" color="#4CAF50" />
+          <ActivityIndicator size="small" color={BaseColors.primary} />
         </View>
       )}
 

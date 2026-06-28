@@ -1,4 +1,5 @@
 import { Event } from "../types/Plant";
+import dayjs from "dayjs";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
@@ -362,7 +363,7 @@ export class EventService {
 
           if (
             !existingEvent ||
-            new Date(event.date) > new Date(existingEvent.date)
+            dayjs(event.date).isAfter(dayjs(existingEvent.date))
           ) {
             eventsByPlantAndType.set(key, event as Event);
           }

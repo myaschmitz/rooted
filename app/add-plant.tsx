@@ -13,6 +13,7 @@ import { PhotoService } from '../services/PhotoService';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
+import { BaseColors } from '../styles/theme';
 import { Camera } from 'lucide-react-native';
 import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
@@ -145,7 +146,7 @@ export default function AddPlantScreen() {
                       <Text style={styles.removePhotoButtonText}>×</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.changePhotoButton} onPress={handleAddPhoto}>
-                      <Camera size={20} color="#FFFFFF" />
+                      <Camera size={20} color={BaseColors.white} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -321,7 +322,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
   },
   removePhotoButtonText: {
-    color: '#FFFFFF',
+    color: BaseColors.white,
     fontSize: 20,
     fontWeight: 'bold',
     lineHeight: 20,

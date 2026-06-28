@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import dayjs from 'dayjs';
 
 export class DateTimeService {
   private static DEFAULT_DATE_FORMAT = 'MM/DD/YYYY';
@@ -159,16 +160,12 @@ export class DateTimeService {
   }
 
   static formatTimeAgo(date: Date | string): string {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    const now = new Date();
-    
+    const target = dayjs(date);
+    const now = dayjs();
+
     // Normalize to start of day to avoid time-of-day issues
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfTargetDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-    
-    const diffMs = startOfToday.getTime() - startOfTargetDay.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+    const diffDays = now.startOf('day').diff(target.startOf('day'), 'day');
+
     if (diffDays === 0) {
       return 'Today';
     } else if (diffDays >= 1 && diffDays <= 20) {
@@ -181,10 +178,10 @@ export class DateTimeService {
     } else {
       // At 8 weeks (56 days), switch to months
       // Calculate actual months difference
-      const targetYear = dateObj.getFullYear();
-      const targetMonth = dateObj.getMonth();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
+      const targetYear = target.year();
+      const targetMonth = target.month();
+      const currentYear = now.year();
+      const currentMonth = now.month();
       
       const monthsDiff = (currentYear - targetYear) * 12 + (currentMonth - targetMonth);
       

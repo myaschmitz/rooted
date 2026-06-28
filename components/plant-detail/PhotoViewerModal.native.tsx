@@ -5,6 +5,7 @@ import { X, Download } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { BaseColors } from '../../styles/theme';
 import { TextSkeleton } from '../Skeleton';
 
 interface FormattedDate {
@@ -53,7 +54,7 @@ export default function PhotoViewerModal({
           return (
             <View style={styles.imageViewerHeader}>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <X size={24} color="#FFFFFF" />
+                <X size={24} color={BaseColors.white} />
               </TouchableOpacity>
             </View>
           );
@@ -64,10 +65,10 @@ export default function PhotoViewerModal({
               style={styles.downloadButton}
               onPress={() => onDownload(currentPhoto)}
             >
-              <Download size={24} color="#FFFFFF" />
+              <Download size={24} color={BaseColors.white} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <X size={24} color="#FFFFFF" />
+              <X size={24} color={BaseColors.white} />
             </TouchableOpacity>
           </View>
         );
@@ -148,7 +149,7 @@ export function ThumbnailViewerModal({
       HeaderComponent={() => (
         <View style={styles.thumbnailViewerHeader}>
           <TouchableOpacity style={styles.thumbnailCloseButton} onPress={onClose}>
-            <X size={24} color="#FFFFFF" />
+            <X size={24} color={BaseColors.white} />
           </TouchableOpacity>
         </View>
       )}

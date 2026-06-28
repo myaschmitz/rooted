@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { BaseColors } from '../../styles/theme';
 import { TextSkeleton } from '../Skeleton';
 
 interface FormattedDate {
@@ -166,12 +167,12 @@ const createStyles = (theme: Theme) =>
       borderRadius: 6,
     },
     deleteButton: {
-      backgroundColor: '#DC3545',
+      backgroundColor: theme.colors.error,
       alignItems: 'center',
       justifyContent: 'center',
     },
     deletePhotosButton: {
-      backgroundColor: '#DC3545',
+      backgroundColor: theme.colors.error,
     },
     multiSelectButtonText: {
       color: theme.colors.textOnPrimary,
@@ -181,13 +182,13 @@ const createStyles = (theme: Theme) =>
     cancelButton: {
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderColor: '#999999',
+      borderColor: theme.colors.textTertiary,
     },
     cancelButtonText: {
-      color: '#999999',
+      color: theme.colors.textTertiary,
     },
     deleteButtonText: {
-      color: '#FFFFFF',
+      color: BaseColors.white,
       fontSize: 14,
       fontWeight: '600',
     },

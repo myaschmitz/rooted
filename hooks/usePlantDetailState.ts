@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { Platform } from "react-native";
+import dayjs from "dayjs";
 import { useAlert } from "../contexts/AlertContext";
 import { router } from "expo-router";
 import { useWebModal } from "../contexts/WebModalContext";
@@ -175,7 +176,7 @@ export function usePlantDetailState(plantId: string) {
     if (typedPhotos.length > 0 && !plant?.thumbnail_photo_id && plant?.id) {
       const sortedPhotos = [...typedPhotos].sort(
         (a, b) =>
-          new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime(),
+          dayjs(a.taken_at).valueOf() - dayjs(b.taken_at).valueOf(),
       );
       const oldestPhoto = sortedPhotos[0];
       setThumbnailMutation.mutate({
@@ -312,8 +313,8 @@ export function usePlantDetailState(plantId: string) {
                   if (remainingPhotos.length > 0) {
                     const sortedPhotos = [...remainingPhotos].sort(
                       (a, b) =>
-                        new Date(a.taken_at).getTime() -
-                        new Date(b.taken_at).getTime(),
+                        dayjs(a.taken_at).valueOf() -
+                        dayjs(b.taken_at).valueOf(),
                     );
                     const newThumbnail = sortedPhotos[0];
                     await PhotoService.setThumbnailPhoto(
@@ -392,8 +393,8 @@ export function usePlantDetailState(plantId: string) {
                 if (remainingPhotos.length > 0) {
                   const sortedPhotos = [...remainingPhotos].sort(
                     (a, b) =>
-                      new Date(a.taken_at).getTime() -
-                      new Date(b.taken_at).getTime(),
+                      dayjs(a.taken_at).valueOf() -
+                      dayjs(b.taken_at).valueOf(),
                   );
                   const newThumbnail = sortedPhotos[0];
                   await setThumbnailMutation.mutateAsync({
