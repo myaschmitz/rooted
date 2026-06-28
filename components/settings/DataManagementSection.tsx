@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet } from 'react-native';
 import { RefreshCw } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { BaseColors } from '../../styles/theme';
 
 interface DataManagementSectionProps {
   loading: boolean;
@@ -230,7 +231,7 @@ const createStyles = (theme: Theme) =>
       opacity: 0.6,
     },
     deleteButton: {
-      backgroundColor: '#F44336',
+      backgroundColor: theme.colors.error,
       paddingVertical: 15,
       paddingHorizontal: 20,
       borderRadius: 8,
@@ -238,7 +239,7 @@ const createStyles = (theme: Theme) =>
       marginTop: 20,
     },
     deleteButtonText: {
-      color: '#FFFFFF',
+      color: BaseColors.white,
       fontSize: 16,
       fontWeight: 'bold',
     },

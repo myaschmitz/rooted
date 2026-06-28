@@ -12,6 +12,7 @@ import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { BaseColors } from '../../styles/theme';
 
 interface FormattedDate {
   date: string;
@@ -77,13 +78,13 @@ export default function PhotoViewerModal({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconButton} onPress={() => onDownload(currentPhoto)}>
-            <Download size={22} color="#FFFFFF" />
+            <Download size={22} color={BaseColors.white} />
           </TouchableOpacity>
           <Text style={styles.counter}>
             {currentIndex + 1} / {photos.length}
           </Text>
           <TouchableOpacity style={styles.iconButton} onPress={onClose}>
-            <X size={22} color="#FFFFFF" />
+            <X size={22} color={BaseColors.white} />
           </TouchableOpacity>
         </View>
 
@@ -94,7 +95,7 @@ export default function PhotoViewerModal({
               style={[styles.navButton, styles.navButtonLeft]}
               onPress={() => setCurrentIndex(currentIndex - 1)}
             >
-              <ChevronLeft size={32} color="#FFFFFF" />
+              <ChevronLeft size={32} color={BaseColors.white} />
             </Pressable>
           )}
 
@@ -109,7 +110,7 @@ export default function PhotoViewerModal({
               style={[styles.navButton, styles.navButtonRight]}
               onPress={() => setCurrentIndex(currentIndex + 1)}
             >
-              <ChevronRight size={32} color="#FFFFFF" />
+              <ChevronRight size={32} color={BaseColors.white} />
             </Pressable>
           )}
         </View>
@@ -167,7 +168,7 @@ export function ThumbnailViewerModal({
         <View style={styles.header}>
           <View />
           <TouchableOpacity style={styles.iconButton} onPress={onClose}>
-            <X size={22} color="#FFFFFF" />
+            <X size={22} color={BaseColors.white} />
           </TouchableOpacity>
         </View>
         <View style={styles.imageArea}>
@@ -198,7 +199,7 @@ const createStyles = (theme: Theme) =>
       paddingBottom: 10,
     },
     counter: {
-      color: '#FFFFFF',
+      color: BaseColors.white,
       fontSize: 16,
       fontWeight: '500',
     },
@@ -243,7 +244,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
     },
     dateText: {
-      color: '#FFFFFF',
+      color: BaseColors.white,
       fontSize: 14,
       marginBottom: 12,
       opacity: 0.8,

@@ -13,6 +13,7 @@ import { Event, PlantPhoto } from "../../types/Plant";
 import { useWebModal } from "../../contexts/WebModalContext";
 import { PhotoService } from "../../services/PhotoService";
 import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { BaseColors } from "../../styles/theme";
 import { TextSkeleton } from "../Skeleton";
 
 interface FormattedDate {
@@ -29,9 +30,9 @@ interface PlantEventsSectionProps {
 }
 
 const getPestSeverityColor = (severity: number): string => {
-  if (severity <= 3) return "#4CAF50"; // Green for low
-  if (severity <= 6) return "#FF9800"; // Orange for medium
-  return "#F44336"; // Red for high
+  if (severity <= 3) return BaseColors.severityLow;
+  if (severity <= 6) return BaseColors.severityMedium;
+  return BaseColors.severityHigh;
 };
 
 const getPestSeverityLabel = (severity: number): string => {
@@ -88,13 +89,13 @@ export default function PlantEventsSection({
                         router.push(`/edit-care-event?id=${event.id}`);
                     }}
                   >
-                    <SquarePen size={16} color="#666" />
+                    <SquarePen size={16} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.deleteCareButton}
                     onPress={() => onDeleteEvent(event.id, event.event_type)}
                   >
-                    <Trash2 size={16} color="#F44336" />
+                    <Trash2 size={16} color={theme.colors.error} />
                   </TouchableOpacity>
                 </View>
               </View>

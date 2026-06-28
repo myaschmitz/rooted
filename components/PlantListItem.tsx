@@ -4,6 +4,7 @@ import { Pin, PinOff, Check, Camera } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Plant, Tag } from '../types/Plant';
 import { useTheme, Theme } from '../contexts/ThemeContext';
+import { BaseColors } from '../styles/theme';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PlantThumbnail } from './PlantThumbnail';
 import { TextSkeleton } from './Skeleton';
@@ -213,7 +214,7 @@ const createStyles = (theme: Theme) =>
       ...(Platform.OS === 'web'
         ? {
             transform: [{ translateY: -2 }],
-            shadowColor: '#000',
+            shadowColor: BaseColors.black,
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.15,
             shadowRadius: 12,

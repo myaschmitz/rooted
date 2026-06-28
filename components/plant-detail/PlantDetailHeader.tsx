@@ -65,16 +65,16 @@ export default function PlantDetailHeader({
                 router.push(`/edit-plant?id=${plant.id}`);
             }}
           >
-            <SquarePen size={16} color="#666" />
+            <SquarePen size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.editButton} onPress={onArchivePlant}>
-            <Archive size={16} color="#FF9800" />
+            <Archive size={16} color={theme.colors.warning} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerDeleteButton}
             onPress={onDeletePlant}
           >
-            <Trash2 size={16} color="#F44336" />
+            <Trash2 size={16} color={theme.colors.error} />
           </TouchableOpacity>
         </View>
       </View>

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LocationService, PlantLocation } from '../services/LocationService';
 import { useTheme } from '../contexts/ThemeContext';
+import { BaseColors } from '../styles/theme';
 
 interface LocationDropdownProps {
   value: string;
@@ -245,7 +246,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     maxHeight: '80%',
-    shadowColor: '#000',
+    shadowColor: BaseColors.black,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -260,7 +261,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: theme.colors.divider,
   },
   modalTitle: {
     fontSize: 18,
@@ -302,7 +303,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.borderLight,
   },
   locationInfo: {
     flex: 1,

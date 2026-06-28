@@ -1,4 +1,5 @@
 import { Plant } from "../types/Plant";
+import dayjs from "dayjs";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { CacheService } from "./CacheService";
@@ -457,7 +458,7 @@ export class PlantService {
         eventsByPlant.forEach((events, plantId) => {
           // Sort by date descending and take the first one
           const sortedEvents = events.sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+            (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf(),
           );
           if (sortedEvents.length > 0) {
             lastWateringMap.set(plantId, sortedEvents[0].date);
