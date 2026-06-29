@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import dayjs from "dayjs";
 import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { useWebModal } from "../../contexts/WebModalContext";
 import WebContainer from "../../components/WebContainer";
 import { MonthCalendar } from "../../components/calendar/MonthCalendar";
 import { DayEventsList } from "../../components/calendar/DayEventsList";
@@ -13,6 +14,7 @@ import { Event } from "../../types/Plant";
 export default function CalendarScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const { openModal } = useWebModal();
   const { data: events = [], isLoading: eventsLoading } = useAllEvents();
   const { data: plants = [], isLoading: plantsLoading } = usePlants();
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -25,7 +27,9 @@ export default function CalendarScreen() {
     return map;
   }, [plants]);
 
-  const handleEventPress = (event: Event) => router.push(`/plant/${event.plant_id}`);
+  const handleEventPress = (event: Event) => {
+    if (!openModal("event", { id: event.id })) router.push(`/event/${event.id}`);
+  };
 
   return (
     <WebContainer>

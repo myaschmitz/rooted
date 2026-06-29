@@ -15,6 +15,7 @@ type ModalScreen =
   | 'edit-plant'
   | 'log-care'
   | 'edit-care-event'
+  | 'event'
   | 'add-tag'
   | 'edit-tag';
 
@@ -52,6 +53,7 @@ function getScreenComponent(screen: ModalScreen): React.ComponentType<any> {
     case 'edit-plant': return require('../app/edit-plant').default;
     case 'log-care': return require('../app/log-care').default;
     case 'edit-care-event': return require('../app/edit-care-event').default;
+    case 'event': return require('../app/event/[id]').default;
     case 'add-tag': return require('../app/add-tag').default;
     case 'edit-tag': return require('../app/edit-tag').default;
   }
