@@ -18,7 +18,7 @@ import {
   PlantDetailHeader,
   PlantActionButtons,
   PlantPhotosSection,
-  PlantEventsSection,
+  PlantCalendarSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
 } from "../../components/plant-detail";
@@ -159,7 +159,7 @@ export default function PlantDetailScreen() {
             onDeleteSelectedPhotos={handleDeleteSelectedPhotos}
           />
 
-          <PlantEventsSection
+          <PlantCalendarSection
             events={typedEvents}
             eventPhotos={eventPhotos}
             formattedDates={formattedDates}

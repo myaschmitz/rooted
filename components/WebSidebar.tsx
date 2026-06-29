@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Home, Settings, Leaf } from 'lucide-react-native';
+import { Home, Settings, Leaf, CalendarDays } from 'lucide-react-native';
 import { router, usePathname } from 'expo-router';
 import { useTheme, Theme } from '../contexts/ThemeContext';
 
@@ -15,6 +15,7 @@ export default function WebSidebar() {
 
   const tabs = [
     { key: '/', label: 'Plants', icon: Home },
+    { key: '/calendar', label: 'Calendar', icon: CalendarDays },
     { key: '/settings', label: 'Settings', icon: Settings },
   ];
 

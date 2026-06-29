@@ -35,6 +35,7 @@ export const CACHE_TTL = {
   // Event data - changes more frequently
   EVENTS_LIST: 5 * 60 * 1000, // 5 minutes
   EVENTS_RECENT: 2 * 60 * 1000, // 2 minutes
+  EVENTS_ALL: 5 * 60 * 1000, // 5 minutes
   EVENTS_STATS: 3 * 60 * 1000, // 3 minutes
   BATCH_LAST_EVENTS: 3 * 60 * 1000, // 3 minutes
 
