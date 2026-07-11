@@ -14,13 +14,15 @@
       "channel": "preview",
       "env": { 
         "EXPO_PUBLIC_ENVIRONMENT": "preview",
-        "BUNDLE_SUFFIX": ".preview"
+        "BUNDLE_SUFFIX": ".preview",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://cd541e8c2a619e6810d74e816ceab0c8@o4511715172352000.ingest.us.sentry.io/4511715175038976"
       }
     },
     "production": {
       "channel": "production",
       "env": { 
-        "EXPO_PUBLIC_ENVIRONMENT": "production"
+        "EXPO_PUBLIC_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://cd541e8c2a619e6810d74e816ceab0c8@o4511715172352000.ingest.us.sentry.io/4511715175038976"
       }
     }
   }
