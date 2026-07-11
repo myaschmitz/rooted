@@ -335,10 +335,14 @@ export default function BatchCareModal({
                     color={theme.colors.textOnPrimary}
                     style={styles.submitSpinner}
                   />
-                  <Text style={globalStyles.buttonText}>Submitting...</Text>
+                  <Text style={globalStyles.buttonText} numberOfLines={1}>
+                    Submitting...
+                  </Text>
                 </View>
               ) : (
-                <Text style={globalStyles.buttonText}>Confirm</Text>
+                <Text style={globalStyles.buttonText} numberOfLines={1}>
+                  Confirm
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -416,20 +420,13 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
     },
     dateTimeRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
+      flexDirection: "column",
     },
     dateTimeSection: {
-      flex: 1,
-      marginHorizontal: 4,
-      marginBottom: 8,
+      marginBottom: 12,
     },
     buttonSection: {
-      justifyContent: "flex-end",
-      alignItems: "center",
-      paddingHorizontal: 4,
-      paddingTop: 26,
+      alignItems: "flex-start",
     },
     nowButton: {
       backgroundColor: theme.colors.primary,

@@ -19,7 +19,9 @@ export default function PlantActionButtons({
   return (
     <View style={styles.actionButtons}>
       <TouchableOpacity style={styles.actionButton} onPress={onLogCare}>
-        <Text style={styles.actionButtonText}>Log Event</Text>
+        <Text style={styles.actionButtonText} numberOfLines={1}>
+          Log Event
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.actionButton, uploadingPhoto && styles.actionButtonDisabled]}
@@ -29,10 +31,14 @@ export default function PlantActionButtons({
         {uploadingPhoto ? (
           <View style={styles.buttonLoadingContainer}>
             <ActivityIndicator size="small" color={theme.colors.textOnPrimary} />
-            <Text style={styles.actionButtonText}>Uploading...</Text>
+            <Text style={styles.actionButtonText} numberOfLines={1}>
+              Uploading...
+            </Text>
           </View>
         ) : (
-          <Text style={styles.actionButtonText}>Add Photo</Text>
+          <Text style={styles.actionButtonText} numberOfLines={1}>
+            Add Photo
+          </Text>
         )}
       </TouchableOpacity>
     </View>
