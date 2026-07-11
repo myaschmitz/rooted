@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { MonitoringService } from '../services/MonitoringService';
 
 interface Props {
   children: React.ReactNode;
@@ -29,6 +30,9 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error('ErrorBoundary error details:', {
       error: error.message,
       stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    });
+    MonitoringService.captureException(error, {
       componentStack: errorInfo.componentStack,
     });
   }

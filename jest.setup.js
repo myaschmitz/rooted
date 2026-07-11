@@ -1,5 +1,8 @@
 // Simple setup for service layer testing
 
+// Define React Native's __DEV__ global for the node test environment
+global.__DEV__ = false;
+
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
