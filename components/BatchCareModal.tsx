@@ -198,16 +198,16 @@ export default function BatchCareModal({
                     }
                   />
                 </View>
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity
-                    style={styles.nowButton}
-                    onPress={() =>
-                      setCareDetails((prev) => ({ ...prev, date: new Date() }))
-                    }
-                  >
-                    <Text style={styles.nowButtonText}>Set to Now</Text>
-                  </TouchableOpacity>
-                </View>
+              </View>
+              <View style={styles.buttonSection}>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() =>
+                    setCareDetails((prev) => ({ ...prev, date: new Date() }))
+                  }
+                >
+                  <Text style={styles.nowButtonText}>Set to Now</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -420,13 +420,16 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
     },
     dateTimeRow: {
-      flexDirection: "column",
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 12,
     },
     dateTimeSection: {
-      marginBottom: 12,
+      flex: 1,
     },
     buttonSection: {
       alignItems: "flex-start",
+      marginTop: 8,
     },
     nowButton: {
       backgroundColor: theme.colors.primary,
