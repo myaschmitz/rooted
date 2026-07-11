@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { View, ScrollView, TouchableOpacity, Text } from "react-native";
+import { View, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useTheme } from "../../contexts/ThemeContext";
 import WebContainer from "../../components/WebContainer";
 import { TextSkeleton } from "../../components/Skeleton";
 import { useSettings } from "../../hooks/useSettings";
 import { useHouseholdSettings } from "../../hooks/useHouseholdSettings";
-import { MonitoringService } from "../../services/MonitoringService";
 import {
   HouseholdSection,
   AppearanceSection,
@@ -121,28 +120,6 @@ export default function SettingsScreen() {
           />
 
           <AboutSection />
-
-          {/* TEMP: remove after verifying Sentry receives events */}
-          <TouchableOpacity
-            onPress={() =>
-              MonitoringService.captureException(
-                new Error("Sentry test error (settings screen)")
-              )
-            }
-            style={{
-              margin: 16,
-              padding: 14,
-              borderRadius: 8,
-              alignItems: "center",
-              backgroundColor: theme.colors.surface,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-            }}
-          >
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>
-              Send Sentry test error
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
 
         <EditHouseholdNameModal
