@@ -178,7 +178,7 @@ export default function BatchCareModal({
 
             <View style={globalStyles.inputGroup}>
               <View style={styles.dateTimeRow}>
-                <View style={styles.dateTimeSection}>
+                <View>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="date"
@@ -188,7 +188,7 @@ export default function BatchCareModal({
                     }
                   />
                 </View>
-                <View style={styles.dateTimeSection}>
+                <View>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="time"
@@ -412,29 +412,25 @@ const createStyles = (theme: Theme) =>
       maxHeight: 400,
     },
     detailsScrollContent: {
-      paddingBottom: 20,
+      paddingBottom: 8,
     },
     selectedCountText: {
-      marginBottom: 16,
+      marginBottom: 8,
       fontSize: 14,
       color: theme.colors.textSecondary,
     },
     dateTimeRow: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      gap: 12,
-    },
-    dateTimeSection: {
-      flex: 1,
+      flexDirection: "column",
+      gap: 4,
     },
     buttonSection: {
       alignItems: "flex-start",
-      marginTop: 8,
+      marginTop: 4,
     },
     nowButton: {
       backgroundColor: theme.colors.primary,
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 6,
       borderRadius: 6,
     },
     nowButtonText: {
