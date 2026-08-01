@@ -46,7 +46,15 @@ export default ({ config }) => {
         favicon: "./assets/icon.png",
       },
       plugins: [
-        "expo-router"
+        "expo-router",
+        [
+          "@sentry/react-native/expo",
+          {
+            url: "https://sentry.io/",
+            project: "react-native",
+            organization: "myaschmitz",
+          }
+        ]
       ],
       scheme: schemeName,
       extra: {
