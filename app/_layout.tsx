@@ -12,6 +12,9 @@ import { useBreakpoint } from "../hooks/useBreakpoint";
 import { WebModalProvider } from "../contexts/WebModalContext";
 import { AlertProvider } from "../contexts/AlertContext";
 import { VercelAnalytics } from "../components/VercelAnalytics";
+import { MonitoringService } from "../services/MonitoringService";
+
+MonitoringService.init();
 
 // Create a client with optimized cache settings for plant care app
 const queryClient = new QueryClient({
@@ -140,7 +143,7 @@ function ThemedStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -156,3 +159,5 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+
+export default MonitoringService.wrap(RootLayout);
