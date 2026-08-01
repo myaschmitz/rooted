@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { List, CalendarDays } from "lucide-react-native";
+import { router } from "expo-router";
 import dayjs from "dayjs";
 import { Event, PlantPhoto } from "../../types/Plant";
 import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { useWebModal } from "../../contexts/WebModalContext";
 import { MonthCalendar } from "../calendar/MonthCalendar";
 import { DayEventsList } from "../calendar/DayEventsList";
 import PlantEventsSection from "./PlantEventsSection";
@@ -26,10 +28,15 @@ type Mode = "list" | "calendar";
 export default function PlantCalendarSection(props: PlantCalendarSectionProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const { openModal } = useWebModal();
   const [mode, setMode] = useState<Mode>("list");
   const [selectedDate, setSelectedDate] = useState<string>(
     dayjs().format("YYYY-MM-DD"),
   );
+
+  const handleEventPress = (event: Event) => {
+    if (!openModal("event", { id: event.id })) router.push(`/event/${event.id}`);
+  };
 
   if (mode === "list") {
     return (
@@ -52,7 +59,11 @@ export default function PlantCalendarSection(props: PlantCalendarSectionProps) {
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
       />
-      <DayEventsList date={selectedDate} events={props.events} />
+      <DayEventsList
+        date={selectedDate}
+        events={props.events}
+        onEventPress={handleEventPress}
+      />
     </View>
   );
 }

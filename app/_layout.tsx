@@ -111,6 +111,13 @@ function ThemedStack() {
           }}
         />
         <Stack.Screen
+          name="event/[id]"
+          options={{
+            title: "Event Details",
+            headerBackTitle: "Back",
+          }}
+        />
+        <Stack.Screen
           name="theme-settings"
           options={{
             title: "Theme Settings",
