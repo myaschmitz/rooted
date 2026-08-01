@@ -115,6 +115,15 @@ export const useRecentEvents = (limit: number = 10) => {
   });
 };
 
+export const useAllEvents = () => {
+  return useQuery<Event[]>({
+    queryKey: queryKeys.allEvents,
+    queryFn: EventService.getAllEvents,
+    staleTime: CACHE_TTL.EVENTS_ALL,
+    gcTime: CACHE_GC_TIME.MEDIUM,
+  });
+};
+
 export const usePlantStats = (plantId: string) => {
   return useQuery<any>({
     queryKey: queryKeys.plantStats(plantId),
@@ -268,6 +277,7 @@ export const useCreateEvent = () => {
 
       // Invalidate recent events
       queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
 
       // Invalidate plant stats
       queryClient.invalidateQueries({
@@ -306,6 +316,7 @@ export const useUpdateEvent = () => {
 
         // Invalidate recent events
         queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+        queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
 
         // Invalidate plant stats
         queryClient.invalidateQueries({
@@ -339,6 +350,7 @@ export const useDeleteEvent = () => {
 
       // Invalidate recent events
       queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
 
       // Invalidate plant stats
       queryClient.invalidateQueries({

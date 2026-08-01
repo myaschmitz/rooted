@@ -328,6 +328,29 @@ describe('EventService', () => {
     });
   });
 
+  describe('getAllEvents', () => {
+    it('should fetch all events for the household ordered by date', async () => {
+      const allEvents = [mockEvent];
+      mockSupabase._response = { data: allEvents, error: null };
+
+      const result = await EventService.getAllEvents();
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('events');
+      expect(mockSupabase.select).toHaveBeenCalledWith('*');
+      expect(mockSupabase.eq).toHaveBeenCalledWith('household_id', 'household-123');
+      expect(mockSupabase.order).toHaveBeenCalledWith('date', { ascending: false });
+      expect(result).toEqual(allEvents);
+    });
+
+    it('should throw when there is no household session', async () => {
+      (HouseholdService.getUserSession as jest.Mock).mockResolvedValue(null);
+
+      await expect(EventService.getAllEvents()).rejects.toThrow(
+        'No household session found',
+      );
+    });
+  });
+
   describe('getLastEventByType', () => {
     it('should fetch the last event of a specific type', async () => {
       mockSupabase._response = { data: [mockEvent], error: null };
