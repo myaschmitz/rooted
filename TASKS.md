@@ -1,207 +1,133 @@
-# Project Tasks
+# Project tasks
 
-## ✅ Completed Tasks
+Last reviewed: August 1, 2026
 
-### Project Setup
-- [x] Initialize Expo React Native project structure
-- [x] Configure package.json with required dependencies
-- [x] Set up TypeScript configuration
-- [x] Create project documentation (README.md, TECHNICAL.md)
-- [x] Set up Expo Router for navigation
-- [x] Updated to Expo SDK 53.0.0 for compatibility
+## Current capabilities
 
-### Database & Services
-- [x] Design SQLite database schema with sync-ready structure
-- [x] Implement DatabaseService for connection management
-- [x] Create PlantService for plant CRUD operations
-- [x] Implement EventService for event tracking
-- [x] Build PhotoService for image management
-- [x] Create NotesService for plant notes
-- [x] Add UUID-based primary keys for future cloud sync
-- [x] Made plant names optional (can be unnamed plants)
-- [x] Implement TagService for tag management
-- [x] Create HouseholdService for multi-user support
-- [x] Add LocationService for location data handling
-- [x] Implement DateTimeService for date/time formatting
-- [x] Build CacheService and CacheInvalidationService
+### Platform and infrastructure
 
-### Core Screens
-- [x] Home screen with plant list and empty state
-- [x] Add Plant screen with form validation
-- [x] Plant detail screen with care history
-- [x] Log Event screen with backdating support
-- [x] Navigation setup between all screens
-- [x] Updated UI to handle optional plant names
-- [x] Edit Plant screen
-- [x] Edit Care Event screen
-- [x] Add Tag screen with color picker
-- [x] Edit Tag screen
-- [x] Settings screen
-- [x] Theme Settings screen
-- [x] Welcome/onboarding screen
+- [x] Expo SDK 54 application for iOS, Android, and web
+- [x] Expo Router navigation with responsive web layouts
+- [x] Supabase PostgreSQL backend with household-scoped data
+- [x] Supabase Storage for full-size photos and thumbnails
+- [x] Supabase Realtime cache updates
+- [x] TanStack React Query server-state management
+- [x] MMKV native cache and localStorage web cache
+- [x] Sentry error and crash monitoring
 
-### TypeScript Integration
-- [x] Define core data types (Plant, Event, PlantPhoto, PlantNote)
-- [x] Type all service methods and responses
-- [x] Implement proper error handling throughout
-- [x] Updated Plant interface to make name optional
-- [x] Add Tag and PlantTag types
+### Plants and care
 
-### Core Functionality
-- [x] Add plant editing functionality
-- [x] Implement plant deletion with confirmation
-- [x] Add photo viewing/gallery screen
-- [x] Add search functionality for plants (fuzzy search with Fuse.js)
-- [x] Create event editing/deletion
+- [x] Plant create, edit, archive, restore, and delete flows
+- [x] Locations, custom tags, pinned plants, search, sorting, and filtering
+- [x] Batch care logging
+- [x] Care event create, edit, delete, and backdating
+- [x] Event-specific fertilizer and pest metadata
+- [x] Monthly care calendar and event detail view
 
-### UI/UX Improvements
-- [x] Add plant icons or default images
-- [x] Implement photo thumbnails in plant list with caching
-- [x] Add loading states and skeleton screens
-- [x] Improve error messaging and user feedback
-- [x] Add confirmation dialogs for destructive actions
-- [x] Implement pull-to-refresh on all list screens
+### Photos
 
-### Photo Features
-- [x] Implement photo deletion functionality
-- [x] Create photo gallery view with image viewer
-- [x] Multi-select mode for batch photo deletion
-- [x] Event-associated photo support
+- [x] Plant and event-associated photos
+- [x] Camera, media library, and multi-photo selection
+- [x] Full-size image optimization and thumbnail generation
+- [x] Cloud upload with rollback cleanup
+- [x] Native and web photo viewers with carousel navigation
+- [x] Thumbnail selection, download, and batch deletion
+- [x] Local image caching
 
-### Event Enhancements
-- [x] Add event editing capability
-- [x] Implement event deletion
-- [x] Multiple event types (water, fertilize, fertigate, prune, pest spotted, insecticide spray, repot, other)
-- [x] Event-specific metadata (fertilizer strength, pest severity)
-- [x] Backdating support with date/time picker
+### Households and settings
 
-### Tagging System
-- [x] Create tags with custom colors
-- [x] Add tags to plants (multi-select)
-- [x] Edit and delete tags
-- [x] Filter plants by tags
-- [x] Tag display on plant cards
+- [x] Household create/join flow and locally persisted household session
+- [x] Household member and role management
+- [x] Theme and date/time preferences
+- [x] About section
+- [x] Destructive data-management controls
 
-### Home Screen Features
-- [x] Section grouping by location
-- [x] Pinned plants section
-- [x] Sorting (by name, last watered, ascending/descending)
-- [x] Filtering by tags with persistent selection
-- [x] Batch care mode (select multiple plants, log events for all)
-- [x] Visual indicators (camera icon for plants needing photos, watering status colors)
+## Near-term backlog
 
-### Settings & Preferences
-- [x] Create app settings screen
-- [x] Implement app theme selection (light/dark/system)
-- [x] Date format preferences (MM/DD/YYYY, DD/MM/YYYY, YYYY/MM/DD)
-- [x] Time format preferences (12-hour/24-hour)
-- [x] Household management (name, code sharing, member management)
+### Reliability and maintainability
 
-### Backend & State Management
-- [x] Supabase integration for cloud backend
-- [x] React Query for server state with caching
-- [x] AsyncStorage for local preferences
-- [x] Real-time updates subscription setup
-- [x] Cache invalidation on user actions
+- [ ] Add an offline mutation queue for writes made without a network connection
+- [ ] Define conflict resolution for concurrent household edits
+- [ ] Add backup/restore and data export
+- [ ] Expand UI and hook coverage and include component tests in the default Jest match
+- [ ] Replace remaining broad `any` types in services, queries, and realtime subscriptions
+- [ ] Consolidate remaining raw date operations through dayjs and DateTimeService
+- [ ] Remove remaining hardcoded UI colors in favor of theme tokens
+- [ ] Update the deprecated ts-jest `isolatedModules` configuration
 
-## 📋 Pending Tasks
+### Care features
 
-### Photo Features
-- [ ] Add photo caption editing
-- [ ] Add photo cropping/editing options
-- [ ] Implement photo sharing functionality
-- [ ] Create photo carousel/swipe view
-
-### Event Enhancements
-- [ ] Create event history filtering (by type, date range)
-- [ ] Add care statistics and insights
-- [ ] Implement care streaks and patterns
-
-### Advanced Features
-- [ ] Create care reminders based on patterns
-- [ ] Add plant growth tracking features
-- [ ] Implement data export functionality
-
-### Performance & Optimization
-- [ ] Add image compression and optimization
-- [ ] Implement lazy loading for large lists
-- [ ] Add database cleanup utilities
-- [ ] Optimize memory usage for photos
-- [ ] Add background sync preparation
-
-### Settings & Preferences
-- [ ] Add data backup/restore functionality
+- [ ] Filter event history by event type and date range
+- [ ] Surface existing care statistics in the UI
+- [ ] Add care streaks and pattern insights
+- [ ] Create care reminders based on history or a user-defined schedule
 - [ ] Add notification preferences
-- [ ] Create about/help screen
+- [ ] Add plant growth tracking
 
-## 🔮 Future Enhancements
+### Photo features
 
-### Cloud Sync (Phase 2)
-- [ ] Design cloud sync architecture
-- [ ] Implement user authentication
-- [ ] Add conflict resolution for sync
-- [ ] Create cloud photo backup
-- [ ] Implement offline sync queue
+- [ ] Add photo caption editing to the UI
+- [ ] Add crop and edit controls
+- [ ] Add system sharing
+- [ ] Profile and optimize photo memory use for large collections
 
-### Smart Features
-- [ ] AI-powered plant identification
-- [ ] Care recommendation engine
+### Product and performance
+
+- [ ] Add a help screen
+- [ ] Add virtualized or incremental loading for large plant and event lists
+- [ ] Add user-facing cache and orphaned-data cleanup tools
+- [ ] Complete release QA across iOS, Android, and web
+
+## Authentication and identity
+
+The current household session is stored locally and is not a full user account. Supabase client session support exists, but the product does not yet provide account signup, login, recovery, or cross-device identity.
+
+- [ ] Choose account and guest/anonymous identity behavior
+- [ ] Implement signup, login, logout, and account recovery
+- [ ] Associate household memberships with authenticated users
+- [ ] Define migration for existing locally identified household members
+
+## Future features
+
+### Smart care
+
+- [ ] AI-assisted plant identification
 - [ ] Plant health analysis from photos
-- [ ] Weather-based care suggestions
-- [ ] Integration with plant databases
+- [ ] Care recommendation engine
+- [ ] Weather-aware care suggestions
+- [ ] External plant database integration
 
-### Social Features
-- [ ] Plant sharing with other users
-- [ ] Community plant care tips
-- [ ] Plant care challenges/goals
-- [ ] Plant trading/exchange features
+### Social
 
-### Advanced Analytics
+- [ ] Share plants outside a household
+- [ ] Community care tips
+- [ ] Care challenges and goals
+- [ ] Plant trading or exchange
+
+### Analytics
+
 - [ ] Care pattern analysis
-- [ ] Plant growth tracking
+- [ ] Growth trends
 - [ ] Health correlation insights
 - [ ] Care effectiveness metrics
 
-### Platform Expansion
-- [ ] Android app development
-- [ ] Web app version
-- [ ] Apple Watch companion app
-- [ ] Widget support for iOS
+### Platform extensions
 
-## 🐛 Known Issues
+- [ ] iOS and Android widgets
+- [ ] Apple Watch companion
+- [ ] Platform-specific notification actions
 
-### Technical Issues
-- [ ] Fix TypeScript type issues in service layer
-- [ ] Resolve UUID import warnings
-- [ ] Address SQLite type casting issues
+## Current limitations
 
-### UI/UX Issues
-- [ ] Date/time picker needs native components
-- [ ] Photo picker permissions handling
-- [ ] Form validation messaging improvements
+- Writes require a working network connection; cached reads do not provide a complete offline workflow.
+- Household identity is device-local rather than a full authenticated account.
+- Reminders, notifications, export, and restore are not implemented.
+- Platform projects exist, but production readiness still requires device and browser QA.
 
-## 📝 Notes
+## Development priorities
 
-### Development Priorities
-1. **Stability First**: Ensure core functionality works reliably
-2. **User Experience**: Focus on intuitive, simple interactions
-3. **Data Integrity**: Protect user's plant data above all
-4. **Performance**: Keep the app responsive and fast
-5. **Future-Proof**: Maintain architecture for planned features
-
-### Testing Strategy
-- Start with manual testing on development builds
-- Focus on data flow: create plant → log care → view history
-- Test edge cases: empty states, invalid inputs, network issues
-- Validate on physical devices before considering complete
-
-### Success Criteria
-- User can successfully add plants and track events
-- Photos can be captured and associated with plants
-- Data persists between app sessions
-- Navigation is intuitive and responsive
-- No data loss under normal usage
-
----
-
-*Last Updated: July 2025*
+1. Protect data integrity and complete offline/conflict behavior.
+2. Establish durable user identity and backup/export.
+3. Improve care workflows with filtering, reminders, and insights.
+4. Expand automated coverage and platform QA.
+5. Treat AI and social features as later product work.
