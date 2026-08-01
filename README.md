@@ -1,82 +1,108 @@
 # Rooted
 
-A full-featured plant care tracking app for iOS built with React Native and Expo. Designed for plant enthusiasts to document care history, organize collections, and collaborate with household members.
+Rooted is a plant care tracker for iOS, Android, and web built with React Native and Expo. It helps households organize plant collections, record care, document growth with photos, and share a common care history.
 
-## Key Features
+## Features
 
-**Plant Management**
-- Full CRUD operations with optional naming and custom locations
-- Tagging system with custom colors for organizing collections
-- Pin favorite plants, search with fuzzy matching, sort and filter by multiple criteria
-- Batch care mode for logging events across multiple plants simultaneously
+### Plant management
 
-**Care Event Tracking**
-- Multiple event types: watering, fertilizing, fertigating, pruning, pest management, repotting
-- Event-specific metadata (fertilizer strength, pest severity ratings)
-- Full edit/delete capabilities with backdating support
+- Create, edit, archive, restore, and delete plants
+- Organize plants by location and custom tags
+- Pin favorites and search, sort, or filter the collection
+- Log care for multiple plants in one batch
 
-**Photo Documentation**
-- Camera and library integration with multi-photo support per plant
-- Event-linked photos with automatic thumbnail generation and caching
-- Gallery view with batch selection and deletion
+### Care tracking
 
-**Multi-User Support**
-- Household system with invite codes for shared plant collections
-- Member management with admin controls
+- Record watering, fertilizing, fertigating, pruning, pest treatment, repotting, and custom events
+- Add event-specific details such as fertilizer concentration and pest severity
+- Backdate, edit, and delete care events
+- Browse care history from plant details or the monthly calendar
 
-**Customization**
-- Light/dark/system theme options
-- Configurable date and time formats
-- Persistent user preferences
+### Photos
 
-## Tech Stack
+- Capture or select multiple plant and event photos
+- Generate optimized full-size images and thumbnails before upload
+- Store photos in Supabase Storage and cache them locally
+- Browse photos in a swipeable viewer, download them, choose a plant thumbnail, or delete them in batches
+
+### Households and preferences
+
+- Create or join a shared household with a household code
+- Manage members and household settings
+- Receive realtime updates when shared data changes
+- Choose light, dark, or system theme and preferred date/time formats
+
+## Tech stack
 
 | Layer | Technology |
-|-------|------------|
-| Framework | React Native + Expo SDK 53 |
-| Navigation | Expo Router (file-based) |
-| Backend | Supabase (PostgreSQL, Auth, Realtime) |
-| State Management | TanStack React Query |
-| Local Storage | AsyncStorage |
+| --- | --- |
+| Framework | React Native + Expo SDK 54 |
+| Navigation | Expo Router |
+| Backend | Supabase PostgreSQL, Storage, and Realtime |
+| Server state | TanStack React Query |
+| Persistent cache | MMKV on native, localStorage on web |
+| Preferences | AsyncStorage |
+| Monitoring | Sentry |
 | Language | TypeScript |
 
-## Architecture Highlights
+## Architecture
 
-- **Service-oriented architecture** with dedicated services for plants, events, photos, tags, and households
-- **Optimistic updates** with React Query for responsive UI
-- **Smart caching** with automatic invalidation and real-time sync subscriptions
-- **Type-safe** end-to-end with TypeScript interfaces for all data models
+- UI code reads and mutates server state through hooks in `hooks/queries.ts`.
+- Business logic and Supabase access live in static service classes under `services/`.
+- Every data query is scoped to the current household.
+- React Query, `CacheService`, and `CachedPhotoService` coordinate data and image caching.
+- Native and web differences use `.native.ts` and `.web.ts` implementations.
 
-## Getting Started
+See [TECHNICAL.md](TECHNICAL.md) for implementation details and [TASKS.md](TASKS.md) for current and future work.
 
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-
-# Run on iOS
-npm run ios
-```
+## Getting started
 
 ### Prerequisites
-- Node.js v16+
-- Expo CLI
-- iOS Simulator or physical device
 
-## Project Structure
+- A current Node.js LTS release
+- npm
+- A configured Supabase project
+- Xcode for local iOS builds or Android Studio for local Android builds
 
+### Install and run
+
+```bash
+npm install
+
+# Expo development server
+npm start
+
+# Development client connected to the development Supabase project
+npm run start:dev
+
+# Platform targets
+npm run ios
+npm run android
+npm run web
 ```
-rooted/
-├── app/                    # Screens (Expo Router)
-│   ├── (tabs)/            # Tab navigation
-│   ├── plant/[id].tsx     # Dynamic plant detail
-│   └── *.tsx              # Feature screens
-├── services/              # Business logic layer
-├── hooks/                 # React Query hooks
-├── components/            # Reusable UI components
-└── types/                 # TypeScript definitions
+
+The app expects the public Supabase URL and anonymous key through its environment configuration. Use the database scripts in `package.json` to link or push Supabase migrations.
+
+## Tests
+
+```bash
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+## Project structure
+
+```text
+app/                  Expo Router screens
+components/           Reusable and feature UI
+constants/            Domain constants and query keys
+contexts/             Theme, alerts, and web modal state
+hooks/                Query and UI hooks
+services/             Business logic, storage, and caching
+supabase/migrations/  Database migrations
+types/                Application and generated database types
+__tests__/            Service, component, and integration tests
 ```
 
 ## License
