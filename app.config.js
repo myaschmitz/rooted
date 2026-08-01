@@ -47,6 +47,7 @@ export default ({ config }) => {
       },
       plugins: [
         "expo-router",
+        "./plugins/withMmkvPin",
         [
           "@sentry/react-native/expo",
           {
