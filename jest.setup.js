@@ -30,6 +30,10 @@ const createChainableMock = () => {
 };
 
 // Mock Supabase
+const mockSupabaseStorageBucket = {
+  remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
+};
+
 const mockSupabaseClient = {
   auth: {
     getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
@@ -53,6 +57,9 @@ const mockSupabaseClient = {
   limit: jest.fn(() => mockSupabaseClient),
   single: jest.fn(() => Promise.resolve({ data: null, error: null })),
   rpc: jest.fn(() => Promise.resolve({ data: null, error: null })),
+  storage: {
+    from: jest.fn(() => mockSupabaseStorageBucket),
+  },
 };
 
 // Make the query builder awaitable so a chain terminating on any builder
@@ -143,3 +150,4 @@ jest.setTimeout(10000);
 
 // Export the mock client for use in tests
 global.mockSupabaseClient = mockSupabaseClient;
+global.mockSupabaseStorageBucket = mockSupabaseStorageBucket;
