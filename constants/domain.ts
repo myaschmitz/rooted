@@ -92,6 +92,8 @@ export const DB_COLUMNS = {
   HOUSEHOLD_ID: "household_id",
   PLANT_ID: "plant_id",
   EVENT_TYPE: "event_type",
+  FILE_PATH: "file_path",
+  THUMBNAIL_PATH: "thumbnail_path",
 } as const;
 
 // ============================================================================
@@ -113,7 +115,9 @@ export const STORAGE_CONFIG = {
  */
 export const IMAGE_CONFIG = {
   THUMBNAIL_WIDTH: 300,
-  COMPRESSION_QUALITY: 0.7,
+  THUMBNAIL_COMPRESSION_QUALITY: 0.7,
+  FULL_SIZE_MAX_EDGE: 2048,
+  FULL_SIZE_COMPRESSION_QUALITY: 0.8,
   PICKER_QUALITY: 0.8,
 } as const;
 
@@ -296,4 +300,7 @@ export const BATCH_CONFIG = {
   TAGS_BATCH_SIZE: 20,
   PHOTO_GENERATION_BATCH_SIZE: 5,
   PHOTO_GENERATION_DELAY_MS: 1000,
+  STORAGE_DELETE_BATCH_SIZE: 100,
+  STORAGE_DELETE_MAX_RETRIES: 2,
+  STORAGE_DELETE_RETRY_DELAY_MS: 500,
 } as const;

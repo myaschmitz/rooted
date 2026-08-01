@@ -8,6 +8,9 @@ jest.mock('../../services/HouseholdService');
 // Get the global mock client from jest.setup.js
 declare global {
   var mockSupabaseClient: any;
+  var mockSupabaseStorageBucket: {
+    remove: jest.Mock;
+  };
 }
 
 const mockSupabase = global.mockSupabaseClient;
@@ -53,6 +56,13 @@ describe('PlantService', () => {
     mockSupabase.or.mockReturnValue(mockSupabase);
     mockSupabase.order.mockReturnValue(mockSupabase);
     mockSupabase.limit.mockReturnValue(mockSupabase);
+    mockSupabase.storage.from.mockReturnValue(
+      global.mockSupabaseStorageBucket,
+    );
+    global.mockSupabaseStorageBucket.remove.mockResolvedValue({
+      data: [],
+      error: null,
+    });
     // Reset awaitable response for list/delete query terminals
     mockSupabase._response = { data: null, error: null };
   });
@@ -273,12 +283,45 @@ describe('PlantService', () => {
       expect(result).toBe(true);
     });
 
+    it('should delete original and thumbnail storage objects for the plant', async () => {
+      jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
+      mockSupabase._response = {
+        data: [
+          {
+            file_path:
+              'https://example.supabase.co/storage/v1/object/public/plant-photos/photo.jpg',
+            thumbnail_path:
+              'https://example.supabase.co/storage/v1/object/public/plant-photos/photo_thumb.jpg',
+          },
+        ],
+        error: null,
+      };
+
+      await PlantService.deletePlant('plant-123');
+
+      expect(global.mockSupabaseStorageBucket.remove).toHaveBeenCalledWith([
+        'photo.jpg',
+        'photo_thumb.jpg',
+      ]);
+    });
+
     it('should throw error when deletion fails', async () => {
       jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
       const mockError = { message: 'Delete failed' };
-      mockSupabase._response = { error: mockError };
+      const originalThen = mockSupabase.then;
+      let responseIndex = 0;
+      mockSupabase.then = (onFulfilled: (value: unknown) => unknown, onRejected: (reason: unknown) => unknown) =>
+        Promise.resolve(
+          responseIndex++ === 0
+            ? { data: [], error: null }
+            : { data: null, error: mockError },
+        ).then(onFulfilled, onRejected);
 
-      await expect(PlantService.deletePlant('plant-123')).rejects.toThrow('Database error during delete');
+      try {
+        await expect(PlantService.deletePlant('plant-123')).rejects.toThrow('Database error during delete');
+      } finally {
+        mockSupabase.then = originalThen;
+      }
     });
   });
 

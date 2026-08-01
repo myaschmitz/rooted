@@ -13,6 +13,7 @@ import {
 } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
 import { CacheKeyBuilder } from "./CacheKeyBuilder";
+import { PhotoStorageService } from "./PhotoStorageService";
 
 type PlantRow = Database["public"]["Tables"]["plants"]["Row"];
 type PlantInsert = Database["public"]["Tables"]["plants"]["Insert"];
@@ -222,6 +223,16 @@ export class PlantService {
     // Get plant info before deleting for activity log
     // (getPlantById already scopes to this household, so this also acts as access check)
     const plant = await this.getPlantById(id);
+    const { data: photos, error: photosError } = await supabase
+      .from(DB_TABLES.PLANT_PHOTOS)
+      .select(`${DB_COLUMNS.FILE_PATH}, ${DB_COLUMNS.THUMBNAIL_PATH}`)
+      .eq(DB_COLUMNS.PLANT_ID, id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+
+    if (photosError) {
+      throw ErrorMapper.mapDatabaseError(photosError, "fetch", "photo");
+    }
+    const photoFileNames = PhotoStorageService.getFileNames(photos || []);
 
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
@@ -233,6 +244,8 @@ export class PlantService {
       console.error("Error deleting plant:", error);
       throw ErrorMapper.mapDatabaseError(error, "delete", "plant");
     }
+
+    await PhotoStorageService.removeFiles(photoFileNames);
 
     // Log activity
     if (plant) {

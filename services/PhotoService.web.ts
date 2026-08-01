@@ -1,6 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
 import { logger } from "../utils/logger";
-import * as ImageManipulator from "expo-image-manipulator";
 import { PlantPhoto } from "../types/Plant";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
@@ -8,11 +7,12 @@ import { PlantService } from "./PlantService";
 import { CacheService } from "./CacheService";
 import { CachedPhotoService } from "./CachedPhotoService";
 import { CacheInvalidationService } from "./CacheInvalidationService";
+import { PhotoProcessingService } from "./PhotoProcessingService";
+import { PhotoStorageService } from "./PhotoStorageService";
 import type { Database } from "../types/Database";
 import {
   CACHE_TTL,
   STORAGE_CONFIG,
-  IMAGE_CONFIG,
   IMAGE_PICKER_CONFIG,
   isNotFoundError,
   generatePhotoFilename,
@@ -33,7 +33,6 @@ type PlantPhotoUpdate = Database["public"]["Tables"]["plant_photos"]["Update"];
 
 export class PhotoService {
   private static readonly STORAGE_BUCKET = STORAGE_CONFIG.BUCKET_NAME;
-  private static readonly THUMBNAIL_SIZE = IMAGE_CONFIG.THUMBNAIL_WIDTH;
 
   static async ensurePhotosDirectory(): Promise<void> {
     // No-op on web — no local file system
@@ -41,15 +40,7 @@ export class PhotoService {
 
   static async createThumbnail(sourceUri: string): Promise<string> {
     try {
-      const result = await ImageManipulator.manipulateAsync(
-        sourceUri,
-        [{ resize: { width: this.THUMBNAIL_SIZE } }],
-        {
-          compress: IMAGE_CONFIG.COMPRESSION_QUALITY,
-          format: ImageManipulator.SaveFormat.JPEG,
-        },
-      );
-      return result.uri;
+      return await PhotoProcessingService.createThumbnail(sourceUri);
     } catch (error) {
       console.error("Error creating thumbnail:", error);
       throw new Error("Failed to create thumbnail");
@@ -271,23 +262,10 @@ export class PhotoService {
     sourceUri: string,
     caption?: string,
   ): Promise<PlantPhoto> {
+    const uploadedFileNames: string[] = [];
+    let databaseSaved = false;
+
     try {
-      const { fullSize: fullSizeFileName, thumbnail: thumbnailFileName } =
-        generateEventPhotoFilename(plantId, eventId);
-
-      // Create thumbnail
-      const thumbnailUri = await this.createThumbnail(sourceUri);
-
-      // Upload both versions to Supabase Storage in parallel
-      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
-        this.uploadFileToStorage(sourceUri, fullSizeFileName),
-        this.uploadFileToStorage(thumbnailUri, thumbnailFileName),
-      ]);
-
-      if (!cloudFullSizePath) {
-        throw new Error("Failed to upload photo to cloud storage.");
-      }
-
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
         throw new Error("No household session found");
@@ -296,6 +274,24 @@ export class PhotoService {
       const plant = await PlantService.getPlantById(plantId);
       if (!plant) {
         throw new Error("Plant not found or not accessible");
+      }
+
+      const { fullSize: fullSizeFileName, thumbnail: thumbnailFileName } =
+        generateEventPhotoFilename(plantId, eventId);
+
+      const [optimizedUri, thumbnailUri] = await Promise.all([
+        PhotoProcessingService.createOptimizedOriginal(sourceUri),
+        this.createThumbnail(sourceUri),
+      ]);
+      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
+        this.uploadFileToStorage(optimizedUri, fullSizeFileName),
+        this.uploadFileToStorage(thumbnailUri, thumbnailFileName),
+      ]);
+      if (cloudFullSizePath) uploadedFileNames.push(fullSizeFileName);
+      if (cloudThumbnailPath) uploadedFileNames.push(thumbnailFileName);
+
+      if (!cloudFullSizePath) {
+        throw new Error("Failed to upload photo to cloud storage.");
       }
 
       const now = new Date().toISOString();
@@ -318,6 +314,7 @@ export class PhotoService {
       if (error) {
         throw ErrorMapper.mapDatabaseError(error, "create", "photo");
       }
+      databaseSaved = true;
 
       await CacheInvalidationService.invalidateOnUserAction("photo_added", {
         entityId: plantId,
@@ -326,6 +323,9 @@ export class PhotoService {
       return data as PlantPhoto;
     } catch (error) {
       console.error("Error saving event photo:", error);
+      if (!databaseSaved && uploadedFileNames.length > 0) {
+        await PhotoStorageService.rollbackUploads(uploadedFileNames, error);
+      }
       throw error;
     }
   }
@@ -433,21 +433,10 @@ export class PhotoService {
     sourceUri: string,
     caption?: string,
   ): Promise<PlantPhoto> {
+    const uploadedFileNames: string[] = [];
+    let databaseSaved = false;
+
     try {
-      const { fullSize: fullSizeFileName, thumbnail: thumbnailFileName } =
-        generatePhotoFilename(plantId);
-
-      const thumbnailUri = await this.createThumbnail(sourceUri);
-
-      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
-        this.uploadFileToStorage(sourceUri, fullSizeFileName),
-        this.uploadFileToStorage(thumbnailUri, thumbnailFileName),
-      ]);
-
-      if (!cloudFullSizePath) {
-        throw new Error("Failed to upload photo to cloud storage.");
-      }
-
       const session = await HouseholdService.getUserSession();
       if (!session?.household_id) {
         throw new Error("No household session found");
@@ -456,6 +445,24 @@ export class PhotoService {
       const plant = await PlantService.getPlantById(plantId);
       if (!plant) {
         throw new Error("Plant not found or not accessible");
+      }
+
+      const { fullSize: fullSizeFileName, thumbnail: thumbnailFileName } =
+        generatePhotoFilename(plantId);
+
+      const [optimizedUri, thumbnailUri] = await Promise.all([
+        PhotoProcessingService.createOptimizedOriginal(sourceUri),
+        this.createThumbnail(sourceUri),
+      ]);
+      const [cloudFullSizePath, cloudThumbnailPath] = await Promise.all([
+        this.uploadFileToStorage(optimizedUri, fullSizeFileName),
+        this.uploadFileToStorage(thumbnailUri, thumbnailFileName),
+      ]);
+      if (cloudFullSizePath) uploadedFileNames.push(fullSizeFileName);
+      if (cloudThumbnailPath) uploadedFileNames.push(thumbnailFileName);
+
+      if (!cloudFullSizePath) {
+        throw new Error("Failed to upload photo to cloud storage.");
       }
 
       const now = new Date().toISOString();
@@ -477,8 +484,8 @@ export class PhotoService {
       if (error) {
         throw ErrorMapper.mapDatabaseError(error, "create", "photo");
       }
+      databaseSaved = true;
 
-      // Auto-set as thumbnail if plant has none
       const { data: plantData } = await supabase
         .from(DB_TABLES.PLANTS)
         .select("thumbnail_photo_id")
@@ -499,6 +506,9 @@ export class PhotoService {
       return data as PlantPhoto;
     } catch (error) {
       console.error("Error saving photo:", error);
+      if (!databaseSaved && uploadedFileNames.length > 0) {
+        await PhotoStorageService.rollbackUploads(uploadedFileNames, error);
+      }
       throw error;
     }
   }
@@ -563,31 +573,8 @@ export class PhotoService {
       const photo = await this.getPhotoById(photoId);
       if (!photo) return false;
 
-      // Delete from cloud storage
-      const filesToDelete: string[] = [];
-
-      if (isCloudUrl(photo.file_path)) {
-        const fileName = extractFilenameFromPath(photo.file_path);
-        if (fileName) filesToDelete.push(fileName);
-      }
-
-      if (photo.thumbnail_path && isCloudUrl(photo.thumbnail_path)) {
-        const thumbnailFileName = extractFilenameFromPath(photo.thumbnail_path);
-        if (thumbnailFileName) filesToDelete.push(thumbnailFileName);
-      }
-
-      if (filesToDelete.length > 0) {
-        try {
-          await supabase.storage
-            .from(this.STORAGE_BUCKET)
-            .remove(filesToDelete);
-        } catch (storageError) {
-          console.warn(
-            "Failed to delete files from cloud storage:",
-            storageError,
-          );
-        }
-      }
+      const filesToDelete = PhotoStorageService.getFileNames([photo]);
+      await PhotoStorageService.removeFiles(filesToDelete);
 
       const { error } = await supabase
         .from(DB_TABLES.PLANT_PHOTOS)
@@ -658,21 +645,8 @@ export class PhotoService {
       }
 
       const photos = await this.getAllPhotos();
-
-      for (const photo of photos) {
-        try {
-          if (isCloudUrl(photo.file_path)) {
-            const fileName = extractFilenameFromPath(photo.file_path);
-            if (fileName) {
-              await supabase.storage
-                .from(this.STORAGE_BUCKET)
-                .remove([fileName]);
-            }
-          }
-        } catch (error) {
-          console.error(`Error deleting photo file ${photo.file_path}:`, error);
-        }
-      }
+      const cloudFileNames = PhotoStorageService.getFileNames(photos);
+      await PhotoStorageService.removeFiles(cloudFileNames);
 
       const { error } = await supabase
         .from(DB_TABLES.PLANT_PHOTOS)
