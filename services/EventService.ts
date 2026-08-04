@@ -183,6 +183,26 @@ export class EventService {
     return true;
   }
 
+  static async getAllEvents(): Promise<Event[]> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
+    const { data, error } = await supabase
+      .from(DB_TABLES.EVENTS)
+      .select("*")
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .order("date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching all events:", error);
+      throw ErrorMapper.mapDatabaseError(error, "fetch", "event");
+    }
+
+    return (data || []) as Event[];
+  }
+
   static async getRecentEvents(limit: number = 10): Promise<Event[]> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();

@@ -115,13 +115,42 @@ export const useRecentEvents = (limit: number = 10) => {
   });
 };
 
+export const useAllEvents = () => {
+  return useQuery<Event[]>({
+    queryKey: queryKeys.allEvents,
+    queryFn: EventService.getAllEvents,
+    staleTime: CACHE_TTL.EVENTS_ALL,
+    gcTime: CACHE_GC_TIME.MEDIUM,
+  });
+};
+
+export const useEvent = (id: string) => {
+  return useQuery<Event | null>({
+    queryKey: queryKeys.event(id),
+    queryFn: () => EventService.getEventById(id),
+    staleTime: CACHE_TTL.EVENTS_LIST,
+    gcTime: CACHE_GC_TIME.MEDIUM,
+    enabled: !!id,
+  });
+};
+
+export const useEventPhotos = (eventId: string) => {
+  return useQuery<PlantPhoto[]>({
+    queryKey: queryKeys.eventPhotos(eventId),
+    queryFn: () => PhotoService.getPhotosByEventId(eventId),
+    staleTime: CACHE_TTL.PHOTOS_LIST,
+    gcTime: CACHE_GC_TIME.LONG,
+    enabled: !!eventId,
+  });
+};
+
 export const usePlantStats = (plantId: string) => {
   return useQuery<any>({
     queryKey: queryKeys.plantStats(plantId),
+    enabled: !!plantId,
     queryFn: () => EventService.getEventStats(plantId),
     staleTime: CACHE_TTL.EVENTS_STATS,
     gcTime: CACHE_GC_TIME.MEDIUM,
-    enabled: !!plantId,
   });
 };
 
@@ -268,6 +297,7 @@ export const useCreateEvent = () => {
 
       // Invalidate recent events
       queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
 
       // Invalidate plant stats
       queryClient.invalidateQueries({
@@ -306,6 +336,10 @@ export const useUpdateEvent = () => {
 
         // Invalidate recent events
         queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+        queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.event(updatedEvent.id),
+        });
 
         // Invalidate plant stats
         queryClient.invalidateQueries({
@@ -331,7 +365,7 @@ export const useDeleteEvent = () => {
   return useMutation({
     mutationFn: ({ id, plantId }: { id: string; plantId: string }) =>
       EventService.deleteEvent(id),
-    onSuccess: (_, { plantId }) => {
+    onSuccess: (_, { id, plantId }) => {
       // Invalidate plant events
       queryClient.invalidateQueries({
         queryKey: queryKeys.plantEvents(plantId),
@@ -339,6 +373,8 @@ export const useDeleteEvent = () => {
 
       // Invalidate recent events
       queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
+      queryClient.removeQueries({ queryKey: queryKeys.event(id) });
 
       // Invalidate plant stats
       queryClient.invalidateQueries({

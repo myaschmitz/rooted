@@ -3,7 +3,7 @@ import { logger } from "../../utils/logger";
 import { View, Platform, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { AppInitializer } from '../../utils/AppInitializer';
-import { Home, Settings } from 'lucide-react-native';
+import { Home, Settings, CalendarDays } from 'lucide-react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { AuthGuard } from '../../components/AuthGuard';
@@ -54,6 +54,14 @@ export default function TabLayout() {
                 title: 'Plants',
                 tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
                 headerTitle: 'My Plants',
+              }}
+            />
+            <Tabs.Screen
+              name="calendar"
+              options={{
+                title: 'Calendar',
+                tabBarIcon: ({ color, size }) => <CalendarDays size={size} color={color} />,
+                headerTitle: 'Calendar',
               }}
             />
             <Tabs.Screen

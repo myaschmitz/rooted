@@ -7,6 +7,9 @@ export const queryKeys = {
   plantStats: (plantId: string) => ['plant-stats', plantId] as const,
   allPhotos: ['all-photos'] as const,
   recentEvents: ['recent-events'] as const,
+  allEvents: ['all-events'] as const,
+  event: (id: string) => ['event', id] as const,
+  eventPhotos: (eventId: string) => ['event-photos', eventId] as const,
   plantsByLocation: (location: string) =>
     ['plants-by-location', location] as const,
   plantsByLocationRoot: ['plants-by-location'] as const,
