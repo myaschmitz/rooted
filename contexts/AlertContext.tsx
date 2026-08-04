@@ -116,14 +116,27 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
               <Text style={styles.message}>{alert.message}</Text>
             ) : null}
 
-            <View style={styles.buttonRow}>
+            <View
+              style={
+                alert.buttons.length > 2
+                  ? styles.buttonColumn
+                  : styles.buttonRow
+              }
+            >
               {alert.buttons.map((button, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={getButtonStyle(button)}
+                  style={[
+                    getButtonStyle(button),
+                    alert.buttons.length > 2
+                      ? styles.buttonStacked
+                      : styles.buttonRowItem,
+                  ]}
                   onPress={() => handleButtonPress(button)}
                 >
-                  <Text style={getButtonTextStyle(button)}>{button.text}</Text>
+                  <Text style={getButtonTextStyle(button)} numberOfLines={1}>
+                    {button.text}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -173,11 +186,22 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       gap: 12,
     },
-    button: {
+    buttonColumn: {
+      flexDirection: "column",
+      gap: 10,
+    },
+    buttonStacked: {
+      alignSelf: "stretch",
+    },
+    buttonRowItem: {
       flex: 1,
+    },
+    button: {
       padding: 14,
       borderRadius: 8,
       alignItems: "center",
+      justifyContent: "center",
+      minHeight: 48,
     },
     buttonText: {
       fontSize: 16,

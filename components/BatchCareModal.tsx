@@ -178,36 +178,38 @@ export default function BatchCareModal({
 
             <View style={globalStyles.inputGroup}>
               <View style={styles.dateTimeRow}>
-                <View style={styles.dateTimeSection}>
+                <View style={styles.dateSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="date"
                     label="Date"
+                    compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
                   />
                 </View>
-                <View style={styles.dateTimeSection}>
+                <View style={styles.timeSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="time"
                     label="Time"
+                    compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
                   />
                 </View>
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity
-                    style={styles.nowButton}
-                    onPress={() =>
-                      setCareDetails((prev) => ({ ...prev, date: new Date() }))
-                    }
-                  >
-                    <Text style={styles.nowButtonText}>Set to Now</Text>
-                  </TouchableOpacity>
-                </View>
+              </View>
+              <View style={styles.buttonSection}>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() =>
+                    setCareDetails((prev) => ({ ...prev, date: new Date() }))
+                  }
+                >
+                  <Text style={styles.nowButtonText}>Set to Now</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -335,10 +337,14 @@ export default function BatchCareModal({
                     color={theme.colors.textOnPrimary}
                     style={styles.submitSpinner}
                   />
-                  <Text style={globalStyles.buttonText}>Submitting...</Text>
+                  <Text style={globalStyles.buttonText} numberOfLines={1}>
+                    Submitting...
+                  </Text>
                 </View>
               ) : (
-                <Text style={globalStyles.buttonText}>Confirm</Text>
+                <Text style={globalStyles.buttonText} numberOfLines={1}>
+                  Confirm
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -408,33 +414,34 @@ const createStyles = (theme: Theme) =>
       maxHeight: 400,
     },
     detailsScrollContent: {
-      paddingBottom: 20,
+      paddingBottom: 8,
     },
     selectedCountText: {
-      marginBottom: 16,
+      marginBottom: 8,
       fontSize: 14,
       color: theme.colors.textSecondary,
     },
     dateTimeRow: {
       flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
+      alignItems: "flex-end",
+      gap: 8,
     },
-    dateTimeSection: {
-      flex: 1,
-      marginHorizontal: 4,
-      marginBottom: 8,
+    dateSection: {
+      flex: 3,
+      minWidth: 0,
+    },
+    timeSection: {
+      flex: 2,
+      minWidth: 0,
     },
     buttonSection: {
-      justifyContent: "flex-end",
-      alignItems: "center",
-      paddingHorizontal: 4,
-      paddingTop: 26,
+      alignItems: "flex-start",
+      marginTop: 4,
     },
     nowButton: {
       backgroundColor: theme.colors.primary,
       paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingVertical: 6,
       borderRadius: 6,
     },
     nowButtonText: {

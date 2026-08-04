@@ -7,9 +7,16 @@ interface DateTimeInputProps {
   onChange: (date: Date) => void;
   mode?: 'date' | 'time';
   label?: string;
+  compact?: boolean;
 }
 
-export default function DateTimeInput({ value, onChange, mode = 'date', label }: DateTimeInputProps) {
+export default function DateTimeInput({
+  value,
+  onChange,
+  mode = 'date',
+  label,
+  compact = false,
+}: DateTimeInputProps) {
   const { theme } = useTheme();
 
   const formatDateForInput = (d: Date): string => {
@@ -45,7 +52,15 @@ export default function DateTimeInput({ value, onChange, mode = 'date', label }:
   return (
     <View>
       {label && (
-        <Text style={[styles.label, { color: theme.colors.textPrimary }]}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            compact && styles.compactLabel,
+            { color: theme.colors.textPrimary },
+          ]}
+        >
+          {label}
+        </Text>
       )}
       <input
         type={mode === 'date' ? 'date' : 'time'}
@@ -73,5 +88,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
+  },
+  compactLabel: {
+    marginBottom: 4,
   },
 });
