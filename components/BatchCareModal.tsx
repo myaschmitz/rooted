@@ -178,21 +178,23 @@ export default function BatchCareModal({
 
             <View style={globalStyles.inputGroup}>
               <View style={styles.dateTimeRow}>
-                <View>
+                <View style={styles.dateSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="date"
                     label="Date"
+                    compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
                   />
                 </View>
-                <View>
+                <View style={styles.timeSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="time"
                     label="Time"
+                    compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
@@ -420,8 +422,17 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
     },
     dateTimeRow: {
-      flexDirection: "column",
-      gap: 4,
+      flexDirection: "row",
+      alignItems: "flex-end",
+      gap: 8,
+    },
+    dateSection: {
+      flex: 3,
+      minWidth: 0,
+    },
+    timeSection: {
+      flex: 2,
+      minWidth: 0,
     },
     buttonSection: {
       alignItems: "flex-start",
