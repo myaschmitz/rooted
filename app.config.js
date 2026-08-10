@@ -54,6 +54,21 @@ export default ({ config }) => {
             project: "react-native",
             organization: "myaschmitz",
           }
+        ],
+        [
+          // MMKV 2.4.1 calls memset_s on Apple without defining __STDC_WANT_LIB_EXT1__,
+          // so it fails to compile against the iOS SDK. react-native-mmkv depends on
+          // "MMKV >= 1.3.3", which floats to the broken version on every build.
+          // Pin both until upstream ships a fix: Tencent/MMKV AESCrypt.cpp secureZero.
+          "expo-build-properties",
+          {
+            ios: {
+              extraPods: [
+                { name: "MMKV", version: "2.4.0" },
+                { name: "MMKVCore", version: "2.4.0" }
+              ]
+            }
+          }
         ]
       ],
       scheme: schemeName,
