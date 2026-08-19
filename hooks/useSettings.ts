@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlantService } from '../services/PlantService';
 import { EventService } from '../services/EventService';
 import { PhotoService } from '../services/PhotoService';
+import { DataExportService } from '../services/DataExportService';
 
 export const DATE_FORMATS = [
   { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
@@ -23,8 +24,10 @@ export interface UseSettingsReturn {
   dateFormat: DateFormatValue;
   timeFormat: TimeFormatValue;
   loading: boolean;
+  exporting: boolean;
   setDateFormat: (format: DateFormatValue) => Promise<void>;
   setTimeFormat: (format: TimeFormatValue) => Promise<void>;
+  exportData: () => Promise<void>;
   generateThumbnails: () => Promise<void>;
   deleteAllData: () => Promise<void>;
 }
@@ -34,6 +37,7 @@ export const useSettings = (): UseSettingsReturn => {
   const [dateFormat, setDateFormatState] = useState<DateFormatValue>('MM/DD/YYYY');
   const [timeFormat, setTimeFormatState] = useState<TimeFormatValue>('12');
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -92,6 +96,25 @@ export const useSettings = (): UseSettingsReturn => {
     }
   }, []);
 
+  const exportData = useCallback(async () => {
+    setExporting(true);
+    try {
+      const result = await DataExportService.exportData();
+      showAlert(
+        'Export Complete',
+        `Exported all household data and ${result.photoCount} original photos.`
+      );
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      showAlert(
+        'Export Failed',
+        error instanceof Error ? error.message : 'Failed to export data. Please try again.'
+      );
+    } finally {
+      setExporting(false);
+    }
+  }, [showAlert]);
+
   const deleteAllData = useCallback(async () => {
     setLoading(true);
     try {
@@ -116,8 +139,10 @@ export const useSettings = (): UseSettingsReturn => {
     dateFormat,
     timeFormat,
     loading,
+    exporting,
     setDateFormat,
     setTimeFormat,
+    exportData,
     generateThumbnails,
     deleteAllData,
   };

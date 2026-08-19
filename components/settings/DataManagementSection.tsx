@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet } from 'react-native';
-import { RefreshCw } from 'lucide-react-native';
+import { Download, RefreshCw } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
 
 interface DataManagementSectionProps {
   loading: boolean;
+  exporting: boolean;
+  onExportData: () => Promise<void>;
   onGenerateThumbnails: () => Promise<void>;
   onDeleteAllData: () => Promise<void>;
 }
 
 export default function DataManagementSection({
   loading,
+  exporting,
+  onExportData,
   onGenerateThumbnails,
   onDeleteAllData,
 }: DataManagementSectionProps) {
@@ -49,9 +53,32 @@ export default function DataManagementSection({
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Data Management</Text>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.disabledButton]}
+          style={[
+            styles.button,
+            { backgroundColor: theme.colors.primary },
+            (loading || exporting) && styles.disabledButton,
+          ]}
+          onPress={onExportData}
+          disabled={loading || exporting}
+        >
+          <Download size={16} color={theme.colors.textOnPrimary} />
+          <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
+            {exporting ? 'Preparing Export...' : 'Export Data & Photos'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.warningText, { color: theme.colors.textSecondary }]}>
+          Downloads a ZIP with all household data and original stored photos.
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.button,
+            { backgroundColor: theme.colors.primary },
+            (loading || exporting) && styles.disabledButton,
+          ]}
           onPress={handleGenerateThumbnails}
-          disabled={loading}
+          disabled={loading || exporting}
         >
           <RefreshCw size={16} color={theme.colors.textOnPrimary} />
           <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
@@ -64,9 +91,9 @@ export default function DataManagementSection({
         </Text>
 
         <TouchableOpacity
-          style={[styles.deleteButton, loading && styles.disabledButton]}
+          style={[styles.deleteButton, (loading || exporting) && styles.disabledButton]}
           onPress={handleDeleteAllData}
-          disabled={loading}
+          disabled={loading || exporting}
         >
           <Text style={styles.deleteButtonText}>{loading ? 'Deleting...' : 'Delete All Plants & Data'}</Text>
         </TouchableOpacity>
