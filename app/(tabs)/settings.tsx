@@ -23,8 +23,10 @@ export default function SettingsScreen() {
     dateFormat,
     timeFormat,
     loading: settingsLoading,
+    exporting,
     setDateFormat,
     setTimeFormat,
+    exportData,
     generateThumbnails,
     deleteAllData,
   } = useSettings();
@@ -115,6 +117,8 @@ export default function SettingsScreen() {
 
           <DataManagementSection
             loading={loading}
+            exporting={exporting}
+            onExportData={exportData}
             onGenerateThumbnails={generateThumbnails}
             onDeleteAllData={deleteAllData}
           />
