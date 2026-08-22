@@ -417,6 +417,12 @@ export class CacheInvalidationService {
 
             // Invalidate plants list to update thumbnail display
             await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+
+            // Batched thumbnails power the plants list/grid images
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.batchThumbnailsRoot,
+              exact: false,
+            });
           }
           break;
 
