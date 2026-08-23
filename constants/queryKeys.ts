@@ -16,6 +16,7 @@ export const queryKeys = {
   thumbnailPhoto: (plantId: string) => ['thumbnail-photo', plantId] as const,
   batchThumbnails: (plantIds: string[]) =>
     ['batch-thumbnails', [...plantIds].sort().join(',')] as const,
+  batchThumbnailsRoot: ['batch-thumbnails'] as const,
   batchLastEvents: (plantIds: string[], eventTypes: string[]) =>
     [
       'batch-last-events',

@@ -691,8 +691,10 @@ export class PhotoService {
         throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
 
-      const plantCacheKey = `plant-${plantId}-${session.household_id}`;
-      await CacheService.invalidateCache(plantCacheKey);
+      await CacheInvalidationService.invalidateOnUserAction(
+        "thumbnail_changed",
+        { entityId: plantId, immediate: true },
+      );
     } catch (error) {
       console.error("Error setting thumbnail photo:", error);
       throw error;
@@ -721,6 +723,11 @@ export class PhotoService {
       if (error) {
         throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
+
+      await CacheInvalidationService.invalidateOnUserAction(
+        "thumbnail_changed",
+        { entityId: plantId, immediate: true },
+      );
     } catch (error) {
       console.error("Error clearing thumbnail photo:", error);
       throw error;
