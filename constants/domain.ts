@@ -25,6 +25,7 @@ export const CACHE_TTL = {
   PLANTS_BY_LOCATION: 5 * 60 * 1000, // 5 minutes
   PLANTS_SEARCH: 2 * 60 * 1000, // 2 minutes (searches change more)
   PLANTS_WITH_WATERING: 5 * 60 * 1000, // 5 minutes
+  PLANT_LINEAGE: 10 * 60 * 1000, // 10 minutes (propagation links change rarely)
 
   // Photo data - very stable, expensive to fetch
   PHOTOS_LIST: 10 * 60 * 1000, // 10 minutes
@@ -94,6 +95,8 @@ export const DB_COLUMNS = {
   EVENT_TYPE: "event_type",
   FILE_PATH: "file_path",
   THUMBNAIL_PATH: "thumbnail_path",
+  PARENT_PLANT_ID: "parent_plant_id",
+  CHILD_PLANT_ID: "child_plant_id",
 } as const;
 
 // ============================================================================

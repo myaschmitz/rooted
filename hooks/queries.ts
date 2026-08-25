@@ -8,10 +8,13 @@ import { PlantService } from "../services/PlantService";
 import { PhotoService } from "../services/PhotoService";
 import { EventService } from "../services/EventService";
 import { TagService } from "../services/TagService";
-import { Plant, PlantPhoto, Event, Tag } from "../types/Plant";
+import { PropagationService } from "../services/PropagationService";
+import type { PropagateInput } from "../services/PropagationService";
+import { Plant, PlantPhoto, Event, Tag, PlantLineage } from "../types/Plant";
 import { queryKeys } from "../constants/queryKeys";
 import { CACHE_TTL, CACHE_GC_TIME, BATCH_CONFIG } from "../constants/domain";
 import { WATERING_EVENT_TYPES } from "../constants/careTypes";
+import type { PropagationMethod } from "../constants/propagation";
 
 // Re-export queryKeys for backward compatibility
 export { queryKeys };
@@ -752,6 +755,93 @@ export const useRestorePlant = () => {
         queryKey: queryKeys.plantsByLocationRoot,
         exact: false,
       });
+    },
+  });
+};
+
+// ============================================================================
+// PROPAGATION
+// ============================================================================
+
+export const usePlantLineage = (plantId: string) => {
+  return useQuery<PlantLineage | null>({
+    queryKey: queryKeys.plantLineage(plantId),
+    queryFn: () => PropagationService.getLineage(plantId),
+    staleTime: CACHE_TTL.PLANT_LINEAGE,
+    gcTime: CACHE_GC_TIME.MEDIUM,
+    enabled: !!plantId,
+  });
+};
+
+export const usePropagatePlant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: PropagateInput) =>
+      PropagationService.propagateFrom(input),
+    onSuccess: (child, input) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantLineageRoot,
+        exact: false,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantEvents(input.parentPlantId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantEvents(child.id),
+      });
+      if (input.tagIds?.length) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.plantTags(child.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.batchPlantTagsRoot,
+          exact: false,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantsByLocationRoot,
+        exact: false,
+      });
+      queryClient.setQueryData(queryKeys.plant(child.id), child);
+    },
+    onError: (error) => {
+      console.error("Failed to propagate plant:", error);
+    },
+  });
+};
+
+export const useSetPlantParent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      plantId,
+      parentPlantId,
+      method,
+      propagatedAt,
+    }: {
+      plantId: string;
+      parentPlantId: string | null;
+      method?: PropagationMethod;
+      propagatedAt?: string;
+    }) =>
+      PropagationService.setParent(plantId, parentPlantId, {
+        method,
+        propagatedAt,
+      }),
+    onSuccess: (_updated, { plantId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantLineageRoot,
+        exact: false,
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update plant lineage:", error);
     },
   });
 };

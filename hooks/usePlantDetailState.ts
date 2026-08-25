@@ -19,6 +19,7 @@ import {
   useSavePhoto,
   useDeletePhoto,
   useDeleteEvent,
+  usePlantLineage,
 } from "./queries";
 
 // Stable empty arrays to prevent unnecessary re-renders
@@ -51,6 +52,11 @@ export function usePlantDetailState(plantId: string) {
   } = usePlantPhotos(plantId);
   const { data: thumbnailPhoto, isLoading: thumbnailLoading } =
     useThumbnailPhoto(plantId);
+  const {
+    data: lineage,
+    isLoading: lineageLoading,
+    refetch: refetchLineage,
+  } = usePlantLineage(plantId);
 
   // Mutations
   const setThumbnailMutation = useSetThumbnailPhoto();
@@ -190,17 +196,32 @@ export function usePlantDetailState(plantId: string) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([refetchPlant(), refetchEvents(), refetchPhotos()]);
+      await Promise.all([
+        refetchPlant(),
+        refetchEvents(),
+        refetchPhotos(),
+        refetchLineage(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [refetchPlant, refetchEvents, refetchPhotos]);
+  }, [refetchPlant, refetchEvents, refetchPhotos, refetchLineage]);
 
   const handleLogCare = useCallback(() => {
     if (!openModal("log-care", { plantId })) {
       router.push(`/log-care?plantId=${plantId}`);
     }
   }, [plantId, openModal]);
+
+  const handlePropagate = useCallback(() => {
+    if (!openModal("propagate", { parentId: plantId })) {
+      router.push(`/propagate?parentId=${plantId}`);
+    }
+  }, [plantId, openModal]);
+
+  const handleOpenPlant = useCallback((targetPlantId: string) => {
+    router.push(`/plant/${targetPlantId}`);
+  }, []);
 
   const handleAddTag = useCallback(() => {
     if (!openModal("add-tag", { plantId })) {
@@ -557,11 +578,13 @@ export function usePlantDetailState(plantId: string) {
     eventPhotos,
     formattedDates,
     currentThumbnailId,
+    lineage,
 
     // Loading states
     loading,
     refreshing,
     uploadingPhoto,
+    lineageLoading,
 
     // UI state
     imageViewerVisible,
@@ -575,6 +598,8 @@ export function usePlantDetailState(plantId: string) {
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handlePropagate,
+    handleOpenPlant,
     handleAddPhoto,
     handlePhotoPress,
     handleThumbnailPress,

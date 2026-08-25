@@ -9,6 +9,7 @@ import { useWebModal } from "../../contexts/WebModalContext";
 import { useModalParams, useModalDismiss } from "../../hooks/useModalNav";
 import { useEvent, useEventPhotos, usePlant, useDeleteEvent } from "../../hooks/queries";
 import { getCareTypeByType, isFertilizerEvent } from "../../constants/careTypes";
+import { isGeneratedPropagationNote } from "../../constants/propagation";
 import { PhotoService } from "../../services/PhotoService";
 import WebContainer from "../../components/WebContainer";
 
@@ -25,6 +26,8 @@ export default function EventDetailScreen() {
   const { id } = useModalParams<{ id: string }>();
   const { data: event, isLoading } = useEvent(id);
   const { data: plant } = usePlant(event?.plant_id ?? "");
+  const { data: childPlant } = usePlant(event?.child_plant_id ?? "");
+  const { data: sourcePlant } = usePlant(event?.parent_plant_id ?? "");
   const { data: photos = [] } = useEventPhotos(id);
   const deleteEvent = useDeleteEvent();
 
@@ -100,6 +103,36 @@ export default function EventDetailScreen() {
           </TouchableOpacity>
         )}
 
+        {childPlant && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Propagated</Text>
+            <TouchableOpacity
+              style={styles.plantRow}
+              onPress={() => router.push(`/plant/${childPlant.id}`)}
+            >
+              <Text style={styles.plantName}>
+                {childPlant.name || childPlant.type}
+              </Text>
+              <ChevronRight size={18} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {sourcePlant && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Propagated from</Text>
+            <TouchableOpacity
+              style={styles.plantRow}
+              onPress={() => router.push(`/plant/${sourcePlant.id}`)}
+            >
+              <Text style={styles.plantName}>
+                {sourcePlant.name || sourcePlant.type}
+              </Text>
+              <ChevronRight size={18} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {isFertilizerEvent(event.event_type) && event.fertilizer_concentration && (
           <View style={styles.field}>
             <Text style={styles.label}>Strength</Text>
@@ -116,7 +149,10 @@ export default function EventDetailScreen() {
           </View>
         )}
 
-        {event.notes ? (
+        {event.notes &&
+        !(
+          (childPlant || sourcePlant) && isGeneratedPropagationNote(event.notes)
+        ) ? (
           <View style={styles.field}>
             <Text style={styles.label}>Notes</Text>
             <Text style={styles.value}>{event.notes}</Text>

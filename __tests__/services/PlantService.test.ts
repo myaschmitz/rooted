@@ -310,9 +310,11 @@ describe('PlantService', () => {
       const mockError = { message: 'Delete failed' };
       const originalThen = mockSupabase.then;
       let responseIndex = 0;
+      // Awaited queries in order: reparent propagation children, fetch photos,
+      // then the delete itself, which is the one that fails here.
       mockSupabase.then = (onFulfilled: (value: unknown) => unknown, onRejected: (reason: unknown) => unknown) =>
         Promise.resolve(
-          responseIndex++ === 0
+          responseIndex++ < 2
             ? { data: [], error: null }
             : { data: null, error: mockError },
         ).then(onFulfilled, onRejected);

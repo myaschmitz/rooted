@@ -213,6 +213,50 @@ export class PlantService {
     return plant;
   }
 
+  /**
+   * Move a plant's children onto their grandparent before it is deleted, so
+   * removing a cutting mid-tree doesn't orphan everything below it.
+   *
+   * Lives on PlantService rather than PropagationService to keep the delete
+   * path free of a circular import, and is done in application code rather
+   * than a database trigger: a row trigger that updates sibling rows fails
+   * with "tuple to be deleted was already modified by an operation triggered
+   * by the current command" whenever a delete spans multiple rows of the same
+   * table. Returns the number of reparented plants.
+   *
+   * Pass `newParentId` when the caller already knows the grandparent, to skip
+   * a redundant lookup.
+   */
+  static async reparentPropagationChildren(
+    plantId: string,
+    newParentId?: string | null,
+  ): Promise<number> {
+    const session = await HouseholdService.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+
+    let parentId = newParentId;
+    if (parentId === undefined) {
+      const plant = await this.getPlantById(plantId);
+      if (!plant) return 0;
+      parentId = plant.parent_plant_id ?? null;
+    }
+
+    const { data, error } = await supabase
+      .from(DB_TABLES.PLANTS)
+      .update({ parent_plant_id: parentId ?? null })
+      .eq(DB_COLUMNS.PARENT_PLANT_ID, plantId)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .select("id");
+
+    if (error) {
+      throw ErrorMapper.mapDatabaseError(error, "update", "plant");
+    }
+
+    return (data || []).length;
+  }
+
   static async deletePlant(id: string): Promise<boolean> {
     // Get current household session for filtering
     const session = await HouseholdService.getUserSession();
@@ -223,6 +267,12 @@ export class PlantService {
     // Get plant info before deleting for activity log
     // (getPlantById already scopes to this household, so this also acts as access check)
     const plant = await this.getPlantById(id);
+
+    // Keep the propagation tree intact — children move up to their grandparent.
+    if (plant) {
+      await this.reparentPropagationChildren(id, plant.parent_plant_id ?? null);
+    }
+
     const { data: photos, error: photosError } = await supabase
       .from(DB_TABLES.PLANT_PHOTOS)
       .select(`${DB_COLUMNS.FILE_PATH}, ${DB_COLUMNS.THUMBNAIL_PATH}`)

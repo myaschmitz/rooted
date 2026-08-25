@@ -8,6 +8,7 @@ export type InvalidationAction =
   | "plant_added"
   | "plant_updated"
   | "plant_deleted"
+  | "plant_propagated"
   | "event_added"
   | "event_updated"
   | "event_deleted"
@@ -305,6 +306,35 @@ export class CacheInvalidationService {
           }
           break;
 
+        case "plant_propagated":
+          // A propagation link changed, so every lineage view may be stale —
+          // the affected family is cheaper to drop wholesale than to compute.
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.plantLineageRoot,
+            exact: false,
+          });
+          await queryClient.invalidateQueries({ queryKey: queryKeys.plants });
+          if (entityId) {
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plant(entityId),
+            });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantEvents(entityId),
+            });
+          }
+          if (additionalData.relatedPlantId) {
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plant(additionalData.relatedPlantId),
+            });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantEvents(additionalData.relatedPlantId),
+            });
+          }
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.recentEvents,
+          });
+          break;
+
         case "event_added":
         case "event_updated":
           if (entityId) {
@@ -501,6 +531,7 @@ export class CacheInvalidationService {
         case "plant_updated":
         case "plant_deleted":
           patterns.push("plants:household");
+          patterns.push("plants:lineage");
           if (entityId) {
             patterns.push(`plant:${entityId}`);
           }
@@ -512,6 +543,19 @@ export class CacheInvalidationService {
           }
           if (additionalData.newLocation) {
             patterns.push(`plants:location:`, additionalData.newLocation);
+          }
+          break;
+
+        case "plant_propagated":
+          patterns.push("plants:household", "plants:lineage", "events:recent");
+          if (entityId) {
+            patterns.push(`plant:${entityId}`, `events:plant:${entityId}`);
+          }
+          if (additionalData.relatedPlantId) {
+            patterns.push(
+              `plant:${additionalData.relatedPlantId}`,
+              `events:plant:${additionalData.relatedPlantId}`,
+            );
           }
           break;
 

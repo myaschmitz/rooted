@@ -1,4 +1,5 @@
 import type { CareEventType } from "../constants/careTypes";
+import type { PropagationMethod } from "../constants/propagation";
 
 export type Database = {
   public: {
@@ -86,6 +87,9 @@ export type Database = {
           pinned: boolean;
           archived: boolean;
           archived_at?: string;
+          parent_plant_id?: string | null;
+          propagated_at?: string | null;
+          propagation_method?: PropagationMethod | null;
           household_id: string;
           created_at: string;
           updated_at: string;
@@ -100,6 +104,9 @@ export type Database = {
           pinned?: boolean;
           archived?: boolean;
           archived_at?: string;
+          parent_plant_id?: string | null;
+          propagated_at?: string | null;
+          propagation_method?: PropagationMethod | null;
           household_id: string;
           created_at?: string;
           updated_at?: string;
@@ -114,6 +121,9 @@ export type Database = {
           pinned?: boolean;
           archived?: boolean;
           archived_at?: string;
+          parent_plant_id?: string | null;
+          propagated_at?: string | null;
+          propagation_method?: PropagationMethod | null;
           household_id?: string;
           updated_at?: string;
         };
@@ -127,6 +137,8 @@ export type Database = {
           notes?: string;
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
+          child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id: string;
           created_at: string;
           updated_at: string;
@@ -139,6 +151,8 @@ export type Database = {
           notes?: string;
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
+          child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id: string;
           created_at?: string;
           updated_at?: string;
@@ -151,6 +165,8 @@ export type Database = {
           notes?: string;
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
+          child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id?: string;
           updated_at?: string;
         };
