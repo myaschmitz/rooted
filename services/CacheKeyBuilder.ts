@@ -37,6 +37,10 @@ export class CacheKeyBuilder {
     return `plants${this.SEP}watering${this.SEP}${householdId}`;
   }
 
+  static plantLineageGraph(householdId: string): string {
+    return `plants${this.SEP}lineage${this.SEP}${householdId}`;
+  }
+
   // ============================================================================
   // PHOTO KEYS
   // ============================================================================

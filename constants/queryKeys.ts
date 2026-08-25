@@ -5,6 +5,8 @@ export const queryKeys = {
   plantPhotos: (plantId: string) => ['plant-photos', plantId] as const,
   plantEvents: (plantId: string) => ['plant-events', plantId] as const,
   plantStats: (plantId: string) => ['plant-stats', plantId] as const,
+  plantLineage: (plantId: string) => ['plant-lineage', plantId] as const,
+  plantLineageRoot: ['plant-lineage'] as const,
   allPhotos: ['all-photos'] as const,
   recentEvents: ['recent-events'] as const,
   allEvents: ['all-events'] as const,

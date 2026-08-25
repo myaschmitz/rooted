@@ -105,6 +105,7 @@ export type ActivityAction =
   | 'added multiple tags'
   | 'updated tag'
   | 'deleted tag'
+  | 'propagated'
   | 'other care';
 
 export interface ActivityLogDetails {

@@ -7,6 +7,7 @@ import {
   Leaf,
   Move,
   TreePine,
+  GitBranch,
   MoreHorizontal,
   LucideIcon,
 } from "lucide-react-native";
@@ -33,6 +34,7 @@ export const CARE_EVENT_TYPES = [
   "new_leaf",
   "relocation",
   "new_roots_spotted",
+  "propagate",
   "other",
 ] as const;
 
@@ -126,6 +128,15 @@ export const CARE_TYPES: CareTypeDefinition[] = [
     label: "New Roots",
     icon: TreePine,
     color: "#33691E",
+    category: "event",
+  },
+  // Categorised as an observation so it stays out of bulk-apply — propagating
+  // creates a child plant, which only makes sense one parent at a time.
+  {
+    type: "propagate",
+    label: "Propagate",
+    icon: GitBranch,
+    color: "#00897B",
     category: "event",
   },
   {

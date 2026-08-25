@@ -19,6 +19,7 @@ import {
   PlantActionButtons,
   PlantPhotosSection,
   PlantCalendarSection,
+  PlantLineageSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
 } from "../../components/plant-detail";
@@ -38,11 +39,13 @@ export default function PlantDetailScreen() {
     eventPhotos,
     formattedDates,
     currentThumbnailId,
+    lineage,
 
     // Loading states
     loading,
     refreshing,
     uploadingPhoto,
+    lineageLoading,
 
     // UI state
     imageViewerVisible,
@@ -56,6 +59,8 @@ export default function PlantDetailScreen() {
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handlePropagate,
+    handleOpenPlant,
     handleAddPhoto,
     handlePhotoPress,
     handleThumbnailPress,
@@ -146,8 +151,14 @@ export default function PlantDetailScreen() {
             </View>
           )}
 
-          <PlantPhotosSection
-            photos={typedPhotos}
+          <PlantLineageSection
+            lineage={lineage}
+            loading={lineageLoading}
+            onPropagate={handlePropagate}
+            onPlantPress={handleOpenPlant}
+          />
+
+          <PlantPhotosSection            photos={typedPhotos}
             thumbnailPhotoId={currentThumbnailId}
             isMultiSelectMode={isMultiSelectMode}
             selectedPhotos={selectedPhotos}

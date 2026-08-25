@@ -130,6 +130,12 @@ function ThemedStack() {
             title: "Add Tag",
             headerBackTitle: "Plant Details",
           }}
+        />        <Stack.Screen
+          name="propagate"
+          options={{
+            title: "Propagate",
+            headerBackTitle: "Plant Details",
+          }}
         />
         <Stack.Screen
           name="archived-plants"

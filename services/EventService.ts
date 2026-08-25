@@ -23,6 +23,7 @@ const EVENT_ACTIVITY_ACTIONS: Partial<Record<CareEventType, ActivityAction>> = {
   prune: "pruned",
   pest_spotted: "pest spotted",
   insecticide_spray: "insecticide spray",
+  propagate: "propagated",
 };
 
 export class EventService {

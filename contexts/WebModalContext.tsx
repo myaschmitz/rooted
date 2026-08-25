@@ -17,7 +17,8 @@ type ModalScreen =
   | 'edit-care-event'
   | 'event'
   | 'add-tag'
-  | 'edit-tag';
+  | 'edit-tag'
+  | 'propagate';
 
 interface WebModalState {
   screen: ModalScreen;
@@ -56,6 +57,7 @@ function getScreenComponent(screen: ModalScreen): React.ComponentType<any> {
     case 'event': return require('../app/event/[id]').default;
     case 'add-tag': return require('../app/add-tag').default;
     case 'edit-tag': return require('../app/edit-tag').default;
+    case 'propagate': return require('../app/propagate').default;
   }
 }
 

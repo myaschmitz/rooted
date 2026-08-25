@@ -23,6 +23,7 @@ Last reviewed: August 1, 2026
 - [x] Care event create, edit, delete, and backdating
 - [x] Event-specific fertilizer and pest metadata
 - [x] Monthly care calendar and event detail view
+- [x] Propagation lineage: parent/child links, propagation method and date, and a lineage section on plant detail
 
 ### Photos
 
@@ -63,6 +64,8 @@ Last reviewed: August 1, 2026
 - [ ] Create care reminders based on history or a user-defined schedule
 - [ ] Add notification preferences
 - [ ] Add plant growth tracking
+- [ ] Add a full propagation family-tree screen with an interactive graph view
+- [ ] Allow linking an existing plant to a parent from the plant edit screen
 
 ### Photo features
 
