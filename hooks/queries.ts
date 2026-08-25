@@ -788,6 +788,18 @@ export const usePropagatePlant = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.plantEvents(input.parentPlantId),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.plantEvents(child.id),
+      });
+      if (input.tagIds?.length) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.plantTags(child.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.batchPlantTagsRoot,
+          exact: false,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
       queryClient.invalidateQueries({
         queryKey: queryKeys.plantsByLocationRoot,

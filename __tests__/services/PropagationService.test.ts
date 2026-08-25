@@ -1,13 +1,19 @@
 import { PropagationService } from "../../services/PropagationService";
 import { PlantService } from "../../services/PlantService";
 import { EventService } from "../../services/EventService";
+import { TagService } from "../../services/TagService";
 import { HouseholdService } from "../../services/HouseholdService";
 import { CacheInvalidationService } from "../../services/CacheInvalidationService";
 import type { LineagePlant, Plant } from "../../types/Plant";
+import {
+  buildPropagationNote,
+  isGeneratedPropagationNote,
+} from "../../constants/propagation";
 
 jest.mock("../../services/HouseholdService");
 jest.mock("../../services/PlantService");
 jest.mock("../../services/EventService");
+jest.mock("../../services/TagService");
 
 declare global {
   var mockSupabaseClient: any;
@@ -197,6 +203,7 @@ describe("PropagationService", () => {
       (PlantService.getPlantById as jest.Mock).mockResolvedValue(parent);
       (PlantService.createPlant as jest.Mock).mockResolvedValue(child);
       (EventService.createEvent as jest.Mock).mockResolvedValue({});
+      (TagService.addMultipleTagsToPlant as jest.Mock).mockResolvedValue([]);
     });
 
     it("creates the child with the parent link and inherited details", async () => {
@@ -220,7 +227,7 @@ describe("PropagationService", () => {
       expect(result).toEqual(child);
     });
 
-    it("logs a propagate event on the parent pointing at the new plant", async () => {
+    it("logs a propagate event on both sides of the new link", async () => {
       await PropagationService.propagateFrom({
         parentPlantId: parent.id,
         method: "division",
@@ -235,6 +242,16 @@ describe("PropagationService", () => {
           date: "2024-04-01T00:00:00.000Z",
         }),
       );
+      // The cutting's own history should say where it came from.
+      expect(EventService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          plant_id: child.id,
+          event_type: "propagate",
+          parent_plant_id: parent.id,
+          date: "2024-04-01T00:00:00.000Z",
+        }),
+      );
+      expect(EventService.createEvent).toHaveBeenCalledTimes(2);
       expect(
         CacheInvalidationService.invalidateOnUserAction,
       ).toHaveBeenCalledWith(
@@ -246,7 +263,25 @@ describe("PropagationService", () => {
       );
     });
 
-    it("still returns the child when the parent event fails to log", async () => {
+    it("still logs the child event when the parent event fails", async () => {
+      jest.spyOn(console, "error").mockImplementation(() => {});
+      (EventService.createEvent as jest.Mock)
+        .mockRejectedValueOnce(new Error("event insert failed"))
+        .mockResolvedValueOnce({});
+
+      await expect(
+        PropagationService.propagateFrom({
+          parentPlantId: parent.id,
+          method: "cutting",
+        }),
+      ).resolves.toEqual(child);
+
+      expect(EventService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ plant_id: child.id }),
+      );
+    });
+
+    it("still returns the child when both events fail to log", async () => {
       jest.spyOn(console, "error").mockImplementation(() => {});
       (EventService.createEvent as jest.Mock).mockRejectedValue(
         new Error("event insert failed"),
@@ -256,6 +291,44 @@ describe("PropagationService", () => {
         PropagationService.propagateFrom({
           parentPlantId: parent.id,
           method: "cutting",
+        }),
+      ).resolves.toEqual(child);
+    });
+
+    it("copies the selected tags onto the cutting", async () => {
+      await PropagationService.propagateFrom({
+        parentPlantId: parent.id,
+        method: "cutting",
+        tagIds: ["tag-1", "tag-2"],
+      });
+
+      expect(TagService.addMultipleTagsToPlant).toHaveBeenCalledWith(
+        child.id,
+        ["tag-1", "tag-2"],
+      );
+    });
+
+    it("skips the tag write when none are selected", async () => {
+      await PropagationService.propagateFrom({
+        parentPlantId: parent.id,
+        method: "cutting",
+        tagIds: [],
+      });
+
+      expect(TagService.addMultipleTagsToPlant).not.toHaveBeenCalled();
+    });
+
+    it("still returns the child when copying tags fails", async () => {
+      jest.spyOn(console, "error").mockImplementation(() => {});
+      (TagService.addMultipleTagsToPlant as jest.Mock).mockRejectedValue(
+        new Error("tag insert failed"),
+      );
+
+      await expect(
+        PropagationService.propagateFrom({
+          parentPlantId: parent.id,
+          method: "cutting",
+          tagIds: ["tag-1"],
         }),
       ).resolves.toEqual(child);
     });
@@ -308,5 +381,32 @@ describe("PropagationService", () => {
         propagation_method: null,
       });
     });
+  });
+});
+
+describe("propagation note helpers", () => {
+  it("builds the note for each side of the relationship", () => {
+    expect(buildPropagationNote("parent", "Monstera Cutting")).toBe(
+      "Propagated Monstera Cutting",
+    );
+    expect(buildPropagationNote("child", "Big Monstera")).toBe(
+      "Propagated from Big Monstera",
+    );
+  });
+
+  it("recognises its own generated notes", () => {
+    expect(isGeneratedPropagationNote(buildPropagationNote("parent", "A"))).toBe(true);
+    expect(isGeneratedPropagationNote(buildPropagationNote("child", "A"))).toBe(true);
+  });
+
+  it("still matches after the other plant is renamed", () => {
+    expect(isGeneratedPropagationNote("Propagated from Some New Name")).toBe(true);
+  });
+
+  it("leaves user-written notes alone", () => {
+    expect(isGeneratedPropagationNote("Looking healthy")).toBe(false);
+    expect(isGeneratedPropagationNote("")).toBe(false);
+    expect(isGeneratedPropagationNote(null)).toBe(false);
+    expect(isGeneratedPropagationNote(undefined)).toBe(false);
   });
 });

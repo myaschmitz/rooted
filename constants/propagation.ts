@@ -43,3 +43,21 @@ export const getPropagationMethodLabel = (
 
 /** Depth cap mirroring the recursive guard in the propagation migration. */
 export const MAX_LINEAGE_DEPTH = 100;
+
+/** Auto-generated note stored on the two events a propagation creates. */
+export const buildPropagationNote = (
+  direction: "parent" | "child",
+  otherPlantLabel: string,
+): string =>
+  direction === "parent"
+    ? `Propagated ${otherPlantLabel}`
+    : `Propagated from ${otherPlantLabel}`;
+
+/**
+ * True when a note is one we generated, so the UI can hide it in favour of the
+ * tappable lineage link. Matches on shape rather than an exact string so a
+ * later plant rename doesn't resurrect a stale note.
+ */
+export const isGeneratedPropagationNote = (
+  notes: string | null | undefined,
+): boolean => !!notes && /^Propagated (from )?\S.*$/.test(notes.trim());

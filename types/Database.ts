@@ -138,6 +138,7 @@ export type Database = {
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id: string;
           created_at: string;
           updated_at: string;
@@ -151,6 +152,7 @@ export type Database = {
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id: string;
           created_at?: string;
           updated_at?: string;
@@ -164,6 +166,7 @@ export type Database = {
           fertilizer_concentration?: "1/4" | "1/2" | "1x" | "1.5x" | "2x";
           pest_severity?: number;
           child_plant_id?: string | null;
+          parent_plant_id?: string | null;
           household_id?: string;
           updated_at?: string;
         };

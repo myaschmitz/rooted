@@ -326,6 +326,9 @@ export class CacheInvalidationService {
             await queryClient.invalidateQueries({
               queryKey: queryKeys.plant(additionalData.relatedPlantId),
             });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.plantEvents(additionalData.relatedPlantId),
+            });
           }
           await queryClient.invalidateQueries({
             queryKey: queryKeys.recentEvents,
@@ -549,7 +552,10 @@ export class CacheInvalidationService {
             patterns.push(`plant:${entityId}`, `events:plant:${entityId}`);
           }
           if (additionalData.relatedPlantId) {
-            patterns.push(`plant:${additionalData.relatedPlantId}`);
+            patterns.push(
+              `plant:${additionalData.relatedPlantId}`,
+              `events:plant:${additionalData.relatedPlantId}`,
+            );
           }
           break;
 

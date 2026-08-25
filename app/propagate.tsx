@@ -26,7 +26,7 @@ import WebContainer from "../components/WebContainer";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useAlert } from "../contexts/AlertContext";
 import { useModalParams, useModalReplace } from "../hooks/useModalNav";
-import { usePlant, usePropagatePlant } from "../hooks/queries";
+import { usePlant, usePropagatePlant, useAllTags, usePlantTags } from "../hooks/queries";
 import {
   PROPAGATION_METHODS,
   PROPAGATION_METHOD_LABELS,
@@ -66,6 +66,11 @@ export default function PropagateScreen() {
     return seeded?.isValid() ? seeded.toDate() : new Date();
   });
   const [saving, setSaving] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagsSeeded, setTagsSeeded] = useState(false);
+
+  const { data: allTags = [] } = useAllTags();
+  const { data: parentTags = [] } = usePlantTags(parentId ?? "");
 
   // A cutting inherits its parent's species and spot until the user says otherwise.
   useEffect(() => {
@@ -73,6 +78,21 @@ export default function PropagateScreen() {
     setType((current) => current || parent.type);
     setLocation((current) => current || parent.location || "");
   }, [parent]);
+
+  // Preselect the parent's tags once, so later deselections aren't undone.
+  useEffect(() => {
+    if (tagsSeeded || parentTags.length === 0) return;
+    setSelectedTagIds(parentTags.map((tag) => tag.id));
+    setTagsSeeded(true);
+  }, [parentTags, tagsSeeded]);
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((current) =>
+      current.includes(tagId)
+        ? current.filter((id) => id !== tagId)
+        : [...current, tagId],
+    );
+  };
 
   const styles = createStyles(theme);
   const parentLabel = parent?.name || parent?.type || "this plant";
@@ -97,6 +117,7 @@ export default function PropagateScreen() {
         notes: notes.trim() || undefined,
         method,
         propagatedAt: propagatedAt.toISOString(),
+        tagIds: selectedTagIds,
       });
 
       modalReplace(`/plant/${child.id}`);
@@ -218,6 +239,50 @@ export default function PropagateScreen() {
               />
             </View>
 
+            {allTags.length > 0 && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Tags</Text>
+                <Text style={styles.tagHint}>
+                  Inherited from {parentLabel} — tap to change.
+                </Text>
+                <View style={styles.tagRow}>
+                  {allTags.map((tag) => {
+                    const selected = selectedTagIds.includes(tag.id);
+                    return (
+                      <TouchableOpacity
+                        key={tag.id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected }}
+                        style={[
+                          styles.tagChip,
+                          {
+                            borderColor: tag.color,
+                            backgroundColor: selected
+                              ? tag.color
+                              : "transparent",
+                          },
+                        ]}
+                        onPress={() => toggleTag(tag.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.tagChipText,
+                            {
+                              color: selected
+                                ? theme.colors.textOnPrimary
+                                : theme.colors.text,
+                            },
+                          ]}
+                        >
+                          {tag.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Notes</Text>
               <TextInput
@@ -289,6 +354,26 @@ const createStyles = (theme: Theme) =>
     },
     notesInput: {
       minHeight: 100,
+    },
+    tagHint: {
+      fontSize: Typography.sm,
+      color: theme.colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    tagRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: Spacing.sm,
+    },
+    tagChip: {
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.base,
+      borderRadius: BorderRadius.full,
+      borderWidth: 1,
+    },
+    tagChipText: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.weights.medium,
     },
     methodGrid: {
       flexDirection: "row",

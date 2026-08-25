@@ -5,8 +5,12 @@ import { CacheInvalidationService } from "./CacheInvalidationService";
 import { CacheKeyBuilder } from "./CacheKeyBuilder";
 import { PlantService } from "./PlantService";
 import { EventService } from "./EventService";
+import { TagService } from "./TagService";
 import { CACHE_TTL, DB_TABLES, DB_COLUMNS } from "../constants/domain";
-import { MAX_LINEAGE_DEPTH } from "../constants/propagation";
+import {
+  MAX_LINEAGE_DEPTH,
+  buildPropagationNote,
+} from "../constants/propagation";
 import type { PropagationMethod } from "../constants/propagation";
 import { ErrorMapper } from "../errors/ErrorMapper";
 import { PlantNotFoundError, ValidationError } from "../errors/AppErrors";
@@ -30,6 +34,8 @@ export interface PropagateInput {
   method: PropagationMethod;
   /** ISO date the cutting was taken. Defaults to now. */
   propagatedAt?: string;
+  /** Tags to apply to the cutting, usually inherited from the parent. */
+  tagIds?: string[];
 }
 
 export class PropagationService {
@@ -176,21 +182,44 @@ export class PropagationService {
       propagation_method: input.method,
     });
 
+    // Tags are inherited traits ("variegated", "rare"), so a failure here
+    // shouldn't undo a plant that already exists.
+    if (input.tagIds?.length) {
+      try {
+        await TagService.addMultipleTagsToPlant(child.id, input.tagIds);
+      } catch (error) {
+        console.error("Failed to copy tags to the propagation:", error);
+      }
+    }
+
     // The child exists either way, so a failed event shouldn't fail the
-    // propagation — the lineage link is the durable part.
-    try {
-      await EventService.createEvent({
+    // propagation — the lineage link is the durable part. Both sides are
+    // attempted independently so one failing doesn't lose the other.
+    const parentLabel = parent.name || parent.type;
+    const childLabel = child.name || child.type;
+
+    const eventResults = await Promise.allSettled([
+      EventService.createEvent({
         plant_id: parent.id,
         event_type: "propagate",
         date: propagatedAt,
-        notes: input.name?.trim()
-          ? `Propagated ${input.name.trim()}`
-          : "Propagated a new plant",
+        notes: buildPropagationNote("parent", childLabel),
         child_plant_id: child.id,
-      });
-    } catch (error) {
-      console.error("Failed to log propagate event on parent:", error);
-    }
+      }),
+      EventService.createEvent({
+        plant_id: child.id,
+        event_type: "propagate",
+        date: propagatedAt,
+        notes: buildPropagationNote("child", parentLabel),
+        parent_plant_id: parent.id,
+      }),
+    ]);
+
+    eventResults.forEach((result) => {
+      if (result.status === "rejected") {
+        console.error("Failed to log propagate event:", result.reason);
+      }
+    });
 
     await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
       entityId: parent.id,

@@ -30,6 +30,8 @@ export interface Event {
   pest_severity?: number; // 1-10 scale for pest events
   /** Set on `propagate` events to link the parent's history to the plant it produced. */
   child_plant_id?: string | null;
+  /** Mirror of `child_plant_id`, set on the cutting's own `propagate` event. */
+  parent_plant_id?: string | null;
   household_id: string;
   created_at: string;
   updated_at: string;
