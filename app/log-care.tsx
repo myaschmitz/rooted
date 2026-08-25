@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
+import { ChevronRight } from "lucide-react-native";
 import DateTimeInput from "../components/DateTimeInput";
 import { EventService } from "../services/EventService";
 import { PlantService } from "../services/PlantService";
@@ -30,7 +31,11 @@ import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import { useCreateEvent, useUpdatePlant } from "../hooks/queries";
 import LocationDropdown from "../components/LocationDropdown";
 import WebContainer from "../components/WebContainer";
-import { useModalDismiss, useModalParams } from "../hooks/useModalNav";
+import {
+  useModalDismiss,
+  useModalParams,
+  useModalReplace,
+} from "../hooks/useModalNav";
 import { useAlert } from "../contexts/AlertContext";
 
 export default function LogCareScreen() {
@@ -40,6 +45,7 @@ export default function LogCareScreen() {
   const careStyles = useCareStyles();
   const { plantId } = useModalParams<{ plantId: string }>();
   const dismiss = useModalDismiss();
+  const modalReplace = useModalReplace();
   const { showAlert } = useAlert();
   const createEventMutation = useCreateEvent();
   const updatePlantMutation = useUpdatePlant();
@@ -328,18 +334,44 @@ export default function LogCareScreen() {
                 {careTypes.map((careType) => {
                   const Icon = careType.icon;
                   const isSelected = eventType === careType.type;
+                  // Opens its own form rather than selecting an event type.
+                  const opensForm = careType.type === "propagate";
                   return (
                     <TouchableOpacity
                       key={careType.type}
+                      accessibilityRole="button"
+                      accessibilityHint={
+                        opensForm
+                          ? `Opens the ${careType.label.toLowerCase()} form`
+                          : undefined
+                      }
                       style={[
                         styles.careTypeOption,
                         isSelected && styles.careTypeOptionSelected,
+                        opensForm && styles.careTypeOptionLink,
                       ]}
                       onPress={() => {
+                        // Propagating creates a whole plant, not just an event,
+                        // so hand off to the propagate form instead of selecting.
+                        if (opensForm) {
+                          modalReplace(
+                            `/propagate?parentId=${plantId}&date=${encodeURIComponent(
+                              careDateTime.toISOString(),
+                            )}`,
+                          );
+                          return;
+                        }
                         setEventType(careType.type);
                         if (careType.type !== "relocation") setNewLocation("");
                       }}
                     >
+                      {opensForm && (
+                        <ChevronRight
+                          size={14}
+                          color={theme.colors.textSecondary}
+                          style={styles.careTypeLinkChevron}
+                        />
+                      )}
                       <Icon
                         size={24}
                         color={
@@ -774,6 +806,15 @@ const createStyles = (theme) =>
     careTypeOptionSelected: {
       borderColor: theme.colors.primary,
       backgroundColor: theme.colors.primaryLight,
+    },
+    careTypeOptionLink: {
+      borderStyle: "dashed",
+      backgroundColor: "transparent",
+    },
+    careTypeLinkChevron: {
+      position: "absolute",
+      top: 4,
+      right: 4,
     },
     careTypeIcon: {
       fontSize: 24,

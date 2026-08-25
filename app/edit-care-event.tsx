@@ -274,9 +274,14 @@ export default function EditCareEventScreen() {
     }
   };
 
+  // Propagation is created through the propagate flow, never by retyping an
+  // existing event — but keep the chip when this event already is one.
   const allCareTypes = {
     care: CARE_ACTIONS,
-    events: OBSERVATION_EVENTS,
+    events: OBSERVATION_EVENTS.filter(
+      (careType) =>
+        careType.type !== "propagate" || eventType === "propagate",
+    ),
   };
 
   const careTypes = allCareTypes[activeTab];

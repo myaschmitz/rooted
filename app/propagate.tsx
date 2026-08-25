@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
+import dayjs from "dayjs";
 import {
   Scissors,
   Split,
@@ -47,7 +48,10 @@ export default function PropagateScreen() {
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const modalReplace = useModalReplace();
-  const { parentId } = useModalParams<{ parentId: string }>();
+  const { parentId, date } = useModalParams<{
+    parentId: string;
+    date?: string;
+  }>();
 
   const { data: parent, isLoading: parentLoading } = usePlant(parentId);
   const propagateMutation = usePropagatePlant();
@@ -57,7 +61,10 @@ export default function PropagateScreen() {
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [method, setMethod] = useState<PropagationMethod>("cutting");
-  const [propagatedAt, setPropagatedAt] = useState(new Date());
+  const [propagatedAt, setPropagatedAt] = useState(() => {
+    const seeded = date ? dayjs(date) : null;
+    return seeded?.isValid() ? seeded.toDate() : new Date();
+  });
   const [saving, setSaving] = useState(false);
 
   // A cutting inherits its parent's species and spot until the user says otherwise.
