@@ -60,6 +60,9 @@ export default function PlantDetailScreen() {
     handleLogCare,
     handleAddTag,
     handlePropagate,
+    handleLinkParent,
+    handleLinkChild,
+    handleUnlinkParent,
     handleOpenPlant,
     handleAddPhoto,
     handlePhotoPress,
@@ -156,6 +159,9 @@ export default function PlantDetailScreen() {
             loading={lineageLoading}
             onPropagate={handlePropagate}
             onPlantPress={handleOpenPlant}
+            onLinkParent={handleLinkParent}
+            onLinkChild={handleLinkChild}
+            onUnlinkParent={handleUnlinkParent}
           />
 
           <PlantPhotosSection            photos={typedPhotos}

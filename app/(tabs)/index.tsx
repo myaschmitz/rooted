@@ -973,6 +973,7 @@ export default function HomeScreen() {
           <PlantDetailPanel
             plantId={detailPanelPlantId}
             onClose={() => setDetailPanelPlantId(null)}
+            onSelectPlant={setDetailPanelPlantId}
           />
         )}
 
@@ -988,6 +989,7 @@ export default function HomeScreen() {
               <PlantDetailPanel
                 plantId={detailPanelPlantId}
                 onClose={() => setDetailPanelPlantId(null)}
+                onSelectPlant={setDetailPanelPlantId}
                 style={{ width: "100%" }}
               />
             </View>

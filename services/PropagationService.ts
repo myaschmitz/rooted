@@ -10,6 +10,7 @@ import { CACHE_TTL, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import {
   MAX_LINEAGE_DEPTH,
   buildPropagationNote,
+  isGeneratedPropagationNote,
 } from "../constants/propagation";
 import type { PropagationMethod } from "../constants/propagation";
 import { ErrorMapper } from "../errors/ErrorMapper";
@@ -193,12 +194,32 @@ export class PropagationService {
     }
 
     // The child exists either way, so a failed event shouldn't fail the
-    // propagation — the lineage link is the durable part. Both sides are
-    // attempted independently so one failing doesn't lose the other.
+    // propagation — the lineage link is the durable part.
+    await this.writePropagationEvents(parent, child, propagatedAt);
+
+    await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
+      entityId: parent.id,
+      additionalData: { relatedPlantId: child.id },
+    });
+
+    return child;
+  }
+
+  /**
+   * Log the pair of `propagate` events that describe one parent/child link.
+   *
+   * Both sides are attempted independently so one failing doesn't lose the
+   * other, and neither failing undoes the lineage link itself.
+   */
+  private static async writePropagationEvents(
+    parent: Plant,
+    child: Plant,
+    propagatedAt: string,
+  ): Promise<void> {
     const parentLabel = parent.name || parent.type;
     const childLabel = child.name || child.type;
 
-    const eventResults = await Promise.allSettled([
+    const results = await Promise.allSettled([
       EventService.createEvent({
         plant_id: parent.id,
         event_type: "propagate",
@@ -215,25 +236,56 @@ export class PropagationService {
       }),
     ]);
 
-    eventResults.forEach((result) => {
+    results.forEach((result) => {
       if (result.status === "rejected") {
         console.error("Failed to log propagate event:", result.reason);
       }
     });
+  }
 
-    await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
-      entityId: parent.id,
-      additionalData: { relatedPlantId: child.id },
-    });
+  /**
+   * Remove the auto-generated `propagate` events joining two plants.
+   *
+   * Events the user has since edited are left alone: the lineage link is
+   * current state, but an edited note is history worth keeping.
+   */
+  private static async removeGeneratedPropagationEvents(
+    plantId: string,
+    parentPlantId: string,
+  ): Promise<void> {
+    try {
+      const [childEvents, parentEvents] = await Promise.all([
+        EventService.getEventsByPlantId(plantId),
+        EventService.getEventsByPlantId(parentPlantId),
+      ]);
 
-    return child;
+      const stale = [
+        ...childEvents.filter(
+          (event) => event.parent_plant_id === parentPlantId,
+        ),
+        ...parentEvents.filter((event) => event.child_plant_id === plantId),
+      ].filter(
+        (event) =>
+          event.event_type === "propagate" &&
+          isGeneratedPropagationNote(event.notes),
+      );
+
+      await Promise.all(stale.map((event) => EventService.deleteEvent(event.id)));
+    } catch (error) {
+      // Losing the link matters more than tidying its paperwork.
+      console.error("Failed to clean up propagate events:", error);
+    }
   }
 
   /**
    * Point an existing plant at a parent, or detach it with `null`.
    *
-   * The database enforces this too; checking here turns a raw constraint
-   * violation into a message worth showing a user.
+   * Used to record a propagation after the fact, so the events it writes are
+   * dated from `propagatedAt` rather than now. Re-pointing at a different
+   * parent tidies up the previous link's paperwork first.
+   *
+   * The database enforces the cycle rule too; checking here turns a raw
+   * constraint violation into a message worth showing a user.
    */
   static async setParent(
     plantId: string,
@@ -250,6 +302,8 @@ export class PropagationService {
       );
     }
 
+    // Validate the shape of the request before touching any records, so a
+    // cycle reads as a cycle rather than whichever lookup happened to run first.
     if (parentPlantId) {
       const rows = await this.getLineageGraph();
       if (this.isDescendant(rows, parentPlantId, plantId)) {
@@ -260,18 +314,48 @@ export class PropagationService {
       }
     }
 
+    const existing = await PlantService.getPlantById(plantId);
+    if (!existing) {
+      throw new PlantNotFoundError(plantId);
+    }
+
+    let parent: Plant | null = null;
+    if (parentPlantId) {
+      parent = await PlantService.getPlantById(parentPlantId);
+      if (!parent) {
+        throw new PlantNotFoundError(parentPlantId);
+      }
+    }
+
+    const propagatedAt = options.propagatedAt ?? new Date().toISOString();
+
     const updated = await PlantService.updatePlant(plantId, {
       parent_plant_id: parentPlantId,
-      propagated_at: parentPlantId
-        ? (options.propagatedAt ?? new Date().toISOString())
-        : null,
+      propagated_at: parentPlantId ? propagatedAt : null,
       propagation_method: parentPlantId ? (options.method ?? "other") : null,
     });
+
+    const previousParentId = existing.parent_plant_id;
+    if (previousParentId && previousParentId !== parentPlantId) {
+      await this.removeGeneratedPropagationEvents(plantId, previousParentId);
+    }
+
+    if (parent && previousParentId !== parentPlantId) {
+      await this.writePropagationEvents(parent, updated ?? existing, propagatedAt);
+    }
 
     await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
       entityId: plantId,
       additionalData: { relatedPlantId: parentPlantId ?? undefined },
     });
+
+    // A re-point touches three plants; the old parent needs its caches cleared too.
+    if (previousParentId && previousParentId !== parentPlantId) {
+      await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
+        entityId: plantId,
+        additionalData: { relatedPlantId: previousParentId },
+      });
+    }
 
     return updated;
   }

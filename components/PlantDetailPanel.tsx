@@ -20,6 +20,7 @@ import {
   PlantActionButtons,
   PlantPhotosSection,
   PlantEventsSection,
+  PlantLineageSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
 } from "./plant-detail";
@@ -28,12 +29,15 @@ interface PlantDetailPanelProps {
   plantId: string;
   onClose: () => void;
   style?: any;
+  /** Swap the panel to another plant instead of leaving the quick view. */
+  onSelectPlant?: (plantId: string) => void;
 }
 
 export default function PlantDetailPanel({
   plantId,
   onClose,
   style,
+  onSelectPlant,
 }: PlantDetailPanelProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -48,9 +52,11 @@ export default function PlantDetailPanel({
     eventPhotos,
     formattedDates,
     currentThumbnailId,
+    lineage,
     loading,
     refreshing,
     uploadingPhoto,
+    lineageLoading,
     imageViewerVisible,
     currentPhotoIndex,
     photoViewerOpenId,
@@ -60,6 +66,11 @@ export default function PlantDetailPanel({
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handlePropagate,
+    handleOpenPlant,
+    handleLinkParent,
+    handleLinkChild,
+    handleUnlinkParent,
     handleAddPhoto,
     handlePhotoPress,
     handleThumbnailPress,
@@ -162,6 +173,16 @@ export default function PlantDetailPanel({
             <Text style={styles.notesText}>{plant.notes}</Text>
           </View>
         )}
+
+        <PlantLineageSection
+          lineage={lineage}
+          loading={lineageLoading}
+          onPropagate={handlePropagate}
+          onPlantPress={onSelectPlant ?? handleOpenPlant}
+          onLinkParent={handleLinkParent}
+          onLinkChild={handleLinkChild}
+          onUnlinkParent={handleUnlinkParent}
+        />
 
         <PlantPhotosSection
           photos={typedPhotos}

@@ -20,6 +20,7 @@ import {
   useDeletePhoto,
   useDeleteEvent,
   usePlantLineage,
+  useSetPlantParent,
 } from "./queries";
 
 // Stable empty arrays to prevent unnecessary re-renders
@@ -62,6 +63,7 @@ export function usePlantDetailState(plantId: string) {
   const setThumbnailMutation = useSetThumbnailPhoto();
   const clearThumbnailMutation = useClearThumbnailPhoto();
   const deletePlantMutation = useDeletePlant();
+  const setParentMutation = useSetPlantParent();
   const archivePlantMutation = useArchivePlant();
   const savePhotoMutation = useSavePhoto();
   const deletePhotoMutation = useDeletePhoto();
@@ -222,6 +224,47 @@ export function usePlantDetailState(plantId: string) {
   const handleOpenPlant = useCallback((targetPlantId: string) => {
     router.push(`/plant/${targetPlantId}`);
   }, []);
+
+  const handleLinkParent = useCallback(() => {
+    if (!openModal("link-propagation", { plantId, mode: "parent" })) {
+      router.push(`/link-propagation?plantId=${plantId}&mode=parent`);
+    }
+  }, [plantId, openModal]);
+
+  const handleLinkChild = useCallback(() => {
+    if (!openModal("link-propagation", { plantId, mode: "child" })) {
+      router.push(`/link-propagation?plantId=${plantId}&mode=child`);
+    }
+  }, [plantId, openModal]);
+
+  const handleUnlinkParent = useCallback(() => {
+    const parentName = lineage?.parent
+      ? lineage.parent.name || lineage.parent.type
+      : "its parent";
+
+    showAlert(
+      "Unlink from parent?",
+      `This removes the propagation link to ${parentName} and deletes the propagation events on both plants. Notes you've edited yourself are kept. This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unlink",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await setParentMutation.mutateAsync({
+                plantId,
+                parentPlantId: null,
+              });
+            } catch (error) {
+              console.error("Failed to unlink plant:", error);
+              showAlert("Error", "Failed to unlink the plants");
+            }
+          },
+        },
+      ],
+    );
+  }, [plantId, lineage?.parent, showAlert, setParentMutation]);
 
   const handleAddTag = useCallback(() => {
     if (!openModal("add-tag", { plantId })) {
@@ -599,6 +642,9 @@ export function usePlantDetailState(plantId: string) {
     handleLogCare,
     handleAddTag,
     handlePropagate,
+    handleLinkParent,
+    handleLinkChild,
+    handleUnlinkParent,
     handleOpenPlant,
     handleAddPhoto,
     handlePhotoPress,

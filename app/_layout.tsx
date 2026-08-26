@@ -138,6 +138,13 @@ function ThemedStack() {
           }}
         />
         <Stack.Screen
+          name="link-propagation"
+          options={{
+            title: "Link Propagation",
+            headerBackTitle: "Plant Details",
+          }}
+        />
+        <Stack.Screen
           name="archived-plants"
           options={{
             title: "Archived Plants",
