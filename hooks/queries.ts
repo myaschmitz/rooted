@@ -832,13 +832,23 @@ export const useSetPlantParent = () => {
         method,
         propagatedAt,
       }),
-    onSuccess: (_updated, { plantId }) => {
+    onSuccess: (_updated, { plantId, parentPlantId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.plants });
       queryClient.invalidateQueries({
         queryKey: queryKeys.plantLineageRoot,
         exact: false,
       });
+      // Linking writes propagate events to both plants, unlinking removes them.
+      queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(plantId) });
+      if (parentPlantId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.plant(parentPlantId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.plantEvents(parentPlantId),
+        });
+      }
     },
     onError: (error) => {
       console.error("Failed to update plant lineage:", error);

@@ -9,17 +9,8 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import dayjs from "dayjs";
-import {
-  Scissors,
-  Split,
-  Sprout,
-  Leaf,
-  TreeDeciduous,
-  Layers,
-  MoreHorizontal,
-  LucideIcon,
-} from "lucide-react-native";
 import DateTimeInput from "../components/DateTimeInput";
+import PropagationMethodPicker from "../components/PropagationMethodPicker";
 import LocationDropdown from "../components/LocationDropdown";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import WebContainer from "../components/WebContainer";
@@ -27,22 +18,8 @@ import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useAlert } from "../contexts/AlertContext";
 import { useModalParams, useModalReplace } from "../hooks/useModalNav";
 import { usePlant, usePropagatePlant, useAllTags, usePlantTags } from "../hooks/queries";
-import {
-  PROPAGATION_METHODS,
-  PROPAGATION_METHOD_LABELS,
-  PropagationMethod,
-} from "../constants/propagation";
+import { PropagationMethod } from "../constants/propagation";
 import { Spacing, Typography, BorderRadius } from "../styles/theme";
-
-const METHOD_ICONS: Record<PropagationMethod, LucideIcon> = {
-  cutting: Scissors,
-  division: Split,
-  offset: Sprout,
-  leaf: Leaf,
-  seed: TreeDeciduous,
-  air_layer: Layers,
-  other: MoreHorizontal,
-};
 
 export default function PropagateScreen() {
   const { theme } = useTheme();
@@ -162,39 +139,7 @@ export default function PropagateScreen() {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Method</Text>
-              <View style={styles.methodGrid}>
-                {PROPAGATION_METHODS.map((option) => {
-                  const Icon = METHOD_ICONS[option];
-                  const selected = option === method;
-                  return (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.methodChip,
-                        selected && styles.methodChipSelected,
-                      ]}
-                      onPress={() => setMethod(option)}
-                    >
-                      <Icon
-                        size={16}
-                        color={
-                          selected
-                            ? theme.colors.textOnPrimary
-                            : theme.colors.textSecondary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.methodChipText,
-                          selected && styles.methodChipTextSelected,
-                        ]}
-                      >
-                        {PROPAGATION_METHOD_LABELS[option]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <PropagationMethodPicker value={method} onChange={setMethod} />
             </View>
 
             <View style={styles.inputGroup}>
@@ -374,34 +319,6 @@ const createStyles = (theme: Theme) =>
     tagChipText: {
       fontSize: Typography.sm,
       fontWeight: Typography.weights.medium,
-    },
-    methodGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: Spacing.sm,
-    },
-    methodChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: Spacing.xs + 2,
-      paddingHorizontal: Spacing.base - 4,
-      paddingVertical: Spacing.sm + 2,
-      borderRadius: BorderRadius.full,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    methodChipSelected: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
-    },
-    methodChipText: {
-      color: theme.colors.textSecondary,
-      fontSize: Typography.sm,
-    },
-    methodChipTextSelected: {
-      color: theme.colors.textOnPrimary,
-      fontWeight: "600",
     },
     saveButton: {
       backgroundColor: theme.colors.primary,

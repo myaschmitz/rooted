@@ -36,6 +36,14 @@ const lineagePlant = (
   ...overrides,
 });
 
+const plantRecord = (id: string, parent: string | null): Plant =>
+  ({
+    id,
+    name: id,
+    type: "Monstera Deliciosa",
+    parent_plant_id: parent,
+  }) as Plant;
+
 //        root
 //       /    \
 //    kid-a   kid-b
@@ -351,7 +359,15 @@ describe("PropagationService", () => {
       (HouseholdService.getUserSession as jest.Mock).mockResolvedValue({
         household_id: "household-123",
       });
-      (PlantService.updatePlant as jest.Mock).mockResolvedValue(null);
+      (PlantService.getPlantById as jest.Mock).mockImplementation(
+        async (id: string) => plantRecord(id, id === "kid-a" ? "root" : null),
+      );
+      (PlantService.updatePlant as jest.Mock).mockImplementation(
+        async (id: string) => plantRecord(id, null),
+      );
+      (EventService.getEventsByPlantId as jest.Mock).mockResolvedValue([]);
+      (EventService.createEvent as jest.Mock).mockResolvedValue({ id: "event-1" });
+      (EventService.deleteEvent as jest.Mock).mockResolvedValue(true);
       mockSupabase.from.mockReturnValue(mockSupabase);
       mockSupabase.select.mockReturnValue(mockSupabase);
       mockSupabase.eq.mockReturnValue(mockSupabase);
@@ -380,6 +396,99 @@ describe("PropagationService", () => {
         propagated_at: null,
         propagation_method: null,
       });
+    });
+
+    it("records the link on both plants, dated retroactively", async () => {
+      (PlantService.getPlantById as jest.Mock).mockImplementation(
+        async (id: string) => plantRecord(id, null),
+      );
+
+      await PropagationService.setParent("kid-a", "root", {
+        method: "division",
+        propagatedAt: "2023-05-01T00:00:00.000Z",
+      });
+
+      expect(PlantService.updatePlant).toHaveBeenCalledWith("kid-a", {
+        parent_plant_id: "root",
+        propagated_at: "2023-05-01T00:00:00.000Z",
+        propagation_method: "division",
+      });
+
+      const events = (EventService.createEvent as jest.Mock).mock.calls.map(
+        (call) => call[0],
+      );
+      expect(events).toHaveLength(2);
+      expect(events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            plant_id: "root",
+            event_type: "propagate",
+            date: "2023-05-01T00:00:00.000Z",
+            child_plant_id: "kid-a",
+          }),
+          expect.objectContaining({
+            plant_id: "kid-a",
+            event_type: "propagate",
+            date: "2023-05-01T00:00:00.000Z",
+            parent_plant_id: "root",
+          }),
+        ]),
+      );
+    });
+
+    it("deletes the generated events when unlinking, keeping edited ones", async () => {
+      (EventService.getEventsByPlantId as jest.Mock).mockImplementation(
+        async (id: string) =>
+          id === "kid-a"
+            ? [
+                {
+                  id: "generated",
+                  event_type: "propagate",
+                  parent_plant_id: "root",
+                  notes: buildPropagationNote("child", "root"),
+                },
+                {
+                  id: "edited",
+                  event_type: "propagate",
+                  parent_plant_id: "root",
+                  notes: "Took this one the week I moved",
+                },
+              ]
+            : [
+                {
+                  id: "generated-parent",
+                  event_type: "propagate",
+                  child_plant_id: "kid-a",
+                  notes: buildPropagationNote("parent", "kid-a"),
+                },
+              ],
+      );
+
+      await PropagationService.setParent("kid-a", null);
+
+      const deleted = (EventService.deleteEvent as jest.Mock).mock.calls.map(
+        (call) => call[0],
+      );
+      expect(deleted).toEqual(
+        expect.arrayContaining(["generated", "generated-parent"]),
+      );
+      expect(deleted).not.toContain("edited");
+    });
+
+    it("cleans up the old link before recording a new one", async () => {
+      await PropagationService.setParent("kid-a", "kid-b");
+
+      expect(EventService.getEventsByPlantId).toHaveBeenCalledWith("root");
+      expect(EventService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ plant_id: "kid-b", child_plant_id: "kid-a" }),
+      );
+    });
+
+    it("leaves events alone when the link is unchanged", async () => {
+      await PropagationService.setParent("kid-a", "root");
+
+      expect(EventService.createEvent).not.toHaveBeenCalled();
+      expect(EventService.deleteEvent).not.toHaveBeenCalled();
     });
   });
 });
