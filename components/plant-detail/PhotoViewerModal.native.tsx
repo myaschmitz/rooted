@@ -3,10 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ImageViewing from 'react-native-image-viewing';
 import { X, Download } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
-import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
 import { TextSkeleton } from '../Skeleton';
+import { useProgressivePhotoSources } from './useProgressivePhotoSources';
 
 interface FormattedDate {
   date: string;
@@ -36,6 +36,14 @@ export default function PhotoViewerModal({
 }: PhotoViewerModalProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const isOpen = visible && photos.length > 0 && currentIndex >= 0;
+  const [activeIndex, setActiveIndex] = React.useState(currentIndex);
+
+  React.useEffect(() => {
+    setActiveIndex(currentIndex);
+  }, [currentIndex, visible]);
+
+  const images = useProgressivePhotoSources(photos, activeIndex, isOpen);
 
   if (photos.length === 0) {
     return null;
@@ -43,10 +51,11 @@ export default function PhotoViewerModal({
 
   return (
     <ImageViewing
-      images={photos.map((photo) => ({ uri: PhotoService.getImageUrl(photo, false) }))}
+      images={images}
       imageIndex={Math.max(0, currentIndex)}
-      visible={visible && photos.length > 0 && currentIndex >= 0}
+      visible={isOpen}
       onRequestClose={onClose}
+      onImageIndexChange={setActiveIndex}
       swipeToCloseEnabled={false}
       HeaderComponent={({ imageIndex }) => {
         const currentPhoto = photos[imageIndex];
@@ -132,6 +141,11 @@ export function ThumbnailViewerModal({
 }: ThumbnailViewerModalProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const photos = React.useMemo(
+    () => (thumbnailPhoto ? [thumbnailPhoto] : []),
+    [thumbnailPhoto],
+  );
+  const images = useProgressivePhotoSources(photos, 0, visible && !!thumbnailPhoto);
 
   if (!thumbnailPhoto) {
     return null;
@@ -139,7 +153,7 @@ export function ThumbnailViewerModal({
 
   return (
     <ImageViewing
-      images={[{ uri: PhotoService.getImageUrl(thumbnailPhoto, false) }]}
+      images={images}
       imageIndex={0}
       visible={visible}
       onRequestClose={onClose}

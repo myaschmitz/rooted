@@ -178,6 +178,7 @@ Supabase Storage is the durable photo store. Native and web services share the s
 
 - List views request thumbnails.
 - Full-size images are loaded only for viewers and downloads.
+- The photo viewer shows the thumbnail immediately and swaps in the full-size image once it has downloaded. It downloads the viewed photo first, then the next and previous ones (`PhotoPrefetchService` on native, `expo-image` prefetch on web).
 - `expo-image` provides memory/disk caching.
 - Native `CachedPhotoService` can retain downloaded photos and thumbnails in bounded filesystem caches.
 - Web relies on browser and `expo-image` caching.
