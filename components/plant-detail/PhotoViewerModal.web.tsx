@@ -5,14 +5,36 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  Image,
   Pressable,
+  StyleProp,
+  ImageStyle,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
+import { getPrefetchOrder } from '../../utils/photoPrefetch';
+
+/**
+ * Full-size photo that shows the small thumbnail right away and fades to the
+ * full image once it has downloaded.
+ */
+function ProgressivePhoto({ photo, style }: { photo: PlantPhoto; style: StyleProp<ImageStyle> }) {
+  return (
+    <Image
+      source={{ uri: PhotoService.getImageUrl(photo, false) }}
+      placeholder={photo.thumbnail_path ? { uri: photo.thumbnail_path } : undefined}
+      placeholderContentFit="contain"
+      contentFit="contain"
+      transition={150}
+      cachePolicy="memory-disk"
+      recyclingKey={photo.id}
+      style={style}
+    />
+  );
+}
 
 interface FormattedDate {
   date: string;
@@ -65,6 +87,18 @@ export default function PhotoViewerModal({
     }
   }, [handleKeyDown]);
 
+  // Download the next and previous photos in the background so moving
+  // between photos is instant.
+  useEffect(() => {
+    if (!visible) return;
+    const neighborUrls = getPrefetchOrder(currentIndex, photos.length)
+      .slice(1)
+      .map((index) => PhotoService.getImageUrl(photos[index], false));
+    if (neighborUrls.length > 0) {
+      Image.prefetch(neighborUrls, 'memory-disk').catch(() => {});
+    }
+  }, [visible, currentIndex, photos]);
+
   if (!visible || photos.length === 0 || currentIndex < 0) {
     return null;
   }
@@ -99,11 +133,7 @@ export default function PhotoViewerModal({
             </Pressable>
           )}
 
-          <Image
-            source={{ uri: PhotoService.getImageUrl(currentPhoto, false) }}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          <ProgressivePhoto photo={currentPhoto} style={styles.image} />
 
           {currentIndex < photos.length - 1 && (
             <Pressable
@@ -172,11 +202,7 @@ export function ThumbnailViewerModal({
           </TouchableOpacity>
         </View>
         <View style={styles.imageArea}>
-          <Image
-            source={{ uri: PhotoService.getImageUrl(thumbnailPhoto, false) }}
-            style={styles.image}
-            resizeMode="contain"
-          />
+          <ProgressivePhoto photo={thumbnailPhoto} style={styles.image} />
         </View>
       </View>
     </Modal>
