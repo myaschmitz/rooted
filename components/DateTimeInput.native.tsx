@@ -34,7 +34,7 @@ export default function DateTimeInput({
         value={value}
         mode={mode}
         display={compact ? 'compact' : 'default'}
-        style={compact ? styles.compactPicker : undefined}
+        style={compact ? styles.compactPicker : styles.picker}
         onChange={(event, selectedDate) => {
           if (selectedDate) {
             onChange(selectedDate);
@@ -59,5 +59,8 @@ const styles = StyleSheet.create({
   },
   compactPicker: {
     alignSelf: 'stretch',
+  },
+  picker: {
+    alignSelf: 'flex-start',
   },
 });

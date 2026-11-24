@@ -187,12 +187,22 @@ export default function BatchCareModal({
             </Text>
 
             <View style={globalStyles.inputGroup}>
+              <View style={styles.whenHeader}>
+                <Text style={[globalStyles.label, styles.whenLabel]}>When</Text>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => setCareDetails((prev) => ({ ...prev, date: new Date() }))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Set to now"
+                >
+                  <Text style={styles.nowButtonText}>Now</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="date"
-                    label="Date"
                     compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
@@ -203,23 +213,12 @@ export default function BatchCareModal({
                   <DateTimeInput
                     value={careDetails.date}
                     mode="time"
-                    label="Time"
                     compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
                   />
                 </View>
-              </View>
-              <View style={styles.buttonSection}>
-                <TouchableOpacity
-                  style={styles.nowButton}
-                  onPress={() =>
-                    setCareDetails((prev) => ({ ...prev, date: new Date() }))
-                  }
-                >
-                  <Text style={styles.nowButtonText}>Now</Text>
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -413,11 +412,9 @@ const createStyles = (theme: Theme) =>
       paddingBottom: 8,
     },
     selectedCountText: { ...formStyles(theme).helper, marginBottom: 12 },
-    dateTimeRow: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      gap: 8,
-    },
+    dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    whenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    whenLabel: { marginBottom: 0 },
     dateSection: {
       flex: 3,
       minWidth: 0,
@@ -426,8 +423,7 @@ const createStyles = (theme: Theme) =>
       flex: 2,
       minWidth: 0,
     },
-    buttonSection: { justifyContent: 'flex-end' },
-    nowButton: { ...formStyles(theme).smallButton, height: 48, borderRadius: 12, paddingHorizontal: 14 },
+    nowButton: { ...formStyles(theme).smallButton, paddingVertical: 5, paddingHorizontal: 12 },
     nowButtonText: formStyles(theme).smallButtonText,
     strengthContainer: { flexDirection: 'row', gap: 8 },
     strengthOption: { ...formStyles(theme).chip, flex: 1, paddingHorizontal: 4 },

@@ -390,12 +390,22 @@ export default function EditCareEventScreen() {
 
             {/* Date and Time */}
             <View style={styles.inputGroup}>
+              <View style={styles.whenHeader}>
+                <Text style={[styles.label, styles.whenLabel]}>When</Text>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => setEventDate(new Date())}
+                  accessibilityRole="button"
+                  accessibilityLabel="Set to now"
+                >
+                  <Text style={styles.nowButtonText}>Now</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateTimeSection}>
                   <DateTimeInput
                     value={eventDate}
                     mode="date"
-                    label="Date"
                     onChange={(date) => setEventDate(date)}
                   />
                 </View>
@@ -403,19 +413,8 @@ export default function EditCareEventScreen() {
                   <DateTimeInput
                     value={eventDate}
                     mode="time"
-                    label="Time"
                     onChange={(date) => setEventDate(date)}
                   />
-                </View>
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity
-                    style={styles.nowButton}
-                    onPress={() => {
-                      setEventDate(new Date());
-                    }}
-                  >
-                    <Text style={styles.nowButtonText}>Now</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -757,10 +756,11 @@ const createStyles = (theme: any) =>
     strengthOptionSelected: formStyles(theme).chipSelected,
     strengthText: formStyles(theme).chipText,
     strengthTextSelected: formStyles(theme).chipTextSelected,
-    dateTimeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    whenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    whenLabel: { marginBottom: 0 },
     dateTimeSection: { flex: 1 },
-    buttonSection: { justifyContent: 'flex-end' },
-    nowButton: { ...formStyles(theme).smallButton, height: 48, borderRadius: 12, paddingHorizontal: 14 },
+    nowButton: { ...formStyles(theme).smallButton, paddingVertical: 5, paddingHorizontal: 12 },
     nowButtonText: formStyles(theme).smallButtonText,
     tabContainer: formStyles(theme).segmented,
     tab: formStyles(theme).segment,

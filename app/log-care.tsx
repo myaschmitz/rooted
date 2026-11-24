@@ -401,12 +401,22 @@ export default function LogCareScreen() {
 
             {/* Date and Time */}
             <View style={globalStyles.inputGroup}>
+              <View style={styles.whenHeader}>
+                <Text style={[globalStyles.label, styles.whenLabel]}>When</Text>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => setCareDateTime(new Date())}
+                  accessibilityRole="button"
+                  accessibilityLabel="Set to now"
+                >
+                  <Text style={styles.nowButtonText}>Now</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateTimeSection}>
                   <DateTimeInput
                     value={careDateTime}
                     mode="date"
-                    label="Date"
                     onChange={(date) => setCareDateTime(date)}
                   />
                 </View>
@@ -414,19 +424,8 @@ export default function LogCareScreen() {
                   <DateTimeInput
                     value={careDateTime}
                     mode="time"
-                    label="Time"
                     onChange={(date) => setCareDateTime(date)}
                   />
-                </View>
-                <View style={styles.buttonSection}>
-                  <TouchableOpacity
-                    style={styles.nowButton}
-                    onPress={() => {
-                      setCareDateTime(new Date());
-                    }}
-                  >
-                    <Text style={styles.nowButtonText}>Now</Text>
-                  </TouchableOpacity>
                 </View>
               </View>
             </View>
@@ -806,10 +805,11 @@ const createStyles = (theme) =>
     tabActive: formStyles(theme).segmentActive,
     tabText: formStyles(theme).segmentText,
     tabTextActive: formStyles(theme).segmentTextActive,
-    dateTimeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    whenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    whenLabel: { marginBottom: 0 },
     dateTimeSection: { flex: 1 },
-    buttonSection: { justifyContent: 'flex-end' },
-    nowButton: { ...formStyles(theme).smallButton, height: 48, borderRadius: 12, paddingHorizontal: 14 },
+    nowButton: { ...formStyles(theme).smallButton, paddingVertical: 5, paddingHorizontal: 12 },
     nowButtonText: formStyles(theme).smallButtonText,
     strengthContainer: { flexDirection: 'row', gap: 8 },
     strengthOption: { ...formStyles(theme).chip, flex: 1, paddingHorizontal: 4 },
