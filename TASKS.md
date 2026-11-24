@@ -83,9 +83,10 @@ Last reviewed: August 1, 2026
 
 ## Authentication and identity
 
-The current household session is stored locally and is not a full user account. Supabase client session support exists, but the product does not yet provide account signup, login, recovery, or cross-device identity.
+Each install signs in anonymously and is linked to a household member in the database, and row-level security limits every table to the device's household. There is still no account signup, login, recovery, or cross-device identity: joining a household by code and name is the only way in.
 
-- [ ] Choose account and guest/anonymous identity behavior
+- [x] Anonymous Supabase sign-in per install, with household isolation enforced by row-level security
+- [ ] Choose account identity behavior on top of anonymous sign-in
 - [ ] Implement signup, login, logout, and account recovery
 - [ ] Associate household memberships with authenticated users
 - [ ] Define migration for existing locally identified household members

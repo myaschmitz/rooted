@@ -113,24 +113,35 @@ Supabase PostgreSQL is the source of truth. Core tables include:
 - `household_members`
 - `activity_log`
 
-Application services scope records by the current `household_id`. Database row-level security is the second enforcement layer.
+Database row-level security enforces household isolation: every policy only matches rows whose `household_id` belongs to a household the signed-in device is linked to (see below). Services also filter by the current `household_id`, which keeps queries narrow but is not what protects the data.
 
 Table and frequently used column names are centralized in `constants/domain.ts`. Schema changes belong in `supabase/migrations/`, and generated database types live in `types/Database.ts`.
 
 ## Household session and authentication
 
-The welcome flow creates or joins a household. `HouseholdService` persists this application session in AsyncStorage:
+Each app install signs in to Supabase anonymously (`HouseholdService.ensureSignedIn()`, which calls `supabase.auth.signInAnonymously()` once; supabase-js persists and refreshes the session). Anonymous sign-ins must be enabled for each Supabase project.
+
+The database links that auth user to a `household_members` row through `household_member_devices`. A device is linked by:
+
+- `create_household(household_name, admin_user_name)` - creates the household and an admin member
+- `join_household(household_code, member_user_name)` - signs in as the member with that name (case-insensitive) or adds a new member
+- `claim_household_membership(p_household_id, p_user_name)` - run on every launch by `HouseholdService.restoreSession()`; links the member already stored on the device and refreshes its role, but never creates one
+
+A device belongs to one household at a time. These functions, `validate_household_code` and `regenerate_household_code` are `SECURITY DEFINER`; the policy helpers live in the unexposed `private` schema. The anon role has no table access.
+
+What members can do is enforced in the database: any member reads and writes household data, the activity log is append-only, only admins rename or delete the household and change or remove members, and anyone can leave. Policies and functions are in `supabase/migrations/20261124000000_household_rls_lockdown.sql`.
+
+`HouseholdService` also keeps the household session in AsyncStorage:
 
 ```typescript
 interface UserSession {
-  user_id?: string;
   user_name: string;
   household_id: string;
   role: "admin" | "member";
 }
 ```
 
-This is currently a device-local application identity, not complete account authentication. The Supabase client is configured to persist auth sessions, and `DatabaseService` exposes auth session helpers, but signup, login, recovery, and authenticated household membership are future work.
+Identity is still "household code plus name": anyone with the code can join, or sign in as an existing member by typing their name. Accounts with signup, login and recovery are future work.
 
 ## Server state and caching
 

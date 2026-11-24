@@ -16,21 +16,92 @@ import {
   ActivityLogDetails,
 } from "../types/Household";
 
-// Note: STORAGE_KEYS now imported from domain constants
+// Each app install signs in to Supabase anonymously, and the database links
+// that auth user to a household member (see
+// supabase/migrations/20261124000000_household_rls_lockdown.sql). Row-level
+// security only returns rows for households the signed-in device is linked
+// to, so every request has to carry that session.
+let signInPromise: Promise<void> | null = null;
 
 export class HouseholdService {
+  // Makes sure the Supabase client has an auth session, creating an anonymous
+  // user on first launch. supabase-js persists and refreshes it afterwards.
+  static ensureSignedIn(): Promise<void> {
+    if (!signInPromise) {
+      signInPromise = (async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return;
+
+        const { error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          throw new Error(error.message || "Failed to sign in");
+        }
+      })().catch((error) => {
+        // Let the next call try again (e.g. once the device is back online).
+        signInPromise = null;
+        throw error;
+      });
+    }
+    return signInPromise;
+  }
+
+  // Run at launch. Signs in, links this device to the member stored in the
+  // local household session (installs from before device linking need this
+  // once), and refreshes the stored role and name from the server.
+  //
+  // Returns false when there's no local session, or the household or member
+  // no longer exists (the local session is cleared then). If the server can't
+  // be reached it keeps the local session, so an offline launch doesn't drop
+  // the user back to the welcome screen.
+  static async restoreSession(): Promise<boolean> {
+    const session = await this.getUserSession();
+    if (!session?.household_id || !session.user_name) {
+      return false;
+    }
+
+    try {
+      await this.ensureSignedIn();
+
+      const { data, error } = await supabase.rpc(
+        "claim_household_membership",
+        {
+          p_household_id: session.household_id,
+          p_user_name: session.user_name,
+        },
+      );
+      if (error) throw error;
+
+      const member = (data as { user_name: string; role: "admin" | "member" }[] | null)?.[0];
+      if (!member) {
+        await this.clearUserSession();
+        return false;
+      }
+
+      if (member.role !== session.role || member.user_name !== session.user_name) {
+        await this.storeUserSession({
+          ...session,
+          user_name: member.user_name,
+          role: member.role,
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error("Error restoring household session:", error);
+      return true;
+    }
+  }
+
   static async createHousehold(
     request: CreateHouseholdRequest,
   ): Promise<CreateHouseholdResponse> {
     try {
-      // For creating a household, we'll still try the original approach since there are no existing members
-      // but we'll be more conservative and just try once with the original name
       const adminUserName = request.adminUserName;
+
+      await this.ensureSignedIn();
 
       const { data, error } = await supabase.rpc("create_household", {
         household_name: request.householdName,
         admin_user_name: adminUserName,
-        admin_user_id: request.adminUserId || null,
       });
 
       if (error) {
@@ -67,54 +138,14 @@ export class HouseholdService {
     request: JoinHouseholdRequest,
   ): Promise<JoinHouseholdResponse> {
     try {
-      // First, validate the household code to make sure it exists
-      const validation = await this.validateHouseholdCode(
-        request.householdCode,
-      );
-      if (!validation.valid) {
-        return {
-          success: false,
-          household_name: null,
-          error_message: validation.error_message || "Invalid household code",
-        };
-      }
+      await this.ensureSignedIn();
 
-      // Get existing members in this household to check if name already exists
-      const existingMembers = await this.getHouseholdMembers(
-        request.householdCode,
-      );
-      const existingMember = existingMembers.find(
-        (member) =>
-          member.user_name.toLowerCase() ===
-          request.memberUserName.toLowerCase(),
-      );
-
-      // If member with this name already exists, log in as that member
-      if (existingMember) {
-        await this.storeUserSession({
-          user_id: request.memberUserId,
-          user_name: existingMember.user_name, // Use the existing member's exact name
-          household_id: request.householdCode,
-          role: existingMember.role, // Use their existing role
-        });
-
-        // Log activity for existing member login
-        await this.logActivity("rejoined household", {
-          member_name: existingMember.user_name,
-        });
-
-        return {
-          success: true,
-          household_name: validation.household_name || null,
-          error_message: null,
-        };
-      }
-
-      // If no existing member with this name, create a new member
+      // The function signs this device in as the member with this name if one
+      // exists (case-insensitive), keeping their role; otherwise it adds a
+      // new member.
       const { data, error } = await supabase.rpc("join_household", {
         household_code: request.householdCode,
         member_user_name: request.memberUserName,
-        member_user_id: request.memberUserId || null,
       });
 
       if (error) {
@@ -136,10 +167,9 @@ export class HouseholdService {
 
       if (joinResult.success) {
         await this.storeUserSession({
-          user_id: request.memberUserId,
-          user_name: request.memberUserName,
-          household_id: request.householdCode,
-          role: "member",
+          user_name: joinResult.user_name,
+          household_id: request.householdCode.trim().toUpperCase(),
+          role: joinResult.role,
         });
       }
 
@@ -154,25 +184,26 @@ export class HouseholdService {
     code: string,
   ): Promise<HouseholdCodeValidationResponse> {
     try {
-      const { data, error } = await supabase
-        .from(DB_TABLES.HOUSEHOLDS)
-        .select("id, name")
-        .eq("id", code)
-        .single();
+      await this.ensureSignedIn();
 
-      if (error) {
-        if (error.code === "PGRST116") {
-          return {
-            valid: false,
-            error_message: "Household code not found",
-          };
-        }
-        throw error;
+      // Only members can read households, so this goes through a function.
+      const { data, error } = await supabase.rpc("validate_household_code", {
+        p_code: code,
+      });
+
+      if (error) throw error;
+
+      const result = (data as { valid: boolean; household_name: string | null }[] | null)?.[0];
+      if (!result?.valid) {
+        return {
+          valid: false,
+          error_message: "Household code not found",
+        };
       }
 
       return {
         valid: true,
-        household_name: data.name,
+        household_name: result.household_name ?? undefined,
       };
     } catch (error) {
       console.error("Error validating household code:", error);
@@ -409,22 +440,17 @@ export class HouseholdService {
         throw new Error("Unauthorized: Admin access required");
       }
 
-      const { data, error } = await supabase.rpc("generate_household_code");
+      // Generates the code and moves the household to it in one step; the
+      // database checks that this device is an admin.
+      const { data, error } = await supabase.rpc("regenerate_household_code", {
+        p_household_id: session.household_id,
+      });
 
       if (error || !data) {
         throw new Error("Failed to generate new household code");
       }
 
-      const newCode = data;
-
-      const { error: updateError } = await supabase
-        .from(DB_TABLES.HOUSEHOLDS)
-        .update({ id: newCode })
-        .eq("id", session.household_id);
-
-      if (updateError) {
-        throw new Error("Failed to update household with new code");
-      }
+      const newCode = data as string;
 
       session.household_id = newCode;
       await this.storeUserSession(session);
@@ -584,13 +610,7 @@ export class HouseholdService {
 
   static async isUserInHousehold(): Promise<boolean> {
     try {
-      const session = await this.getUserSession();
-      if (!session?.household_id) {
-        return false;
-      }
-
-      const household = await this.getCurrentHousehold();
-      return household !== null;
+      return await this.restoreSession();
     } catch (error) {
       console.error("Error checking household status:", error);
       return false;
