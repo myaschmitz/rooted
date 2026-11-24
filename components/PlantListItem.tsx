@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
-import { Pin, PinOff, Check, Camera } from 'lucide-react-native';
+import { Pin, Check, Camera, Droplets } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Plant, Tag } from '../types/Plant';
 import { useTheme, Theme } from '../contexts/ThemeContext';
-import { BaseColors } from '../styles/theme';
+import { BaseColors, Spacing, Typography, BorderRadius } from '../styles/theme';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { PlantThumbnail } from './PlantThumbnail';
 import { TextSkeleton } from './Skeleton';
@@ -12,7 +12,6 @@ import {
   formatTimeSinceWatering,
   getWateringStatusColor,
   needsPhoto,
-  getTextColorForBackground,
 } from '../utils/plantStatus';
 
 interface PlantListItemProps {
@@ -31,6 +30,9 @@ interface PlantListItemProps {
   // Override default navigation (for desktop detail panel)
   onPress?: (plantId: string) => void;
 }
+
+const THUMBNAIL_SIZE = 56;
+const MAX_TAGS = 3;
 
 export default function PlantListItem({
   plant,
@@ -52,11 +54,10 @@ export default function PlantListItem({
   const styles = createStyles(theme);
   const [isHovered, setIsHovered] = useState(false);
 
-  const wateringDisplay = formatTimeSinceWatering(lastWateredDate);
-  const wateringColor = getWateringStatusColor(lastWateredDate, theme.colors.textSecondary);
-  const showCameraIcon = needsPhoto(lastPhotoDate);
-
-  const thumbnailSize = isGrid ? 80 : batchModeEnabled ? 40 : 65;
+  const watering = formatTimeSinceWatering(lastWateredDate);
+  const neverWatered = !lastWateredDate;
+  const wateringColor = getWateringStatusColor(lastWateredDate, theme.colors.textTertiary);
+  const showCameraBadge = !batchModeEnabled && needsPhoto(lastPhotoDate);
 
   const handlePress = () => {
     if (batchModeEnabled && onToggleSelection) {
@@ -70,244 +71,219 @@ export default function PlantListItem({
 
   const handlePinPress = (event: any) => {
     event.stopPropagation();
-    if (onTogglePin) {
-      onTogglePin(plant.id, event);
-    }
+    onTogglePin?.(plant.id, event);
   };
 
-  const hoverProps = Platform.OS === 'web'
-    ? {
-        onMouseEnter: () => setIsHovered(true),
-        onMouseLeave: () => setIsHovered(false),
-      }
-    : {};
+  const hoverProps =
+    Platform.OS === 'web'
+      ? {
+          onMouseEnter: () => setIsHovered(true),
+          onMouseLeave: () => setIsHovered(false),
+        }
+      : {};
 
-  const renderTags = () => {
-    if (tags.length === 0) {
-      return <Text style={styles.noTagsText}>No tags</Text>;
-    }
-
-    return tags.map((tag, index) => (
-      <View
-        key={`${tag.id}-${index}`}
-        style={[styles.tagBadge, { backgroundColor: tag.color }]}
-      >
-        <Text
-          style={[styles.tagText, { color: getTextColorForBackground(tag.color) }]}
-          numberOfLines={1}
-        >
-          {tag.name}
-        </Text>
-      </View>
-    ));
-  };
-
-  if (batchModeEnabled) {
-    return (
-      <TouchableOpacity
-        style={[
-          styles.plantCard,
-          isSelected && styles.plantCardSelected,
-          isGrid && styles.plantCardGrid,
-          isHovered && styles.plantCardHovered,
-        ]}
-        onPress={handlePress}
-        {...hoverProps}
-      >
-        <View style={[styles.plantCardContent, isGrid && styles.plantCardContentGrid]}>
-          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
-          </View>
-
-          <View style={styles.thumbnailContainer}>
-            <PlantThumbnail imageUri={thumbnail} size={thumbnailSize} />
-          </View>
-
-          <View style={styles.plantInfo}>
-            <Text style={styles.plantName}>{plant.name || plant.type}</Text>
-            <View style={styles.tagsContainer}>{renderTags()}</View>
-            <View style={styles.wateringContainer}>
-              {isEventsLoading ? (
-                <TextSkeleton width={120} height={14} />
-              ) : (
-                <Text style={[styles.wateringStatus, { color: wateringColor }]}>
-                  Last watered: {wateringDisplay.timeAgo}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
+  const visibleTags = tags.slice(0, MAX_TAGS);
+  const extraTags = tags.length - visibleTags.length;
 
   return (
     <TouchableOpacity
+      activeOpacity={0.7}
       style={[
-        styles.plantCard,
-        isGrid && styles.plantCardGrid,
-        isHovered && styles.plantCardHovered,
+        styles.card,
+        isGrid && styles.cardGrid,
+        isHovered && styles.cardHovered,
+        batchModeEnabled && isSelected && styles.cardSelected,
       ]}
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityState={batchModeEnabled ? { selected: isSelected } : undefined}
       {...hoverProps}
     >
-      <View style={[styles.plantCardContent, isGrid && styles.plantCardContentGrid]}>
-        <View style={styles.plantThumbnail}>
-          <PlantThumbnail imageUri={thumbnail} size={thumbnailSize} />
+      {batchModeEnabled ? (
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+          {isSelected ? <Check size={14} color={BaseColors.white} strokeWidth={3} /> : null}
         </View>
+      ) : null}
 
-        <View style={styles.plantInfo}>
-          <Text style={[styles.plantName, isGrid && styles.plantNameGrid]}>
-            {plant.name || plant.type}
-          </Text>
-          <View style={styles.tagsContainer}>{renderTags()}</View>
-          <View style={styles.wateringContainer}>
-            {isEventsLoading ? (
-              <TextSkeleton width={120} height={14} />
-            ) : (
-              <Text style={[styles.wateringStatus, { color: wateringColor }]}>
-                Last watered: {wateringDisplay.timeAgo}
-              </Text>
-            )}
+      <View>
+        <PlantThumbnail imageUri={thumbnail} size={THUMBNAIL_SIZE} borderRadius={BorderRadius.lg} />
+        {showCameraBadge ? (
+          <View style={styles.cameraBadge} accessibilityLabel="Due for a new photo">
+            <Camera size={10} color={BaseColors.white} strokeWidth={2.5} />
           </View>
-        </View>
+        ) : null}
+      </View>
 
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.pinButton} onPress={handlePinPress}>
-            {isPinned ? (
-              <PinOff size={16} color={theme.colors.primary} />
-            ) : (
-              <Pin size={16} color={theme.colors.textSecondary} />
-            )}
-          </TouchableOpacity>
-          {showCameraIcon && (
-            <View style={styles.cameraIconContainer}>
-              <Camera size={14} color={theme.colors.warning} />
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>
+          {plant.name || plant.type}
+        </Text>
+
+        <View style={styles.metaRow}>
+          {isEventsLoading ? (
+            <TextSkeleton width={84} height={20} />
+          ) : (
+            <View
+              style={[
+                styles.waterPill,
+                { backgroundColor: neverWatered ? theme.colors.surfaceSecondary : `${wateringColor}22` },
+              ]}
+              accessibilityLabel={neverWatered ? 'Not watered yet' : `Watered ${watering.timeAgo}`}
+            >
+              <Droplets size={12} color={wateringColor} />
+              <Text style={styles.waterText} numberOfLines={1}>
+                {neverWatered ? 'Not watered yet' : watering.timeAgo}
+              </Text>
             </View>
           )}
+
+          {visibleTags.map((tag) => (
+            <View key={tag.id} style={styles.tag}>
+              <View style={[styles.tagDot, { backgroundColor: tag.color }]} />
+              <Text style={styles.tagText} numberOfLines={1}>
+                {tag.name}
+              </Text>
+            </View>
+          ))}
+          {extraTags > 0 ? <Text style={styles.tagText}>+{extraTags}</Text> : null}
         </View>
       </View>
+
+      {!batchModeEnabled ? (
+        <TouchableOpacity
+          style={[styles.pinButton, !isPinned && styles.pinIdle]}
+          onPress={handlePinPress}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={isPinned ? 'Unpin plant' : 'Pin plant'}
+        >
+          <Pin
+            size={16}
+            color={isPinned ? theme.colors.primary : theme.colors.textTertiary}
+            fill={isPinned ? theme.colors.primary : 'transparent'}
+          />
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    plantCard: {
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm + 4,
       backgroundColor: theme.colors.surface,
-      padding: 16,
-      marginHorizontal: 16,
-      marginBottom: 12,
-      borderRadius: 8,
-      elevation: 3,
+      padding: Spacing.sm + 4,
+      marginHorizontal: Spacing.base,
+      marginBottom: Spacing.sm,
+      borderRadius: BorderRadius['2xl'] - 2,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
       ...(Platform.OS === 'web'
         ? {
             cursor: 'pointer' as any,
-            transition: 'box-shadow 0.2s ease, transform 0.15s ease, background-color 0.15s ease' as any,
+            transition: 'box-shadow 0.2s ease, transform 0.15s ease, border-color 0.15s ease' as any,
           }
         : {}),
     },
-    plantCardGrid: {
-      // In grid mode, cards are sized by the grid container
+    cardGrid: {
+      marginHorizontal: Spacing.sm,
     },
-    plantCardHovered: {
+    cardHovered: {
       ...(Platform.OS === 'web'
         ? {
-            transform: [{ translateY: -2 }],
+            transform: [{ translateY: -1 }],
             shadowColor: BaseColors.black,
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.15,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
             shadowRadius: 12,
-            elevation: 8,
           }
         : {}),
     },
-    plantCardSelected: {
+    cardSelected: {
       borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.surfaceSecondary,
-    },
-    plantCardContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    plantCardContentGrid: {
-      // Can be used for vertical card layout in future
+      backgroundColor: `${theme.colors.primary}14`,
     },
     checkbox: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
       borderWidth: 2,
       borderColor: theme.colors.border,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 16,
     },
     checkboxSelected: {
       backgroundColor: theme.colors.primary,
       borderColor: theme.colors.primary,
     },
-    thumbnailContainer: {
-      marginRight: 12,
+    cameraBadge: {
+      position: 'absolute',
+      right: -4,
+      bottom: -4,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: theme.colors.warning,
+      borderWidth: 2,
+      borderColor: theme.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    plantThumbnail: {
-      marginRight: 12,
-    },
-    plantInfo: {
+    info: {
       flex: 1,
+      gap: Spacing.xs + 2,
     },
-    plantName: {
-      fontSize: 18,
-      fontWeight: 'bold',
+    name: {
+      fontSize: Typography.base,
+      fontWeight: Typography.weights.semibold,
       color: theme.colors.text,
-      marginBottom: 4,
     },
-    plantNameGrid: {
-      fontSize: 16,
-    },
-    tagsContainer: {
+    metaRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      maxWidth: '100%',
-      marginBottom: 4,
+      gap: Spacing.sm,
     },
-    tagBadge: {
-      opacity: 0.8,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 12,
-      marginRight: 4,
-      marginBottom: 2,
-    },
-    tagText: {
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    noTagsText: {
-      fontSize: 12,
-      fontStyle: 'italic',
-      color: theme.colors.textSecondary,
-    },
-    wateringContainer: {
+    waterPill: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
-      alignItems: 'center',
-    },
-    wateringStatus: {
-      fontSize: 14,
-      fontWeight: '500',
-    },
-    actionsContainer: {
-      flexDirection: 'column',
       alignItems: 'center',
       gap: 4,
-      minWidth: 32,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: 3,
+      borderRadius: BorderRadius.full,
+    },
+    waterText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.weights.medium,
+      color: theme.colors.textSecondary,
+    },
+    tag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      maxWidth: 110,
+    },
+    tagDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+    },
+    tagText: {
+      fontSize: Typography.xs,
+      color: theme.colors.textTertiary,
+      flexShrink: 1,
     },
     pinButton: {
-      padding: 8,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    cameraIconContainer: {
-      padding: 8,
+    pinIdle: {
+      opacity: 0.6,
     },
   });

@@ -7,11 +7,13 @@ import { useTheme } from '../contexts/ThemeContext';
 interface PlantThumbnailProps {
   imageUri?: string;
   size?: number;
+  borderRadius?: number;
 }
 
 export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({ 
   imageUri, 
-  size = 60 
+  size = 60,
+  borderRadius = 8,
 }) => {
   const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(true);
@@ -21,7 +23,7 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
     container: {
       width: size,
       height: size,
-      borderRadius: 8,
+      borderRadius,
       backgroundColor: theme.colors.surfaceSecondary,
       justifyContent: 'center',
       alignItems: 'center',
@@ -30,7 +32,7 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
     image: {
       width: size,
       height: size,
-      borderRadius: 8,
+      borderRadius,
     },
     iconContainer: {
       justifyContent: 'center',
@@ -43,7 +45,7 @@ export const PlantThumbnail: React.FC<PlantThumbnailProps> = ({
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: theme.colors.surfaceSecondary,
-      borderRadius: 8,
+      borderRadius,
     },
   });
 

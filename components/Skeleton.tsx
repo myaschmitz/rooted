@@ -100,41 +100,33 @@ export const PlantCardSkeleton: React.FC<PlantCardSkeletonProps> = ({ style }) =
   const styles = StyleSheet.create({
     container: {
       flexDirection: 'row',
-      padding: 16,
-      backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      marginVertical: 4,
-      marginHorizontal: 16,
       alignItems: 'center',
-    },
-    thumbnail: {
-      width: 65,
-      height: 65,
-      borderRadius: 8,
-      marginRight: 12,
+      gap: 12,
+      padding: 12,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+      marginBottom: 8,
+      marginHorizontal: 16,
     },
     content: {
       flex: 1,
       gap: 8,
     },
-    actions: {
-      width: 32,
-      alignItems: 'center',
-      gap: 4,
+    meta: {
+      flexDirection: 'row',
+      gap: 8,
     },
   });
 
   return (
     <View style={[styles.container, style]}>
-      <Skeleton width={65} height={65} borderRadius={8} style={styles.thumbnail} />
+      <Skeleton width={56} height={56} borderRadius={10} />
       <View style={styles.content}>
-        <Skeleton width="70%" height={18} />
-        <Skeleton width="50%" height={14} />
-        <Skeleton width="90%" height={14} />
-      </View>
-      <View style={styles.actions}>
-        <Skeleton width={16} height={16} borderRadius={8} />
-        <Skeleton width={14} height={14} borderRadius={7} />
+        <Skeleton width="55%" height={16} />
+        <View style={styles.meta}>
+          <Skeleton width={84} height={20} borderRadius={10} />
+          <Skeleton width={56} height={14} style={{ alignSelf: 'center' }} />
+        </View>
       </View>
     </View>
   );
