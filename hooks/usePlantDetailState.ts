@@ -215,6 +215,12 @@ export function usePlantDetailState(plantId: string) {
     }
   }, [plantId, openModal]);
 
+  const handleEditPlant = useCallback(() => {
+    if (!openModal("edit-plant", { id: plantId })) {
+      router.push(`/edit-plant?id=${plantId}`);
+    }
+  }, [plantId, openModal]);
+
   const handlePropagate = useCallback(() => {
     if (!openModal("propagate", { parentId: plantId })) {
       router.push(`/propagate?parentId=${plantId}`);
@@ -641,6 +647,7 @@ export function usePlantDetailState(plantId: string) {
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handleEditPlant,
     handlePropagate,
     handleLinkParent,
     handleLinkChild,

@@ -23,6 +23,7 @@ import {
   PlantLineageSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
+  buildPlantMenuGroups,
 } from "./plant-detail";
 
 interface PlantDetailPanelProps {
@@ -56,7 +57,6 @@ export default function PlantDetailPanel({
     loading,
     refreshing,
     uploadingPhoto,
-    lineageLoading,
     imageViewerVisible,
     currentPhotoIndex,
     photoViewerOpenId,
@@ -66,6 +66,7 @@ export default function PlantDetailPanel({
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handleEditPlant,
     handlePropagate,
     handleOpenPlant,
     handleLinkParent,
@@ -149,17 +150,23 @@ export default function PlantDetailPanel({
           plant={plant}
           thumbnailPhoto={thumbnailPhoto}
           onThumbnailPress={handleThumbnailPress}
-          onDeletePlant={handleDeletePlant}
-          onArchivePlant={handleArchivePlant}
-        />
-
-        <View style={styles.tagSection}>
+          menuGroups={buildPlantMenuGroups({
+            hasParent: !!lineage?.parent,
+            onEdit: handleEditPlant,
+            onPropagate: handlePropagate,
+            onLinkParent: handleLinkParent,
+            onLinkChild: handleLinkChild,
+            onUnlinkParent: handleUnlinkParent,
+            onArchive: handleArchivePlant,
+            onDelete: handleDeletePlant,
+          })}
+        >
           <TagsList
             plantId={plantId}
             onAddTagPress={handleAddTag}
             refreshTrigger={tagRefreshTrigger}
           />
-        </View>
+        </PlantDetailHeader>
 
         <PlantActionButtons
           onLogCare={handleLogCare}
@@ -176,12 +183,7 @@ export default function PlantDetailPanel({
 
         <PlantLineageSection
           lineage={lineage}
-          loading={lineageLoading}
-          onPropagate={handlePropagate}
           onPlantPress={onSelectPlant ?? handleOpenPlant}
-          onLinkParent={handleLinkParent}
-          onLinkChild={handleLinkChild}
-          onUnlinkParent={handleUnlinkParent}
         />
 
         <PlantPhotosSection
@@ -290,25 +292,17 @@ const createStyles = (theme: Theme) =>
       fontSize: 16,
       color: theme.colors.textSecondary,
     },
-    tagSection: {
-      backgroundColor: theme.colors.surface,
-      marginHorizontal: 10,
-      marginTop: 0,
-      marginBottom: 10,
-      padding: 15,
-      borderRadius: 8,
-    },
     section: {
       backgroundColor: theme.colors.surface,
       margin: 10,
       marginTop: 0,
-      padding: 15,
-      borderRadius: 8,
+      padding: 16,
+      borderRadius: 12,
     },
     sectionTitle: {
       fontSize: 18,
       fontWeight: "bold",
-      marginBottom: 10,
+      marginBottom: 8,
       color: theme.colors.text,
     },
     notesText: {

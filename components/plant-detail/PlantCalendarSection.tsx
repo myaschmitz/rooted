@@ -38,21 +38,17 @@ export default function PlantCalendarSection(props: PlantCalendarSectionProps) {
     if (!openModal("event", { id: event.id })) router.push(`/event/${event.id}`);
   };
 
+  const toggle = <Toggle mode={mode} onChange={setMode} theme={theme} />;
+
   if (mode === "list") {
-    return (
-      <View>
-        <View style={styles.toggleWrap}>
-          <Toggle mode={mode} onChange={setMode} theme={theme} />
-        </View>
-        <PlantEventsSection {...props} />
-      </View>
-    );
+    return <PlantEventsSection {...props} headerAccessory={toggle} />;
   }
 
   return (
     <View style={styles.section}>
-      <View style={styles.toggleWrap}>
-        <Toggle mode={mode} onChange={setMode} theme={theme} />
+      <View style={styles.header}>
+        <Text style={styles.title}>History</Text>
+        {toggle}
       </View>
       <MonthCalendar
         events={props.events}
@@ -78,34 +74,27 @@ function Toggle({
   theme: Theme;
 }) {
   const styles = createStyles(theme);
+  const option = (value: Mode, label: string, Icon: typeof List) => {
+    const active = mode === value;
+    return (
+      <TouchableOpacity
+        style={[styles.toggleBtn, active && styles.toggleActive]}
+        onPress={() => onChange(value)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} view`}
+        accessibilityState={{ selected: active }}
+      >
+        <Icon
+          size={16}
+          color={active ? theme.colors.text : theme.colors.textTertiary}
+        />
+      </TouchableOpacity>
+    );
+  };
   return (
     <View style={styles.toggle}>
-      <TouchableOpacity
-        style={[styles.toggleBtn, mode === "list" && styles.toggleActive]}
-        onPress={() => onChange("list")}
-      >
-        <List
-          size={16}
-          color={mode === "list" ? "#fff" : theme.colors.textSecondary}
-        />
-        <Text style={[styles.toggleText, mode === "list" && styles.toggleTextActive]}>
-          List
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toggleBtn, mode === "calendar" && styles.toggleActive]}
-        onPress={() => onChange("calendar")}
-      >
-        <CalendarDays
-          size={16}
-          color={mode === "calendar" ? "#fff" : theme.colors.textSecondary}
-        />
-        <Text
-          style={[styles.toggleText, mode === "calendar" && styles.toggleTextActive]}
-        >
-          Calendar
-        </Text>
-      </TouchableOpacity>
+      {option("list", "List", List)}
+      {option("calendar", "Calendar", CalendarDays)}
     </View>
   );
 }
@@ -116,25 +105,37 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       margin: 10,
       marginTop: 0,
-      padding: 15,
-      borderRadius: 8,
+      padding: 16,
+      borderRadius: 12,
     },
-    toggleWrap: { alignItems: "flex-end", marginHorizontal: 10, marginBottom: 8 },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "bold",
+      color: theme.colors.text,
+    },
     toggle: {
       flexDirection: "row",
-      backgroundColor: theme.colors.surfaceVariant,
+      backgroundColor: theme.colors.surfaceSecondary,
       borderRadius: 8,
-      padding: 3,
+      padding: 2,
     },
     toggleBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-      paddingVertical: 6,
-      paddingHorizontal: 12,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
       borderRadius: 6,
     },
-    toggleActive: { backgroundColor: theme.colors.primary },
-    toggleText: { fontSize: 14, fontWeight: "600", color: theme.colors.textSecondary },
-    toggleTextActive: { color: "#fff" },
+    toggleActive: {
+      backgroundColor: theme.colors.surface,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 1,
+    },
   });

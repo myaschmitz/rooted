@@ -5,3 +5,4 @@ export { default as PlantEventsSection } from './PlantEventsSection';
 export { default as PlantCalendarSection } from './PlantCalendarSection';
 export { default as PlantLineageSection } from './PlantLineageSection';
 export { default as PhotoViewerModal, ThumbnailViewerModal } from './PhotoViewerModal';
+export { buildPlantMenuGroups } from './plantMenu';
