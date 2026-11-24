@@ -3,24 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  ScrollView,
-  Dimensions,
-  Keyboard,
 } from 'react-native';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import { formStyles } from '../styles/FormStyles';
 import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
-import { TextSkeleton } from '../components/Skeleton';
+import { Skeleton } from '../components/Skeleton';
+import TagForm from '../components/TagForm';
 import { useUpdateTag } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
 import { useAlert } from '../contexts/AlertContext';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 export default function EditTagScreen() {
   const { theme } = useTheme();
@@ -106,29 +101,14 @@ export default function EditTagScreen() {
     dismiss();
   };
 
-  const getTextColor = (backgroundColor: string): string => {
-    // Convert hex to RGB
-    const hex = backgroundColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    // Calculate luminance
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
-    // Return black for light colors, white for dark colors
-    return luminance > 0.5 ? '#000000' : '#FFFFFF';
-  };
-
-  const defaultColors = TagService.getDefaultTagColors();
-
   if (loading) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <View style={{ alignItems: 'center' }}>
-          <TextSkeleton width={150} height={20} style={{ marginBottom: 16 }} />
-          <TextSkeleton width={100} height={16} style={{ marginBottom: 12 }} />
-          <TextSkeleton width={120} height={16} />
+      <View style={[styles.container, styles.content]}>
+        <Skeleton height={48} borderRadius={12} style={{ marginBottom: 20 }} />
+        <View style={styles.swatchSkeletons}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} width={36} height={36} borderRadius={18} />
+          ))}
         </View>
       </View>
     );
@@ -136,169 +116,58 @@ export default function EditTagScreen() {
 
   return (
     <WebContainer>
-    <KeyboardAwareScrollView style={styles.container}>
-      <View style={styles.content}>
-        
-        {/* Tag Name Input */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Tag Name</Text>
-          <TextInput
-            style={styles.input}
-            value={tagName}
-            onChangeText={setTagName}
-            placeholder="Enter tag name"
-            placeholderTextColor={theme.colors.textTertiary}
-            maxLength={50}
+      <KeyboardAwareScrollView style={styles.container}>
+        <View style={styles.content}>
+          <TagForm
+            name={tagName}
+            onNameChange={setTagName}
+            color={selectedColor}
+            onColorChange={setSelectedColor}
           />
-          <Text style={styles.characterCount}>
-            {tagName.length}/50
+
+          <Text style={styles.helper}>
+            Changes apply to every plant with this tag.
           </Text>
-        </View>
 
-        {/* Tag Preview */}
-        {tagName.trim() && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Preview</Text>
-            <View style={styles.previewContainer}>
-              <View style={[
-                styles.tagPreview, 
-                { backgroundColor: selectedColor }
-              ]}>
-                <Text style={[
-                  styles.tagPreviewText,
-                  { color: getTextColor(selectedColor) }
-                ]}>
-                  {tagName.trim()}
-                </Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Color Picker */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Tag Color</Text>
-          <TouchableOpacity 
-            style={styles.colorGrid}
-            activeOpacity={1}
-            onPress={() => Keyboard.dismiss()}
-          >
-            {defaultColors.map((color) => (
-              <TouchableOpacity
-                key={color}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: color },
-                  selectedColor === color && styles.selectedColorOption
-                ]}
-                onPress={() => {
-                  setSelectedColor(color);
-                  Keyboard.dismiss();
-                }}
-                activeOpacity={0.8}
-              />
-            ))}
-          </TouchableOpacity>
-        </View>
-
-        {/* Custom Color Input */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Custom Color (Hex)</Text>
-          <View style={styles.customColorContainer}>
-            <TextInput
-              style={styles.colorInput}
-              value={selectedColor}
-              onChangeText={(text) => {
-                // Ensure it starts with # and only contains valid hex characters
-                let formattedText = text.toUpperCase();
-                if (!formattedText.startsWith('#')) {
-                  formattedText = '#' + formattedText;
-                }
-                // Remove any invalid characters
-                formattedText = formattedText.replace(/[^#0-9A-F]/g, '');
-                // Limit to 7 characters (#RRGGBB)
-                if (formattedText.length <= 7) {
-                  setSelectedColor(formattedText);
-                }
-              }}
-              placeholder="#FF5733"
-              placeholderTextColor={theme.colors.textTertiary}
-              maxLength={7}
-              autoCapitalize="characters"
-            />
-            <View style={[
-              styles.colorPreview,
-              { backgroundColor: TagService.validateTagColor(selectedColor) ? selectedColor : theme.colors.border }
-            ]} />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
+              disabled={saving}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.saveButton,
+                (saving || !tagName.trim()) && styles.buttonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={saving || !tagName.trim()}
+            >
+              <Text style={styles.saveButtonText}>{saving ? 'Saving…' : 'Save Changes'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
-            onPress={handleCancel}
-            disabled={saving}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.button, 
-              styles.saveButton,
-              saving && styles.buttonDisabled
-            ]}
-            onPress={handleSave}
-            disabled={saving || !tagName.trim()}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? 'Updating...' : 'Update Tag'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAwareScrollView>
+      </KeyboardAwareScrollView>
     </WebContainer>
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
-  container: formStyles(theme).screen,
-  loadingContainer: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-  },
-  content: formStyles(theme).form,
-  section: formStyles(theme).inputGroup,
-  label: formStyles(theme).label,
-  input: formStyles(theme).input,
-  characterCount: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    textAlign: 'right',
-    marginTop: 4,
-  },
-  previewContainer: {
-    alignItems: 'flex-start',
-  },
-  tagPreview: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, minHeight: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
-  tagPreviewText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  colorOption: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: 'transparent' },
-  selectedColorOption: { borderColor: theme.colors.text, transform: [{ scale: 1.08 }] },
-  customColorContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  colorInput: { ...formStyles(theme).input, flex: 1, fontFamily: 'monospace' },
-  colorPreview: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: theme.colors.border },
-  buttonContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  button: { flex: 1 },
-  cancelButton: formStyles(theme).secondaryButton,
-  saveButton: formStyles(theme).primaryButton,
-  buttonDisabled: formStyles(theme).buttonDisabled,
-  cancelButtonText: formStyles(theme).secondaryButtonText,
-  saveButtonText: formStyles(theme).primaryButtonText,
-});
+const createStyles = (theme: any) => {
+  const f = formStyles(theme);
+  return StyleSheet.create({
+    container: f.screen,
+    content: f.form,
+    helper: { ...f.helper, marginTop: -4, marginBottom: 16 },
+    swatchSkeletons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    buttonContainer: { flexDirection: 'row', gap: 10 },
+    button: { flex: 1 },
+    cancelButton: f.secondaryButton,
+    saveButton: f.primaryButton,
+    buttonDisabled: f.buttonDisabled,
+    cancelButtonText: f.secondaryButtonText,
+    saveButtonText: f.primaryButtonText,
+  });
+};
