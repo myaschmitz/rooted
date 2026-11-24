@@ -1,21 +1,24 @@
 import React, { useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
   Modal,
   Pressable,
+  PressableStateCallbackType,
   StyleProp,
   ImageStyle,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
 import { getPrefetchOrder } from '../../utils/photoPrefetch';
+import { FormattedDate, PhotoViewerHeader, PhotoViewerFooter } from './PhotoViewerChrome';
+
+// react-native-web adds `hovered` to the Pressable state; RN types only know `pressed`.
+const isHovered = (state: PressableStateCallbackType) =>
+  !!(state as PressableStateCallbackType & { hovered?: boolean }).hovered;
 
 /**
  * Full-size photo that shows the small thumbnail right away and fades to the
@@ -34,11 +37,6 @@ function ProgressivePhoto({ photo, style }: { photo: PlantPhoto; style: StylePro
       style={style}
     />
   );
-}
-
-interface FormattedDate {
-  date: string;
-  timeAgo: string;
 }
 
 interface PhotoViewerModalProps {
@@ -62,8 +60,6 @@ export default function PhotoViewerModal({
   onDownload,
   onSetThumbnail,
 }: PhotoViewerModalProps) {
-  const { theme } = useTheme();
-  const styles = createStyles(theme);
   const [currentIndex, setCurrentIndex] = React.useState(initialIndex);
 
   React.useEffect(() => {
@@ -109,58 +105,52 @@ export default function PhotoViewerModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => onDownload(currentPhoto)}>
-            <Download size={22} color={BaseColors.white} />
-          </TouchableOpacity>
-          <Text style={styles.counter}>
-            {currentIndex + 1} / {photos.length}
-          </Text>
-          <TouchableOpacity style={styles.iconButton} onPress={onClose}>
-            <X size={22} color={BaseColors.white} />
-          </TouchableOpacity>
-        </View>
+        <PhotoViewerHeader
+          index={currentIndex}
+          total={photos.length}
+          onClose={onClose}
+          onDownload={() => onDownload(currentPhoto)}
+        />
 
-        {/* Image area with navigation */}
         <View style={styles.imageArea}>
+          <ProgressivePhoto photo={currentPhoto} style={styles.image} />
+
           {currentIndex > 0 && (
             <Pressable
-              style={[styles.navButton, styles.navButtonLeft]}
+              style={(state) => [
+                styles.navButton,
+                styles.navButtonLeft,
+                isHovered(state) && styles.navButtonHovered,
+              ]}
               onPress={() => setCurrentIndex(currentIndex - 1)}
+              accessibilityRole="button"
+              accessibilityLabel="Previous photo"
             >
-              <ChevronLeft size={32} color={BaseColors.white} />
+              <ChevronLeft size={26} color={BaseColors.white} />
             </Pressable>
           )}
-
-          <ProgressivePhoto photo={currentPhoto} style={styles.image} />
 
           {currentIndex < photos.length - 1 && (
             <Pressable
-              style={[styles.navButton, styles.navButtonRight]}
+              style={(state) => [
+                styles.navButton,
+                styles.navButtonRight,
+                isHovered(state) && styles.navButtonHovered,
+              ]}
               onPress={() => setCurrentIndex(currentIndex + 1)}
+              accessibilityRole="button"
+              accessibilityLabel="Next photo"
             >
-              <ChevronRight size={32} color={BaseColors.white} />
+              <ChevronRight size={26} color={BaseColors.white} />
             </Pressable>
           )}
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.dateText}>
-            {formattedDates[currentPhoto.id]
-              ? `${formattedDates[currentPhoto.id].date} (${formattedDates[currentPhoto.id].timeAgo})`
-              : ''}
-          </Text>
-          <TouchableOpacity
-            style={styles.thumbnailButton}
-            onPress={() => onSetThumbnail(currentPhoto.id)}
-          >
-            <Text style={styles.thumbnailButtonText}>
-              {currentThumbnailId === currentPhoto.id ? '\u2605 Thumbnail' : 'Set as Thumbnail'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <PhotoViewerFooter
+          formattedDate={formattedDates[currentPhoto.id]}
+          isThumbnail={currentThumbnailId === currentPhoto.id}
+          onSetThumbnail={() => onSetThumbnail(currentPhoto.id)}
+        />
       </View>
     </Modal>
   );
@@ -177,8 +167,6 @@ export function ThumbnailViewerModal({
   thumbnailPhoto,
   onClose,
 }: ThumbnailViewerModalProps) {
-  const { theme } = useTheme();
-  const styles = createStyles(theme);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -195,12 +183,7 @@ export function ThumbnailViewerModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.header}>
-          <View />
-          <TouchableOpacity style={styles.iconButton} onPress={onClose}>
-            <X size={22} color={BaseColors.white} />
-          </TouchableOpacity>
-        </View>
+        <PhotoViewerHeader index={0} total={1} onClose={onClose} />
         <View style={styles.imageArea}>
           <ProgressivePhoto photo={thumbnailPhoto} style={styles.image} />
         </View>
@@ -209,81 +192,40 @@ export function ThumbnailViewerModal({
   );
 }
 
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.95)',
-      justifyContent: 'space-between',
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingTop: 20,
-      paddingBottom: 10,
-    },
-    counter: {
-      color: BaseColors.white,
-      fontSize: 16,
-      fontWeight: '500',
-    },
-    iconButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-      borderRadius: 20,
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    imageArea: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      position: 'relative',
-    },
-    image: {
-      width: '90%',
-      height: '90%',
-    },
-    navButton: {
-      position: 'absolute',
-      top: '50%',
-      zIndex: 10,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      borderRadius: 24,
-      width: 48,
-      height: 48,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginTop: -24,
-    },
-    navButtonLeft: {
-      left: 16,
-    },
-    navButtonRight: {
-      right: 16,
-    },
-    footer: {
-      padding: 20,
-      alignItems: 'center',
-    },
-    dateText: {
-      color: BaseColors.white,
-      fontSize: 14,
-      marginBottom: 12,
-      opacity: 0.8,
-    },
-    thumbnailButton: {
-      backgroundColor: theme.colors.surface,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 8,
-    },
-    thumbnailButtonText: {
-      color: theme.colors.text,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-  });
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: BaseColors.black,
+  },
+  imageArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -22,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navButtonHovered: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  },
+  navButtonLeft: {
+    left: 20,
+  },
+  navButtonRight: {
+    right: 20,
+  },
+});
