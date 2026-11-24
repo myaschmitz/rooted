@@ -52,7 +52,7 @@
     "react-native-image-viewing": "^0.2.2",
     "react-native-mmkv": "^2.12.2",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0",
+    "react-native-screens": "~4.17.1",
     "react-native-svg": "15.12.1",
     "react-native-uuid": "^2.0.2",
     "react-native-web": "^0.21.0"
@@ -71,5 +71,12 @@
     "react": "19.1.0",
     "react-native-renderer": "19.1.0"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native-screens"
+      ]
+    }
+  }
 }
