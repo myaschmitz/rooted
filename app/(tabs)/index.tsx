@@ -731,9 +731,16 @@ export default function HomeScreen() {
 
             {/* Batch select mode */}
             <TouchableOpacity
-              style={styles.selectButton}
+              style={[
+                styles.selectButton,
+                batchModeEnabled && styles.selectButtonActive,
+              ]}
               onPress={toggleBatchMode}
+              hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
               accessibilityRole="button"
+              accessibilityLabel={
+                batchModeEnabled ? "Done selecting" : "Select plants"
+              }
             >
               <Text
                 style={[

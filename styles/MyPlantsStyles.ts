@@ -260,7 +260,7 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'space-between',
     marginHorizontal: 16,
     marginBottom: 4,
-    minHeight: 34,
+    minHeight: 36,
     zIndex: 1000,
   },
   controlsLeft: {
@@ -307,17 +307,28 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
   selectButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    height: 36,
+    minWidth: 76,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
+  selectButtonActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
   selectButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: theme.colors.text,
   },
   selectButtonTextActive: {
-    color: theme.colors.primary,
+    color: theme.colors.textOnPrimary,
   },
   selectionCount: {
     fontSize: 14,
