@@ -22,6 +22,7 @@ import {
   PlantLineageSection,
   PhotoViewerModal,
   ThumbnailViewerModal,
+  buildPlantMenuGroups,
 } from "../../components/plant-detail";
 
 export default function PlantDetailScreen() {
@@ -45,7 +46,6 @@ export default function PlantDetailScreen() {
     loading,
     refreshing,
     uploadingPhoto,
-    lineageLoading,
 
     // UI state
     imageViewerVisible,
@@ -59,6 +59,7 @@ export default function PlantDetailScreen() {
     onRefresh,
     handleLogCare,
     handleAddTag,
+    handleEditPlant,
     handlePropagate,
     handleLinkParent,
     handleLinkChild,
@@ -129,17 +130,23 @@ export default function PlantDetailScreen() {
             plant={plant}
             thumbnailPhoto={thumbnailPhoto}
             onThumbnailPress={handleThumbnailPress}
-            onDeletePlant={handleDeletePlant}
-            onArchivePlant={handleArchivePlant}
-          />
-
-          <View style={styles.tagSection}>
+            menuGroups={buildPlantMenuGroups({
+              hasParent: !!lineage?.parent,
+              onEdit: handleEditPlant,
+              onPropagate: handlePropagate,
+              onLinkParent: handleLinkParent,
+              onLinkChild: handleLinkChild,
+              onUnlinkParent: handleUnlinkParent,
+              onArchive: handleArchivePlant,
+              onDelete: handleDeletePlant,
+            })}
+          >
             <TagsList
               plantId={id!}
               onAddTagPress={handleAddTag}
               refreshTrigger={tagRefreshTrigger}
             />
-          </View>
+          </PlantDetailHeader>
 
           <PlantActionButtons
             onLogCare={handleLogCare}
@@ -156,15 +163,11 @@ export default function PlantDetailScreen() {
 
           <PlantLineageSection
             lineage={lineage}
-            loading={lineageLoading}
-            onPropagate={handlePropagate}
             onPlantPress={handleOpenPlant}
-            onLinkParent={handleLinkParent}
-            onLinkChild={handleLinkChild}
-            onUnlinkParent={handleUnlinkParent}
           />
 
-          <PlantPhotosSection            photos={typedPhotos}
+          <PlantPhotosSection
+            photos={typedPhotos}
             thumbnailPhotoId={currentThumbnailId}
             isMultiSelectMode={isMultiSelectMode}
             selectedPhotos={selectedPhotos}
@@ -219,25 +222,17 @@ const createStyles = (theme: Theme) =>
       alignItems: "center",
       backgroundColor: theme.colors.background,
     },
-    tagSection: {
-      backgroundColor: theme.colors.surface,
-      marginHorizontal: 10,
-      marginTop: 0,
-      marginBottom: 10,
-      padding: 15,
-      borderRadius: 8,
-    },
     section: {
       backgroundColor: theme.colors.surface,
       margin: 10,
       marginTop: 0,
-      padding: 15,
-      borderRadius: 8,
+      padding: 16,
+      borderRadius: 12,
     },
     sectionTitle: {
       fontSize: 18,
       fontWeight: "bold",
-      marginBottom: 10,
+      marginBottom: 8,
       color: theme.colors.text,
     },
     notesText: {

@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { GitBranch, ChevronRight, CornerUpLeft, Link2 } from "lucide-react-native";
+import { GitBranch, ChevronRight, CornerUpLeft } from "lucide-react-native";
 import dayjs from "dayjs";
 import { useTheme, Theme } from "../../contexts/ThemeContext";
 import { Spacing, Typography, BorderRadius } from "../../styles/theme";
@@ -9,12 +9,7 @@ import type { LineagePlant, PlantLineage } from "../../types/Plant";
 
 interface PlantLineageSectionProps {
   lineage: PlantLineage | null | undefined;
-  loading: boolean;
-  onPropagate: () => void;
   onPlantPress: (plantId: string) => void;
-  onLinkParent: () => void;
-  onLinkChild: () => void;
-  onUnlinkParent: () => void;
 }
 
 const displayName = (plant: LineagePlant) => plant.name || plant.type;
@@ -31,12 +26,7 @@ const propagationSummary = (plant: LineagePlant): string | null => {
 
 export default function PlantLineageSection({
   lineage,
-  loading,
-  onPropagate,
   onPlantPress,
-  onLinkParent,
-  onLinkChild,
-  onUnlinkParent,
 }: PlantLineageSectionProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -46,37 +36,20 @@ export default function PlantLineageSection({
   const hasLineage = !!parent || children.length > 0;
   const ownSummary = lineage ? propagationSummary(lineage.plant) : null;
 
+  // Propagation is managed from the header's "⋯" menu; this section only
+  // shows up once a plant actually has family to show.
+  if (!hasLineage) return null;
+
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <View style={styles.headerTitle}>
-          <GitBranch size={18} color={theme.colors.text} />
-          <Text style={styles.sectionTitle}>Propagation</Text>
-        </View>
-        <TouchableOpacity style={styles.propagateButton} onPress={onPropagate}>
-          <Text style={styles.propagateButtonText}>Propagate</Text>
-        </TouchableOpacity>
+        <GitBranch size={18} color={theme.colors.text} />
+        <Text style={styles.sectionTitle}>Family</Text>
       </View>
-
-      {loading && !hasLineage ? (
-        <Text style={styles.emptyText}>Loading lineage…</Text>
-      ) : null}
-
-      {!loading && !hasLineage ? (
-        <Text style={styles.emptyText}>
-          No propagations yet. Take a cutting to start this plant&apos;s family
-          tree.
-        </Text>
-      ) : null}
 
       {parent ? (
         <View style={styles.group}>
-          <View style={styles.groupHeader}>
-            <Text style={styles.groupLabel}>Propagated from</Text>
-            <TouchableOpacity onPress={onUnlinkParent} accessibilityRole="button">
-              <Text style={styles.unlinkText}>Unlink</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.groupLabel}>Propagated from</Text>
           <TouchableOpacity
             style={styles.row}
             onPress={() => onPlantPress(parent.id)}
@@ -137,27 +110,6 @@ export default function PlantLineageSection({
           {`Part of a family of ${lineage.size} plants.`}
         </Text>
       ) : null}
-
-      <View style={styles.linkActions}>
-        {!parent ? (
-          <TouchableOpacity
-            style={styles.linkAction}
-            onPress={onLinkParent}
-            accessibilityRole="button"
-          >
-            <Link2 size={14} color={theme.colors.primary} />
-            <Text style={styles.linkActionText}>Mark as propagation</Text>
-          </TouchableOpacity>
-        ) : null}
-        <TouchableOpacity
-          style={styles.linkAction}
-          onPress={onLinkChild}
-          accessibilityRole="button"
-        >
-          <Link2 size={14} color={theme.colors.primary} />
-          <Text style={styles.linkActionText}>Add existing propagation</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -168,69 +120,22 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       margin: Spacing.sm + 2,
       marginTop: 0,
-      padding: Spacing.base - 1,
-      borderRadius: BorderRadius.md,
+      padding: Spacing.base,
+      borderRadius: BorderRadius.xl,
     },
     header: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: Spacing.sm + 2,
-    },
-    headerTitle: {
-      flexDirection: "row",
-      alignItems: "center",
       gap: Spacing.sm,
+      marginBottom: Spacing.xs,
     },
     sectionTitle: {
       fontSize: Typography.lg,
       fontWeight: "bold",
       color: theme.colors.text,
     },
-    propagateButton: {
-      backgroundColor: theme.colors.primary,
-      paddingHorizontal: Spacing.base - 2,
-      paddingVertical: Spacing.sm - 1,
-      borderRadius: BorderRadius.base,
-    },
-    propagateButtonText: {
-      color: theme.colors.textOnPrimary,
-      fontWeight: "bold",
-      fontSize: Typography.sm,
-    },
-    emptyText: {
-      color: theme.colors.textSecondary,
-      fontSize: Typography.sm,
-      lineHeight: Typography.sm * 1.4,
-    },
     group: {
       marginTop: Spacing.sm,
-    },
-    groupHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    unlinkText: {
-      fontSize: Typography.sm,
-      color: theme.colors.error,
-    },
-    linkActions: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: Spacing.base,
-      marginTop: Spacing.sm,
-    },
-    linkAction: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: Spacing.xs + 2,
-      paddingVertical: Spacing.xs,
-    },
-    linkActionText: {
-      fontSize: Typography.sm,
-      color: theme.colors.primary,
-      fontWeight: Typography.weights.medium,
     },
     groupLabel: {
       color: theme.colors.textTertiary,

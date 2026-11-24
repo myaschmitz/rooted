@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { CalendarPlus, Camera } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { Spacing, Typography, BorderRadius } from '../../styles/theme';
 
 interface PlantActionButtonsProps {
   onLogCare: () => void;
@@ -18,28 +20,25 @@ export default function PlantActionButtons({
 
   return (
     <View style={styles.actionButtons}>
-      <TouchableOpacity style={styles.actionButton} onPress={onLogCare}>
-        <Text style={styles.actionButtonText} numberOfLines={1}>
+      <TouchableOpacity style={[styles.button, styles.primary]} onPress={onLogCare}>
+        <CalendarPlus size={18} color={theme.colors.textOnPrimary} />
+        <Text style={[styles.buttonText, styles.primaryText]} numberOfLines={1}>
           Log Event
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.actionButton, uploadingPhoto && styles.actionButtonDisabled]}
+        style={[styles.button, styles.secondary, uploadingPhoto && styles.disabled]}
         onPress={onAddPhoto}
         disabled={uploadingPhoto}
       >
         {uploadingPhoto ? (
-          <View style={styles.buttonLoadingContainer}>
-            <ActivityIndicator size="small" color={theme.colors.textOnPrimary} />
-            <Text style={styles.actionButtonText} numberOfLines={1}>
-              Uploading...
-            </Text>
-          </View>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
         ) : (
-          <Text style={styles.actionButtonText} numberOfLines={1}>
-            Add Photo
-          </Text>
+          <Camera size={18} color={theme.colors.primary} />
         )}
+        <Text style={[styles.buttonText, styles.secondaryText]} numberOfLines={1}>
+          {uploadingPhoto ? 'Uploading…' : 'Add Photo'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -49,27 +48,38 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     actionButtons: {
       flexDirection: 'row',
-      padding: 10,
-      gap: 10,
+      marginHorizontal: Spacing.sm + 2,
+      marginBottom: Spacing.sm + 2,
+      gap: Spacing.sm + 2,
     },
-    actionButton: {
+    button: {
       flex: 1,
-      backgroundColor: theme.colors.primary,
-      padding: 15,
-      borderRadius: 8,
-      alignItems: 'center',
-    },
-    actionButtonText: {
-      color: theme.colors.textOnPrimary,
-      fontWeight: 'bold',
-      fontSize: 16,
-    },
-    actionButtonDisabled: {
-      opacity: 0.6,
-    },
-    buttonLoadingContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      justifyContent: 'center',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.sm + 4,
+      borderRadius: BorderRadius.xl,
+    },
+    primary: {
+      backgroundColor: theme.colors.primary,
+    },
+    secondary: {
+      backgroundColor: theme.colors.surface,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+    },
+    buttonText: {
+      fontWeight: Typography.weights.semibold,
+      fontSize: Typography.base,
+    },
+    primaryText: {
+      color: theme.colors.textOnPrimary,
+    },
+    secondaryText: {
+      color: theme.colors.primary,
+    },
+    disabled: {
+      opacity: 0.6,
     },
   });

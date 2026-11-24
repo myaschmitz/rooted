@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform } from 'react-native';
 import { Image } from 'expo-image';
+import { Check, Star, Trash2 } from 'lucide-react-native';
 import { PlantPhoto } from '../../types/Plant';
 import { PhotoService } from '../../services/PhotoService';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
-import { BaseColors } from '../../styles/theme';
+import { BaseColors, Spacing, Typography, BorderRadius } from '../../styles/theme';
 import { TextSkeleton } from '../Skeleton';
 
 interface FormattedDate {
@@ -25,6 +26,8 @@ interface PlantPhotosSectionProps {
   onDeleteSelectedPhotos: () => void;
 }
 
+const TILE_SIZE = 104;
+
 export default function PlantPhotosSection({
   photos,
   thumbnailPhotoId,
@@ -44,93 +47,112 @@ export default function PlantPhotosSection({
     return null;
   }
 
+  const selectedCount = selectedPhotos.size;
+
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Photos ({photos.length})</Text>
-        <View style={styles.multiSelectButtonsContainer}>
-          {isMultiSelectMode && selectedPhotos.size > 0 && (
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Photos</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{photos.length}</Text>
+          </View>
+        </View>
+
+        {isMultiSelectMode ? (
+          <View style={styles.headerActions}>
             <TouchableOpacity
-              style={[styles.multiSelectButton, styles.deleteButton]}
               onPress={onDeleteSelectedPhotos}
+              disabled={selectedCount === 0}
+              style={[styles.textButton, selectedCount === 0 && styles.disabled]}
+              accessibilityRole="button"
             >
-              <Text style={styles.deleteButtonText}>
-                Delete ({selectedPhotos.size})
+              <Trash2 size={15} color={theme.colors.error} />
+              <Text style={[styles.textButtonLabel, { color: theme.colors.error }]}>
+                {selectedCount > 0 ? `Delete ${selectedCount}` : 'Delete'}
               </Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[
-              styles.multiSelectButton,
-              !isMultiSelectMode && styles.deletePhotosButton,
-              isMultiSelectMode && styles.cancelButton,
-            ]}
-            onPress={onToggleMultiSelect}
-          >
-            <Text
-              style={[
-                styles.multiSelectButtonText,
-                isMultiSelectMode && styles.cancelButtonText,
-              ]}
+            <TouchableOpacity
+              onPress={onToggleMultiSelect}
+              style={styles.textButton}
+              accessibilityRole="button"
             >
-              {isMultiSelectMode ? 'Cancel' : 'Delete Photos'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {photos.map((photo) => (
+              <Text style={[styles.textButtonLabel, styles.doneLabel]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
           <TouchableOpacity
-            key={photo.id}
-            style={styles.photoItem}
-            onPress={() => {
-              if (isMultiSelectMode) {
-                onTogglePhotoSelection(photo.id);
-              } else {
-                onPhotoPress(photo);
-              }
-            }}
-            onLongPress={() => !isMultiSelectMode && onPhotoLongPress(photo)}
+            onPress={onToggleMultiSelect}
+            style={styles.textButton}
+            accessibilityRole="button"
           >
-            <Image
-              source={{ uri: PhotoService.getImageUrl(photo, true) }}
-              style={[
-                styles.photoImage,
-                thumbnailPhotoId === photo.id && styles.thumbnailPhotoImage,
-                selectedPhotos.has(photo.id) && styles.selectedPhotoImage,
-              ]}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={200}
-            />
-            {isMultiSelectMode && (
-              <View style={styles.selectionOverlay}>
-                <View
-                  style={[
-                    styles.selectionCheckbox,
-                    selectedPhotos.has(photo.id) && styles.selectedCheckbox,
-                  ]}
-                >
-                  {selectedPhotos.has(photo.id) && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </View>
-              </View>
-            )}
-            <View style={styles.photoDateContainer}>
-              {formattedDates[photo.id] ? (
-                <>
-                  <Text style={styles.photoDate}>{formattedDates[photo.id].date}</Text>
-                  <Text style={styles.photoTimeAgo}>
-                    ({formattedDates[photo.id].timeAgo})
-                  </Text>
-                </>
-              ) : (
-                <TextSkeleton width={120} height={14} />
-              )}
-            </View>
+            <Text style={styles.textButtonLabel}>Select</Text>
           </TouchableOpacity>
-        ))}
+        )}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.strip}
+      >
+        {photos.map((photo) => {
+          const isSelected = selectedPhotos.has(photo.id);
+          const isCover = thumbnailPhotoId === photo.id;
+          const dates = formattedDates[photo.id];
+
+          return (
+            <TouchableOpacity
+              key={photo.id}
+              style={styles.tile}
+              activeOpacity={0.8}
+              onPress={() =>
+                isMultiSelectMode ? onTogglePhotoSelection(photo.id) : onPhotoPress(photo)
+              }
+              onLongPress={() => !isMultiSelectMode && onPhotoLongPress(photo)}
+              accessibilityLabel={dates ? `Photo from ${dates.date}` : 'Photo'}
+              accessibilityState={isMultiSelectMode ? { selected: isSelected } : undefined}
+            >
+              <View style={styles.imageWrap}>
+                <Image
+                  source={{ uri: PhotoService.getImageUrl(photo, true) }}
+                  style={styles.image}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
+
+                {isCover && !isMultiSelectMode ? (
+                  <View style={styles.coverBadge}>
+                    <Star size={10} color={BaseColors.white} fill={BaseColors.white} />
+                    <Text style={styles.coverText}>Cover</Text>
+                  </View>
+                ) : null}
+
+                {isMultiSelectMode ? (
+                  <>
+                    {isSelected ? <View style={styles.selectedOverlay} /> : null}
+                    <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+                      {isSelected ? (
+                        <Check size={13} color={BaseColors.white} strokeWidth={3} />
+                      ) : null}
+                    </View>
+                  </>
+                ) : null}
+              </View>
+
+              {dates ? (
+                <Text style={styles.caption} numberOfLines={1}>
+                  {dates.timeAgo}
+                </Text>
+              ) : (
+                <View style={styles.captionSkeleton}>
+                  <TextSkeleton width={64} height={12} />
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -142,113 +164,129 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.surface,
       margin: 10,
       marginTop: 0,
-      padding: 15,
-      borderRadius: 8,
+      paddingVertical: Spacing.base,
+      borderRadius: BorderRadius.xl,
     },
-    sectionHeader: {
+    header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 10,
+      paddingHorizontal: Spacing.base,
+      marginBottom: Spacing.sm + 4,
     },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.sm,
+    },
+    title: {
+      fontSize: Typography.lg,
+      fontWeight: Typography.weights.bold,
       color: theme.colors.text,
     },
-    multiSelectButtonsContainer: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    multiSelectButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      backgroundColor: theme.colors.primary,
-      borderRadius: 6,
-    },
-    deleteButton: {
-      backgroundColor: theme.colors.error,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    deletePhotosButton: {
-      backgroundColor: theme.colors.error,
-    },
-    multiSelectButtonText: {
-      color: theme.colors.textOnPrimary,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    cancelButton: {
-      backgroundColor: 'transparent',
-      borderWidth: 2,
-      borderColor: theme.colors.textTertiary,
-    },
-    cancelButtonText: {
-      color: theme.colors.textTertiary,
-    },
-    deleteButtonText: {
-      color: BaseColors.white,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    photoItem: {
-      marginRight: 15,
-      width: 80,
+    countBadge: {
+      minWidth: 22,
+      paddingHorizontal: 7,
+      paddingVertical: 1,
+      borderRadius: BorderRadius.full,
+      backgroundColor: theme.colors.surfaceSecondary,
       alignItems: 'center',
     },
-    photoImage: {
-      width: 60,
-      height: 60,
-      borderRadius: 8,
-      marginBottom: 5,
-    },
-    thumbnailPhotoImage: {
-      borderWidth: 3,
-      borderColor: '#FFD700',
-    },
-    selectedPhotoImage: {
-      borderWidth: 3,
-      borderColor: theme.colors.primary,
-      opacity: 0.8,
-    },
-    selectionOverlay: {
-      position: 'absolute',
-      top: 5,
-      right: 5,
-    },
-    selectionCheckbox: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      borderWidth: 2,
-      borderColor: theme.colors.textOnPrimary,
-      backgroundColor: 'rgba(0, 0, 0, 0.3)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    selectedCheckbox: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
-    },
-    checkmark: {
-      color: theme.colors.textOnPrimary,
-      fontSize: 12,
-      fontWeight: 'bold',
-    },
-    photoDateContainer: {
-      alignItems: 'center',
-      marginBottom: 2,
-    },
-    photoDate: {
-      fontSize: 12,
+    countText: {
+      fontSize: Typography.xs,
+      fontWeight: Typography.weights.semibold,
       color: theme.colors.textSecondary,
-      textAlign: 'center',
     },
-    photoTimeAgo: {
-      fontSize: 11,
-      color: theme.colors.textTertiary,
-      textAlign: 'center',
-      marginTop: 1,
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xs,
+    },
+    textButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: Spacing.xs,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      borderRadius: BorderRadius.base,
+      ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
+    },
+    textButtonLabel: {
+      fontSize: Typography.sm,
+      fontWeight: Typography.weights.semibold,
+      color: theme.colors.textSecondary,
+    },
+    doneLabel: {
+      color: theme.colors.primary,
+    },
+    disabled: {
+      opacity: 0.4,
+    },
+    strip: {
+      paddingHorizontal: Spacing.base,
+      gap: Spacing.sm + 2,
+    },
+    tile: {
+      width: TILE_SIZE,
+    },
+    imageWrap: {
+      width: TILE_SIZE,
+      height: TILE_SIZE,
+      borderRadius: BorderRadius.lg,
+      overflow: 'hidden',
+      backgroundColor: theme.colors.surfaceSecondary,
+    },
+    image: {
+      width: '100%',
+      height: '100%',
+    },
+    coverBadge: {
+      position: 'absolute',
+      left: 6,
+      bottom: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: BorderRadius.full,
+      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    },
+    coverText: {
+      color: BaseColors.white,
+      fontSize: 10,
+      fontWeight: Typography.weights.semibold,
+    },
+    selectedOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: BorderRadius.lg,
+      borderWidth: 3,
+      borderColor: theme.colors.primary,
+      backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    },
+    checkbox: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: BaseColors.white,
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxSelected: {
+      backgroundColor: theme.colors.primary,
+      borderColor: theme.colors.primary,
+    },
+    caption: {
+      marginTop: Spacing.xs + 2,
+      fontSize: Typography.xs,
+      color: theme.colors.textSecondary,
+    },
+    captionSkeleton: {
+      marginTop: Spacing.xs + 2,
     },
   });

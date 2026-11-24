@@ -76,7 +76,7 @@ export const CARE_TYPES: CareTypeDefinition[] = [
     type: "fertigate",
     label: "Fertigate",
     icon: Droplets,
-    color: "#00BCD4",
+    color: "#00BFA5",
     category: "care",
   },
   {
