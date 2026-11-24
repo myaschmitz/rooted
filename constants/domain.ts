@@ -79,7 +79,7 @@ export const DB_TABLES = {
   TAGS: "tags",
   PLANT_TAGS: "plant_tags",
   HOUSEHOLDS: "households",
-  NOTES: "notes",
+  NOTES: "plant_notes",
   HOUSEHOLD_USERS: "household_users",
   HOUSEHOLD_MEMBERS: "household_members",
   ACTIVITY_LOG: "activity_log",

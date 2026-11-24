@@ -1,6 +1,7 @@
 import { PlantService } from '../../services/PlantService';
 import { EventService } from '../../services/EventService';
 import { HouseholdService } from '../../services/HouseholdService';
+import { mockRequireHouseholdId } from '../utils/testHelpers';
 import { Plant, Event } from '../../types/Plant';
 
 // Mock the dependencies but allow services to interact with each other
@@ -33,6 +34,7 @@ describe('Plant and Event Integration Tests', () => {
   };
 
   beforeEach(() => {
+    mockRequireHouseholdId(HouseholdService);
     jest.clearAllMocks();
     
     // Mock HouseholdService

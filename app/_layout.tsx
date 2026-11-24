@@ -9,6 +9,7 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { QUERY_CLIENT_CONFIG, calculateRetryDelay } from "../constants/domain";
 import { CacheInvalidationService } from "../services/CacheInvalidationService";
 import { useBreakpoint } from "../hooks/useBreakpoint";
+import { useRefreshOnAppResume } from "../hooks/useRefreshOnAppResume";
 import { WebModalProvider } from "../contexts/WebModalContext";
 import { AlertProvider } from "../contexts/AlertContext";
 import { VercelAnalytics } from "../components/VercelAnalytics";
@@ -157,6 +158,8 @@ function ThemedStack() {
 }
 
 function RootLayout() {
+  useRefreshOnAppResume(queryClient);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

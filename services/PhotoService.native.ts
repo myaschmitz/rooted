@@ -6,14 +6,12 @@ import { PlantPhoto } from "../types/Plant";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
-import { CacheService } from "./CacheService";
 import { CachedPhotoService } from "./CachedPhotoService";
 import { CacheInvalidationService } from "./CacheInvalidationService";
 import { PhotoProcessingService } from "./PhotoProcessingService";
 import { PhotoStorageService } from "./PhotoStorageService";
 import type { Database } from "../types/Database";
 import {
-  CACHE_TTL,
   STORAGE_CONFIG,
   IMAGE_PICKER_CONFIG,
   isNotFoundError,
@@ -27,7 +25,6 @@ import {
   DB_COLUMNS,
 } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
-import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
 type PlantPhotoRow = Database["public"]["Tables"]["plant_photos"]["Row"];
 type PlantPhotoInsert = Database["public"]["Tables"]["plant_photos"]["Insert"];
@@ -142,16 +139,6 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.plantPhotos(plantId, session.household_id);
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
-    if (cached) {
-      // Preload thumbnails in background for cached results
-      CachedPhotoService.preloadThumbnails(cached, "medium").catch(() => {});
-      return cached;
-    }
-
     // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
@@ -172,11 +159,6 @@ export class PhotoService {
 
     const photos = (data || []) as PlantPhoto[];
 
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      photos,
-      CACHE_TTL.PHOTOS_LIST,
-    );
 
     // Preload thumbnails in background
     CachedPhotoService.preloadThumbnails(photos, "medium").catch(() => {});
@@ -191,17 +173,6 @@ export class PhotoService {
     const session = await HouseholdService.getUserSession();
     if (!session?.household_id) {
       throw new Error("No household session found");
-    }
-
-    const cacheKey = CacheKeyBuilder.plantPhotosOldest(
-      plantId,
-      session.household_id,
-    );
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
-    if (cached) {
-      return cached;
     }
 
     // Verify plant belongs to current household
@@ -224,11 +195,6 @@ export class PhotoService {
 
     const photos = (data || []) as PlantPhoto[];
 
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      photos,
-      CACHE_TTL.PHOTOS_LIST,
-    );
 
     return photos;
   }
@@ -452,9 +418,7 @@ export class PhotoService {
       logger.debug("Event photo saved successfully");
 
       // Invalidate relevant caches
-      await CacheInvalidationService.invalidateOnUserAction("photo_added", {
-        entityId: plantId,
-      });
+      CacheInvalidationService.invalidate("photo_added", { plantId });
 
       return data as PlantPhoto;
     } catch (error) {
@@ -559,7 +523,11 @@ export class PhotoService {
       throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
-    return data as PlantPhoto;
+    const photo = data as PlantPhoto;
+    CacheInvalidationService.invalidate("photo_updated", {
+      plantId: photo.plant_id,
+    });
+    return photo;
   }
 
   static async unlinkPhotoFromEvent(
@@ -591,7 +559,11 @@ export class PhotoService {
       throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
-    return data as PlantPhoto;
+    const photo = data as PlantPhoto;
+    CacheInvalidationService.invalidate("photo_updated", {
+      plantId: photo.plant_id,
+    });
+    return photo;
   }
 
   static async savePhoto(
@@ -692,9 +664,7 @@ export class PhotoService {
       );
 
       // Invalidate relevant caches
-      await CacheInvalidationService.invalidateOnUserAction("photo_added", {
-        entityId: plantId,
-      });
+      CacheInvalidationService.invalidate("photo_added", { plantId });
 
       return data as PlantPhoto;
     } catch (error) {
@@ -753,7 +723,11 @@ export class PhotoService {
       throw ErrorMapper.mapDatabaseError(error, "update", "photo");
     }
 
-    return data as PlantPhoto;
+    const photo = data as PlantPhoto;
+    CacheInvalidationService.invalidate("photo_updated", {
+      plantId: photo.plant_id,
+    });
+    return photo;
   }
 
   static async getPhotoById(id: string): Promise<PlantPhoto | null> {
@@ -817,9 +791,8 @@ export class PhotoService {
 
       // Invalidate relevant caches
       if (photo) {
-        await CacheInvalidationService.invalidateOnUserAction("photo_deleted", {
-          entityId: photo.plant_id,
-          clearPhotoCache: true,
+        CacheInvalidationService.invalidate("photo_deleted", {
+          plantId: photo.plant_id,
         });
       }
 
@@ -837,16 +810,6 @@ export class PhotoService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.allPhotos(session.household_id);
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<PlantPhoto[]>(cacheKey);
-    if (cached) {
-      // Preload thumbnails in background for cached results
-      CachedPhotoService.preloadThumbnails(cached, "low").catch(() => {});
-      return cached;
-    }
-
     const { data, error } = await supabase
       .from(DB_TABLES.PLANT_PHOTOS)
       .select("*")
@@ -860,7 +823,6 @@ export class PhotoService {
 
     const photos = (data || []) as PlantPhoto[];
 
-    await CacheService.cacheApiResponse(cacheKey, photos, CACHE_TTL.PHOTOS_ALL);
 
     // Preload thumbnails in background
     CachedPhotoService.preloadThumbnails(photos, "low").catch(() => {});
@@ -941,6 +903,8 @@ export class PhotoService {
         throw ErrorMapper.mapDatabaseError(error, "delete", "photo");
       }
 
+      CacheInvalidationService.invalidate("photo_deleted");
+
       // Clean up local photos directory
       if (this.PHOTOS_DIR.exists) {
         try {
@@ -992,10 +956,7 @@ export class PhotoService {
         throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
 
-      await CacheInvalidationService.invalidateOnUserAction(
-        "thumbnail_changed",
-        { entityId: plantId, immediate: true },
-      );
+      CacheInvalidationService.invalidate("thumbnail_changed", { plantId });
     } catch (error) {
       console.error("Error setting thumbnail photo:", error);
       throw error;
@@ -1030,10 +991,7 @@ export class PhotoService {
         throw ErrorMapper.mapDatabaseError(error, "update", "photo");
       }
 
-      await CacheInvalidationService.invalidateOnUserAction(
-        "thumbnail_changed",
-        { entityId: plantId, immediate: true },
-      );
+      CacheInvalidationService.invalidate("thumbnail_changed", { plantId });
     } catch (error) {
       console.error("Error clearing thumbnail photo:", error);
       throw error;
@@ -1157,19 +1115,6 @@ export class PhotoService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = CacheKeyBuilder.batchThumbnails(
-        session.household_id,
-        plantIds,
-      );
-
-      // Try to get from cache first
-      const cached = await CacheService.getCachedResponse<{
-        [plantId: string]: PlantPhoto | null;
-      }>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-
       // Fetch plants with their thumbnail photo IDs in a single query
       const { data: plants, error: plantsError } = await supabase
         .from(DB_TABLES.PLANTS)
@@ -1190,11 +1135,6 @@ export class PhotoService {
       });
 
       if (!plants || plants.length === 0) {
-        await CacheService.cacheApiResponse(
-          cacheKey,
-          result,
-          CACHE_TTL.BATCH_THUMBNAILS,
-        );
         return result;
       }
 
@@ -1205,7 +1145,6 @@ export class PhotoService {
         .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
 
       if (thumbnailPhotoIds.length === 0) {
-        await CacheService.cacheApiResponse(cacheKey, result, 10 * 60 * 1000);
         return result;
       }
 
@@ -1237,11 +1176,6 @@ export class PhotoService {
         });
       }
 
-      await CacheService.cacheApiResponse(
-        cacheKey,
-        result,
-        CACHE_TTL.BATCH_THUMBNAILS,
-      );
 
       return result;
     } catch (error) {
@@ -1278,16 +1212,6 @@ export class PhotoService {
         throw new Error("No household session found");
       }
 
-      const cacheKey = CacheKeyBuilder.batchLastPhotoDates(
-        session.household_id,
-        plantIds,
-      );
-
-      const cached = await CacheService.getCachedResponse<{
-        [plantId: string]: string | null;
-      }>(cacheKey);
-      if (cached) return cached;
-
       // Single query: every photo for these plants, newest first.
       // We only need plant_id + taken_at, no need to fetch full rows.
       const { data, error } = await supabase
@@ -1311,11 +1235,6 @@ export class PhotoService {
         }
       }
 
-      await CacheService.cacheApiResponse(
-        cacheKey,
-        result,
-        CACHE_TTL.PHOTOS_LIST,
-      );
 
       return result;
     } catch (error) {

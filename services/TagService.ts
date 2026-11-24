@@ -1,19 +1,15 @@
 import { Tag, PlantTag, PlantTagWithDetails } from "../types/Plant";
-import { logger } from "../utils/logger";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
-import { CacheService } from "./CacheService";
 import { CacheInvalidationService } from "./CacheInvalidationService";
 import type { Database } from "../types/Database";
 import {
-  CACHE_TTL,
   isNotFoundError,
   isDuplicateError,
   DB_TABLES,
   DB_COLUMNS,
 } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
-import { CacheKeyBuilder } from "./CacheKeyBuilder";
 
 type TagRow = Database["public"]["Tables"]["tags"]["Row"];
 type TagInsert = Database["public"]["Tables"]["tags"]["Insert"];
@@ -26,27 +22,13 @@ export class TagService {
   // TAG MANAGEMENT METHODS
   // ============================================================================
 
-  static async getAllTags(bypassCache = false): Promise<Tag[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
-
-    const cacheKey = CacheKeyBuilder.allTags(session.household_id);
-
-    // Try to get from cache first (unless bypassing cache)
-    if (!bypassCache) {
-      const cached = await CacheService.getCachedResponse<Tag[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-    }
+  static async getAllTags(): Promise<Tag[]> {
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { data, error } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .order("name", { ascending: true });
 
     if (error) {
@@ -54,11 +36,7 @@ export class TagService {
       throw ErrorMapper.mapDatabaseError(error, "fetch", "tag");
     }
 
-    const tags = (data || []) as Tag[];
-
-    await CacheService.cacheApiResponse(cacheKey, tags, CACHE_TTL.TAGS_ALL);
-
-    return tags;
+    return (data || []) as Tag[];
   }
 
   static async getTagById(tagId: string): Promise<Tag> {
@@ -87,11 +65,7 @@ export class TagService {
   }
 
   static async createTag(name: string, color: string): Promise<Tag> {
-    // Get current household session
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     // Validate color format (hex color)
     if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
@@ -110,7 +84,7 @@ export class TagService {
     const tagInsert: TagInsert = {
       name: trimmedName,
       color: color.toUpperCase(),
-      household_id: session.household_id,
+      household_id: householdId,
     };
 
     const { data, error } = await supabase
@@ -142,10 +116,7 @@ export class TagService {
       `"${tag.name}" tag`,
     );
 
-    // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction("tag_added", {
-      entityId: tag.id,
-    });
+    CacheInvalidationService.invalidate("tags_changed");
 
     return tag;
   }
@@ -210,10 +181,7 @@ export class TagService {
       `"${tag.name}" tag`,
     );
 
-    // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction("tag_updated", {
-      entityId: tag.id,
-    });
+    CacheInvalidationService.invalidate("tags_changed");
 
     return tag;
   }
@@ -260,12 +228,9 @@ export class TagService {
         },
         `"${tag.name}" tag`,
       );
-
-      // Invalidate relevant caches
-      await CacheInvalidationService.invalidateOnUserAction("tag_deleted", {
-        entityId: tag.id,
-      });
     }
+
+    CacheInvalidationService.invalidate("tags_changed");
 
     return true;
   }
@@ -274,11 +239,7 @@ export class TagService {
     name: string,
     color: string,
   ): Promise<Tag | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const trimmedName = name.trim();
 
@@ -286,7 +247,7 @@ export class TagService {
     const { data, error } = await supabase
       .from(DB_TABLES.TAGS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .ilike("name", trimmedName) // Case-insensitive match
       .eq("color", color.toUpperCase())
       .limit(1)
@@ -323,25 +284,8 @@ export class TagService {
   // PLANT-TAG RELATIONSHIP METHODS
   // ============================================================================
 
-  static async getTagsByPlantId(
-    plantId: string,
-    bypassCache = false,
-  ): Promise<Tag[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
-
-    const cacheKey = CacheKeyBuilder.plantTags(plantId, session.household_id);
-
-    // Try to get from cache first (unless bypassing cache)
-    if (!bypassCache) {
-      const cached = await CacheService.getCachedResponse<Tag[]>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-    }
+  static async getTagsByPlantId(plantId: string): Promise<Tag[]> {
+    await HouseholdService.requireHouseholdId();
 
     // Join plant_tags with tags to get full tag details
     const { data, error } = await supabase
@@ -363,15 +307,7 @@ export class TagService {
     const plantTagsWithDetails = (data || []) as (PlantTagRow & {
       tag: TagRow;
     })[];
-    const tags = plantTagsWithDetails.map((pt) => pt.tag as Tag);
-
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      tags,
-      CACHE_TTL.TAGS_BY_PLANT,
-    );
-
-    return tags;
+    return plantTagsWithDetails.map((pt) => pt.tag as Tag);
   }
 
   /**
@@ -391,20 +327,7 @@ export class TagService {
     if (plantIds.length === 0) return result;
 
     try {
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
-
-      const cacheKey = CacheKeyBuilder.batchPlantTags(
-        session.household_id,
-        plantIds,
-      );
-
-      const cached = await CacheService.getCachedResponse<{
-        [plantId: string]: Tag[];
-      }>(cacheKey);
-      if (cached) return cached;
+      await HouseholdService.requireHouseholdId();
 
       // Single query: join plant_tags → tags for the requested plant set.
       const { data, error } = await supabase
@@ -424,12 +347,6 @@ export class TagService {
         const bucket = result[row.plant_id];
         if (bucket) bucket.push(row.tag as Tag);
       }
-
-      await CacheService.cacheApiResponse(
-        cacheKey,
-        result,
-        CACHE_TTL.TAGS_BY_PLANT,
-      );
 
       return result;
     } catch (error) {
@@ -488,19 +405,7 @@ export class TagService {
       `"${tag.name}" tag`,
     );
 
-    // Get household_id for cache invalidation
-    const session = await HouseholdService.getUserSession();
-
-    // Invalidate relevant caches immediately for better UX
-    await CacheInvalidationService.invalidateOnUserAction("tag_added", {
-      entityId: plantTag.id,
-      additionalData: {
-        plant_id: plantId,
-        tag_id: tagId,
-        household_id: session?.household_id,
-      },
-      immediate: true,
-    });
+    CacheInvalidationService.invalidate("tags_changed");
 
     return plantTag;
   }
@@ -584,19 +489,7 @@ export class TagService {
       );
     }
 
-    // Get household_id for cache invalidation
-    const session = await HouseholdService.getUserSession();
-
-    // Invalidate relevant caches immediately for better UX
-    await CacheInvalidationService.invalidateOnUserAction("tag_added", {
-      entityId: `${plantId}-multiple`,
-      additionalData: {
-        plant_id: plantId,
-        tag_ids: newTagIds,
-        household_id: session?.household_id,
-      },
-      immediate: true,
-    });
+    CacheInvalidationService.invalidate("tags_changed");
 
     return plantTags;
   }
@@ -631,29 +524,13 @@ export class TagService {
       `"${tag.name}" tag`,
     );
 
-    // Get household_id for cache invalidation
-    const session = await HouseholdService.getUserSession();
-
-    // Invalidate relevant caches immediately for better UX
-    await CacheInvalidationService.invalidateOnUserAction("tag_deleted", {
-      entityId: `${plantId}-${tagId}`,
-      additionalData: {
-        plant_id: plantId,
-        tag_id: tagId,
-        household_id: session?.household_id,
-      },
-      immediate: true,
-    });
+    CacheInvalidationService.invalidate("tags_changed");
 
     return true;
   }
 
   static async removeAllTagsFromPlant(plantId: string): Promise<void> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    await HouseholdService.requireHouseholdId();
 
     const { error } = await supabase
       .from(DB_TABLES.PLANT_TAGS)
@@ -665,23 +542,18 @@ export class TagService {
       throw ErrorMapper.mapDatabaseError(error, "delete", "tag");
     }
 
-    // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction("tag_deleted", {
-      entityId: plantId,
-      additionalData: { plant_id: plantId },
-    });
+    CacheInvalidationService.invalidate("tags_changed");
   }
 
   static async getAvailableTagsForPlant(
     plantId: string,
-    bypassCache = false,
   ): Promise<Tag[]> {
     try {
       // Get all tags in household
-      const allTags = await this.getAllTags(bypassCache);
+      const allTags = await this.getAllTags();
 
       // Get tags already on this plant
-      const plantTags = await this.getTagsByPlantId(plantId, bypassCache);
+      const plantTags = await this.getTagsByPlantId(plantId);
 
       // Create a set of tag IDs already on this plant
       const existingTagIds = new Set(plantTags.map((tag) => tag.id));
@@ -694,29 +566,20 @@ export class TagService {
       return availableTags;
     } catch (error) {
       console.error("Error in getAvailableTagsForPlant:", error);
-      // If there's an error with cached data, try without cache
-      if (!bypassCache) {
-        logger.debug(
-          "[TagService] Retrying getAvailableTagsForPlant without cache",
-        );
-        return this.getAvailableTagsForPlant(plantId, true);
-      }
-      // If still failing, return empty array to allow tag creation
-      logger.debug("[TagService] Falling back to empty available tags array");
+      // Return an empty list so the user can still create a tag
       return [];
     }
   }
 
   static async getAllTagsWithPlantStatus(
     plantId: string,
-    bypassCache = false,
   ): Promise<(Tag & { isAlreadyAdded: boolean })[]> {
     try {
       // Get all tags in household
-      const allTags = await this.getAllTags(bypassCache);
+      const allTags = await this.getAllTags();
 
       // Get tags already on this plant
-      const plantTags = await this.getTagsByPlantId(plantId, bypassCache);
+      const plantTags = await this.getTagsByPlantId(plantId);
 
       // Create a set of tag IDs already on this plant
       const existingTagIds = new Set(plantTags.map((tag) => tag.id));
@@ -730,15 +593,7 @@ export class TagService {
       return tagsWithStatus;
     } catch (error) {
       console.error("Error in getAllTagsWithPlantStatus:", error);
-      // If there's an error with cached data, try without cache
-      if (!bypassCache) {
-        logger.debug(
-          "[TagService] Retrying getAllTagsWithPlantStatus without cache",
-        );
-        return this.getAllTagsWithPlantStatus(plantId, true);
-      }
-      // If still failing, return empty array to allow tag creation
-      logger.debug("[TagService] Falling back to empty tags array");
+      // Return an empty list so the user can still create a tag
       return [];
     }
   }

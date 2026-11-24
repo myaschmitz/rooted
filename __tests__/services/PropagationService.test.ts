@@ -261,14 +261,11 @@ describe("PropagationService", () => {
       );
       expect(EventService.createEvent).toHaveBeenCalledTimes(2);
       expect(
-        CacheInvalidationService.invalidateOnUserAction,
-      ).toHaveBeenCalledWith(
-        "plant_propagated",
-        expect.objectContaining({
-          entityId: parent.id,
-          additionalData: { relatedPlantId: child.id },
-        }),
-      );
+        CacheInvalidationService.invalidate,
+      ).toHaveBeenCalledWith("plant_propagated", {
+        plantId: parent.id,
+        relatedPlantIds: [child.id],
+      });
     });
 
     it("still logs the child event when the parent event fails", async () => {

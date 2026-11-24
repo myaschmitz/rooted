@@ -2,7 +2,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  useInfiniteQuery,
+  keepPreviousData,
 } from "@tanstack/react-query";
 import { PlantService } from "../services/PlantService";
 import { PhotoService } from "../services/PhotoService";
@@ -169,6 +169,7 @@ export const useBatchLastEvents = (
       staleTime: CACHE_TTL.BATCH_LAST_EVENTS,
       gcTime: CACHE_GC_TIME.SHORT,
       enabled: plantIds.length > 0,
+      placeholderData: keepPreviousData,
     },
   );
 };
@@ -180,16 +181,31 @@ export const useBatchThumbnails = (plantIds: string[]) => {
     staleTime: CACHE_TTL.BATCH_THUMBNAILS,
     gcTime: CACHE_GC_TIME.LONG,
     enabled: plantIds.length > 0,
+    placeholderData: keepPreviousData,
+  });
+};
+
+export const useBatchLastPhotoDates = (plantIds: string[]) => {
+  return useQuery<{ [plantId: string]: string | null }>({
+    queryKey: queryKeys.batchLastPhotoDates(plantIds),
+    queryFn: () => PhotoService.getLastPhotoDatesByPlantIds(plantIds),
+    staleTime: CACHE_TTL.PHOTOS_LIST,
+    gcTime: CACHE_GC_TIME.LONG,
+    enabled: plantIds.length > 0,
+    placeholderData: keepPreviousData,
   });
 };
 
 // ============================================================================
-// MUTATIONS WITH CACHE INVALIDATION
+// MUTATIONS
+//
+// Cache invalidation lives in the services (see CacheInvalidationService), so
+// a change refreshes the same queries whether it came from one of these hooks,
+// a direct service call, or a realtime event from another household member.
+// The hooks below only seed or drop cache entries they already know about.
 // ============================================================================
 
 export const useCreatePlant = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (
       plantData: Omit<
@@ -203,10 +219,6 @@ export const useCreatePlant = () => {
         | "archived_at"
       >,
     ) => PlantService.createPlant(plantData),
-    onSuccess: () => {
-      // Invalidate and refetch plants list
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
     onError: (error) => {
       console.error("Failed to create plant:", error);
     },
@@ -226,22 +238,10 @@ export const useUpdatePlant = () => {
     }) => PlantService.updatePlant(id, updates),
     onSuccess: (updatedPlant) => {
       if (updatedPlant) {
-        // Update specific plant in cache
         queryClient.setQueryData(
           queryKeys.plant(updatedPlant.id),
           updatedPlant,
         );
-
-        // Invalidate plants list to reflect changes
-        queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-
-        // Invalidate location-based queries if location changed
-        if ("location" in updatedPlant) {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.plantsByLocationRoot,
-            exact: false,
-          });
-        }
       }
     },
     onError: (error) => {
@@ -256,25 +256,16 @@ export const useDeletePlant = () => {
   return useMutation({
     mutationFn: (id: string) => PlantService.deletePlant(id),
     onSuccess: (_, deletedId) => {
-      // Remove plant from cache
-      queryClient.removeQueries({ queryKey: queryKeys.plant(deletedId) });
-
-      // Invalidate plants list
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-
-      // Invalidate location-based queries
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantsByLocationRoot,
-        exact: false,
-      });
-
-      // Invalidate related photos and events
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantPhotos(deletedId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantEvents(deletedId),
-      });
+      for (const queryKey of [
+        queryKeys.plant(deletedId),
+        queryKeys.plantPhotos(deletedId),
+        queryKeys.plantEvents(deletedId),
+        queryKeys.plantStats(deletedId),
+        queryKeys.plantTags(deletedId),
+        queryKeys.thumbnailPhoto(deletedId),
+      ]) {
+        queryClient.removeQueries({ queryKey });
+      }
     },
     onError: (error) => {
       console.error("Failed to delete plant:", error);
@@ -283,8 +274,6 @@ export const useDeletePlant = () => {
 };
 
 export const useCreateEvent = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (
       eventData: Omit<
@@ -292,27 +281,6 @@ export const useCreateEvent = () => {
         "id" | "created_at" | "updated_at" | "household_id"
       >,
     ) => EventService.createEvent(eventData),
-    onSuccess: (newEvent) => {
-      // Invalidate plant events
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantEvents(newEvent.plant_id),
-      });
-
-      // Invalidate recent events
-      queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
-
-      // Invalidate plant stats
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantStats(newEvent.plant_id),
-      });
-
-      // Invalidate batch last events (for home page)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchLastEventsRoot,
-        exact: false,
-      });
-    },
     onError: (error) => {
       console.error("Failed to create event:", error);
     },
@@ -320,8 +288,6 @@ export const useCreateEvent = () => {
 };
 
 export const useUpdateEvent = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       id,
@@ -330,32 +296,6 @@ export const useUpdateEvent = () => {
       id: string;
       updates: Partial<Omit<Event, "id" | "created_at">>;
     }) => EventService.updateEvent(id, updates),
-    onSuccess: (updatedEvent) => {
-      if (updatedEvent) {
-        // Invalidate plant events
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.plantEvents(updatedEvent.plant_id),
-        });
-
-        // Invalidate recent events
-        queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-        queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.event(updatedEvent.id),
-        });
-
-        // Invalidate plant stats
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.plantStats(updatedEvent.plant_id),
-        });
-
-        // Invalidate batch last events (for home page)
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.batchLastEventsRoot,
-          exact: false,
-        });
-      }
-    },
     onError: (error) => {
       console.error("Failed to update event:", error);
     },
@@ -366,29 +306,10 @@ export const useDeleteEvent = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, plantId }: { id: string; plantId: string }) =>
+    mutationFn: ({ id }: { id: string; plantId: string }) =>
       EventService.deleteEvent(id),
-    onSuccess: (_, { id, plantId }) => {
-      // Invalidate plant events
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantEvents(plantId),
-      });
-
-      // Invalidate recent events
-      queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-      queryClient.invalidateQueries({ queryKey: queryKeys.allEvents });
+    onSuccess: (_, { id }) => {
       queryClient.removeQueries({ queryKey: queryKeys.event(id) });
-
-      // Invalidate plant stats
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantStats(plantId),
-      });
-
-      // Invalidate batch last events (for home page)
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchLastEventsRoot,
-        exact: false,
-      });
     },
     onError: (error) => {
       console.error("Failed to delete event:", error);
@@ -397,8 +318,6 @@ export const useDeleteEvent = () => {
 };
 
 export const useSavePhoto = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       plantId,
@@ -409,24 +328,44 @@ export const useSavePhoto = () => {
       sourceUri: string;
       caption?: string;
     }) => PhotoService.savePhoto(plantId, sourceUri, caption),
-    onSuccess: (newPhoto) => {
-      // Invalidate plant photos
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantPhotos(newPhoto.plant_id),
-      });
-
-      // Invalidate all photos
-      queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
-
-      // Invalidate thumbnail if this might be the first photo
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.thumbnailPhoto(newPhoto.plant_id),
-      });
-
-      // Pre-cache the new photo's thumbnail
-    },
     onError: (error) => {
       console.error("Failed to save photo:", error);
+    },
+  });
+};
+
+export const useDeletePhoto = () => {
+  return useMutation({
+    mutationFn: async ({ photoId }: { photoId: string; plantId: string }) => {
+      // deletePhoto reports failure by returning false; turn that into an
+      // error so callers don't treat a failed delete as done.
+      const deleted = await PhotoService.deletePhoto(photoId);
+      if (!deleted) {
+        throw new Error("Failed to delete photo");
+      }
+      return deleted;
+    },
+    onError: (error) => {
+      console.error("Failed to delete photo:", error);
+    },
+  });
+};
+
+export const useSetThumbnailPhoto = () => {
+  return useMutation({
+    mutationFn: ({ plantId, photoId }: { plantId: string; photoId: string }) =>
+      PhotoService.setThumbnailPhoto(plantId, photoId),
+    onError: (error) => {
+      console.error("Failed to set thumbnail photo:", error);
+    },
+  });
+};
+
+export const useClearThumbnailPhoto = () => {
+  return useMutation({
+    mutationFn: (plantId: string) => PhotoService.clearThumbnailPhoto(plantId),
+    onError: (error) => {
+      console.error("Failed to clear thumbnail photo:", error);
     },
   });
 };
@@ -461,35 +400,14 @@ export const useBatchPlantTags = (plantIds: string[]) => {
     staleTime: CACHE_TTL.TAGS_BY_PLANT,
     gcTime: CACHE_GC_TIME.MEDIUM,
     enabled: plantIds.length > 0,
+    placeholderData: keepPreviousData,
   });
 };
 
 export const useAddTagToPlant = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ plantId, tagId }: { plantId: string; tagId: string }) => {
-      return TagService.addTagToPlant(plantId, tagId);
-    },
-    onSuccess: (result, { plantId, tagId }) => {
-      // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
-
-      // Invalidate batch plant tags
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchPlantTagsRoot,
-        exact: false,
-      });
-
-      // Invalidate all tags (in case a new tag was created)
-      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
-
-      // Invalidate plant data to reflect tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-
-      // Invalidate plants list to ensure filtering works
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
+    mutationFn: ({ plantId, tagId }: { plantId: string; tagId: string }) =>
+      TagService.addTagToPlant(plantId, tagId),
     onError: (error) => {
       console.error("Failed to add tag to plant:", error);
     },
@@ -497,27 +415,9 @@ export const useAddTagToPlant = () => {
 };
 
 export const useRemoveTagFromPlant = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ plantId, tagId }: { plantId: string; tagId: string }) =>
       TagService.removeTagFromPlant(plantId, tagId),
-    onSuccess: (_, { plantId, tagId }) => {
-      // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
-
-      // Invalidate batch plant tags
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchPlantTagsRoot,
-        exact: false,
-      });
-
-      // Invalidate plant data to reflect tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-
-      // Invalidate plants list to ensure filtering works
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
     onError: (error) => {
       console.error("Failed to remove tag from plant:", error);
     },
@@ -525,15 +425,9 @@ export const useRemoveTagFromPlant = () => {
 };
 
 export const useCreateTag = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ name, color }: { name: string; color: string }) =>
       TagService.createTag(name, color),
-    onSuccess: () => {
-      // Invalidate all tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
-    },
     onError: (error) => {
       console.error("Failed to create tag:", error);
     },
@@ -541,8 +435,6 @@ export const useCreateTag = () => {
 };
 
 export const useUpdateTag = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       id,
@@ -551,19 +443,6 @@ export const useUpdateTag = () => {
       id: string;
       updates: { name?: string; color?: string };
     }) => TagService.updateTag(id, updates),
-    onSuccess: () => {
-      // Invalidate all tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
-
-      // Invalidate batch plant tags to reflect name/color changes
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchPlantTagsRoot,
-        exact: false,
-      });
-
-      // Invalidate plants list to ensure filtering works with updated tag name
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
     onError: (error) => {
       console.error("Failed to update tag:", error);
     },
@@ -571,8 +450,6 @@ export const useUpdateTag = () => {
 };
 
 export const useCreateTagAndAddToPlant = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       plantId,
@@ -582,103 +459,9 @@ export const useCreateTagAndAddToPlant = () => {
       plantId: string;
       name: string;
       color: string;
-    }) => {
-      return TagService.createTagAndAddToPlant(plantId, name, color);
-    },
-    onSuccess: (result, { plantId }) => {
-      // Invalidate plant tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plantTags(plantId) });
-
-      // Invalidate batch plant tags
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batchPlantTagsRoot,
-        exact: false,
-      });
-
-      // Invalidate all tags (new tag was created)
-      queryClient.invalidateQueries({ queryKey: queryKeys.allTags });
-
-      // Invalidate plant data to reflect tags
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-
-      // Invalidate plants list to ensure filtering works
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
+    }) => TagService.createTagAndAddToPlant(plantId, name, color),
     onError: (error) => {
       console.error("Failed to create tag and add to plant:", error);
-    },
-  });
-};
-
-export const useDeletePhoto = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ photoId, plantId }: { photoId: string; plantId: string }) =>
-      PhotoService.deletePhoto(photoId),
-    onSuccess: (_, { plantId }) => {
-      // Invalidate plant photos
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantPhotos(plantId),
-      });
-
-      // Invalidate all photos
-      queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
-
-      // Invalidate thumbnail in case we deleted the thumbnail photo
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.thumbnailPhoto(plantId),
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to delete photo:", error);
-    },
-  });
-};
-
-export const useSetThumbnailPhoto = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ plantId, photoId }: { plantId: string; photoId: string }) =>
-      PhotoService.setThumbnailPhoto(plantId, photoId),
-    onSuccess: (_, { plantId }) => {
-      // Invalidate plant data to reflect new thumbnail
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-
-      // Invalidate thumbnail photo
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.thumbnailPhoto(plantId),
-      });
-
-      // Invalidate plants list to update thumbnail display
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
-    onError: (error) => {
-      console.error("Failed to set thumbnail photo:", error);
-    },
-  });
-};
-
-export const useClearThumbnailPhoto = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (plantId: string) => PhotoService.clearThumbnailPhoto(plantId),
-    onSuccess: (_, plantId) => {
-      // Invalidate plant data to reflect cleared thumbnail
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-
-      // Invalidate thumbnail photo
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.thumbnailPhoto(plantId),
-      });
-
-      // Invalidate plants list to update thumbnail display
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-    },
-    onError: (error) => {
-      console.error("Failed to clear thumbnail photo:", error);
     },
   });
 };
@@ -733,29 +516,13 @@ export const useArchivePlant = () => {
     mutationFn: (id: string) => PlantService.archivePlant(id),
     onSuccess: (_, archivedId) => {
       queryClient.removeQueries({ queryKey: queryKeys.plant(archivedId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({ queryKey: queryKeys.archivedPlants });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantsByLocationRoot,
-        exact: false,
-      });
     },
   });
 };
 
 export const useRestorePlant = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (id: string) => PlantService.restorePlant(id),
-    onSuccess: (_, restoredId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({ queryKey: queryKeys.archivedPlants });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantsByLocationRoot,
-        exact: false,
-      });
-    },
   });
 };
 
@@ -779,32 +546,7 @@ export const usePropagatePlant = () => {
   return useMutation({
     mutationFn: (input: PropagateInput) =>
       PropagationService.propagateFrom(input),
-    onSuccess: (child, input) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantLineageRoot,
-        exact: false,
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantEvents(input.parentPlantId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantEvents(child.id),
-      });
-      if (input.tagIds?.length) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.plantTags(child.id),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.batchPlantTagsRoot,
-          exact: false,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantsByLocationRoot,
-        exact: false,
-      });
+    onSuccess: (child) => {
       queryClient.setQueryData(queryKeys.plant(child.id), child);
     },
     onError: (error) => {
@@ -814,8 +556,6 @@ export const usePropagatePlant = () => {
 };
 
 export const useSetPlantParent = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({
       plantId,
@@ -832,24 +572,6 @@ export const useSetPlantParent = () => {
         method,
         propagatedAt,
       }),
-    onSuccess: (_updated, { plantId, parentPlantId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.plantLineageRoot,
-        exact: false,
-      });
-      // Linking writes propagate events to both plants, unlinking removes them.
-      queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(plantId) });
-      if (parentPlantId) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.plant(parentPlantId),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.plantEvents(parentPlantId),
-        });
-      }
-    },
     onError: (error) => {
       console.error("Failed to update plant lineage:", error);
     },

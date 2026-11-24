@@ -1,249 +1,66 @@
-# Caching System Setup Guide
+# Caching
 
-This guide explains how to integrate and use the new caching system in your React Native plant care app.
+The app has two caches with separate jobs:
 
-## Overview
+| Cache | What it holds | Where |
+|---|---|---|
+| **React Query** | All database data: plants, events, photos (rows), tags, lineage | In memory, `hooks/queries.ts` |
+| **CachedPhotoService** | Downloaded image files, with their metadata in MMKV | On disk, `services/CachedPhotoService.*` |
 
-The caching system consists of several components working together:
+React Query is the **only** cache for database data. Service methods
+(`PlantService.getAllPlants`, `TagService.getTagsByPlantIds`, …) always read
+from Supabase; they never return cached rows. Don't add MMKV/`CacheService`
+caching to a service read — a second data cache can't be invalidated in step
+with React Query and brings back stale screens.
 
-1. **CacheService** - MMKV-based fast key-value cache for API responses
-2. **CachedPhotoService** - File system cache for images with size management
-3. **CachedImage Components** - React components for optimized image rendering
-4. **CacheInvalidationService** - Manages cache consistency across services
-5. **CacheInitService** - Initializes and manages the entire cache system
+## Invalidation
 
-## Setup
+Every write goes through `CacheInvalidationService.invalidate(action, target)`:
 
-### Prerequisites
-
-This caching system uses `react-native-mmkv` v2.12.2, which is compatible with the React Native old architecture. If you're already using the new architecture (TurboModules), you can upgrade to v3.x for better performance.
-
-The system automatically falls back to memory-only caching if MMKV initialization fails, ensuring your app never crashes due to caching issues.
-
-### 1. Initialize the Cache System
-
-Add this to your app's main entry point (e.g., `App.tsx` or `_layout.tsx`):
-
-```tsx
-import { CacheInitService } from './services/CacheInitService';
-
-export default function App() {
-  useEffect(() => {
-    // Initialize cache system on app startup
-    CacheInitService.initialize();
-    
-    // Cleanup on app close
-    return () => {
-      CacheInitService.cleanup();
-    };
-  }, []);
-
-  // Your app components...
-}
-```
-
-### 2. Setup React Query Integration
-
-If you're using React Query (recommended), integrate the cache invalidation:
-
-```tsx
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { CacheInvalidationService } from './services/CacheInvalidationService';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime)
-    },
-  },
-});
-
-// Set the default query client for cache invalidation
-CacheInvalidationService.setDefaultQueryClient(queryClient);
-
-export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      {/* Your app components */}
-    </QueryClientProvider>
-  );
-}
-```
-
-## Usage
-
-### Using Cached Images
-
-Replace your existing `Image` components with the new cached image components:
-
-```tsx
-import { CachedImage, PlantPhotoImage, PlantThumbnailImage } from './components/CachedImage';
-
-// Basic cached image
-<CachedImage
-  source="https://example.com/image.jpg"
-  style={{ width: 200, height: 200 }}
-  useThumbnail={false}
-  priority="high"
-/>
-
-// Plant photo with automatic thumbnail/full-size handling
-<PlantPhotoImage
-  photo={plantPhoto}
-  useThumbnail={true}
-  style={{ width: 100, height: 100 }}
-/>
-
-// Specialized thumbnail component
-<PlantThumbnailImage
-  photo={plantPhoto}
-  size={80}
-/>
-```
-
-### Services Already Enhanced
-
-The following services have been enhanced with caching and require no changes to your existing code:
-
-- `PlantService.getAllPlants()` - Now cached for 5 minutes
-- `PlantService.getPlantById()` - Now cached for 10 minutes
-- `PlantService.searchPlants()` - Search results cached for 2 minutes
-- `PlantService.getPlantsByLocation()` - Now cached for 5 minutes
-- `PhotoService.getPhotosByPlantId()` - Now cached for 10 minutes with background thumbnail preloading
-- `PhotoService.getAllPhotos()` - Now cached for 10 minutes
-
-### Manual Cache Management
-
-```tsx
-import { CacheInitService } from './services/CacheInitService';
-
-// Check cache health
-const isHealthy = await CacheInitService.isHealthy();
-
-// Get cache statistics
-const stats = await CacheInitService.getCacheStats();
-
-// Clear all caches (use with caution)
-await CacheInitService.clearAllCaches();
-
-// Optimize caches
-await CacheInitService.optimizeCaches();
-
-// Get cache sizes for monitoring
-const sizes = await CacheInitService.getCacheSizes();
-```
-
-### Cache Invalidation
-
-The system automatically handles cache invalidation when data changes. You can also manually invalidate:
-
-```tsx
-import { CacheInvalidationService } from './services/CacheInvalidationService';
-
-// When a plant is updated
-await CacheInvalidationService.invalidateOnUserAction('plant_updated', {
-  entityId: plantId,
-  additionalData: { location: newLocation }
-});
-
-// When a photo is added
-await CacheInvalidationService.invalidateOnUserAction('photo_added', {
-  entityId: plantId
+```ts
+CacheInvalidationService.invalidate("photo_added", { plantId });
+CacheInvalidationService.invalidate("plant_propagated", {
+  plantId: child.id,
+  relatedPlantIds: [parentId, previousParentId],
 });
 ```
 
-## Performance Benefits
+`keysFor(action, target)` in `services/CacheInvalidationService.ts` is the one
+map from "what changed" to "which queries are stale". It is used by:
 
-With this caching system, you should see:
+- **Service mutations** — called right after the database write, so direct
+  service calls (not just mutation hooks) refresh the UI.
+- **Realtime** (`hooks/useRealtimeUpdates.ts`) — changes made by other
+  household members on `plants`, `events`, `plant_photos`, `tags` and
+  `plant_tags` go through the same map.
 
-1. **70-90% reduction in image-related network requests** - Images are cached locally and reused
-2. **50-70% reduction in database queries** - API responses are cached with appropriate TTLs
-3. **3-5x faster image loading** - Local cached images load instantly
-4. **Better offline functionality** - Cached data available when offline
-5. **Reduced battery usage** - Less network activity
+Mutation hooks in `hooks/queries.ts` don't invalidate on their own; they only
+seed (`setQueryData`) or drop (`removeQueries`) entries they already know.
 
-## Cache Storage Usage
+When you add a query, add its key to `constants/queryKeys.ts` and to every
+action in `keysFor` whose writes change its data. `__tests__/services/CacheInvalidationService.test.ts`
+covers the important cases.
 
-The system automatically manages cache sizes:
+`invalidate` doesn't wait for refetches, so it never slows a mutation down.
 
-- **Image cache**: Limited to 100MB total, automatically cleaned up
-- **Data cache**: Uses MMKV for efficient key-value storage
-- **Automatic cleanup**: Expired entries removed every 30 minutes
+## Freshness outside realtime
 
-## Monitoring
+- **App resume**: `useRefreshOnAppResume` marks everything stale when the app
+  returns after 30s+ in the background, since realtime events sent while the
+  app was backgrounded are lost.
+- **Pull to refresh** on the plants list refetches every query on screen.
+- **Household change**: joining, creating or leaving a household drops the
+  whole React Query cache (query keys aren't household-scoped).
 
-Monitor cache performance through:
+## Realtime setup
 
-```tsx
-// Get detailed cache health status
-const health = await CacheInvalidationService.getCacheHealth();
-console.log('Cache health:', health.overall); // 'healthy', 'degraded', or 'unhealthy'
+Realtime only delivers changes for tables in the `supabase_realtime`
+publication. Make sure `plants`, `events`, `plant_photos`, `tags` and
+`plant_tags` are all enabled (Supabase dashboard → Database → Publications, or
+`alter publication supabase_realtime add table …`).
 
-// Get cache sizes
-const sizes = await CacheInitService.getCacheSizes();
-console.log('Total cache size:', sizes.total);
-```
+## Image cache
 
-## Troubleshooting
-
-### If images aren't loading:
-```tsx
-import { clearImageCache } from './components/CachedImage';
-
-// Clear image cache and restart
-await clearImageCache();
-```
-
-### If cache becomes corrupted:
-```tsx
-import { CacheInitService } from './services/CacheInitService';
-
-// Emergency reset (clears everything)
-await CacheInitService.emergencyReset();
-```
-
-### Debug cache issues:
-```tsx
-// Enable detailed logging (development only)
-console.log(await CacheInitService.getCacheStats());
-```
-
-## Migration Notes
-
-1. **No breaking changes** - All existing service methods work exactly the same
-2. **Gradual adoption** - You can migrate to cached image components at your own pace
-3. **Fallback behavior** - If caching fails, the system falls back to original behavior
-4. **Development-friendly** - Cache can be disabled or cleared during development
-
-## Best Practices
-
-1. **Use appropriate cache TTLs** - Frequently changing data gets shorter cache times
-2. **Monitor cache sizes** - Keep an eye on storage usage in production
-3. **Handle cache failures gracefully** - Always have fallbacks
-4. **Use progressive image loading** - Show thumbnails first, then full images
-5. **Batch cache operations** - The system automatically batches invalidations for performance
-
-## ✅ **Fixed MMKV Compatibility Issue**
-
-**Issue Resolved**: The initial implementation used `react-native-mmkv` 3.x which requires the new React Native architecture (TurboModules). This caused immediate crashes with the error:
-
-```
-Error: Failed to create a new MMKV instance: react-native-mmkv 3.x.x requires TurboModules, but the new architecture is not enabled!
-```
-
-**Solution Applied**:
-1. ✅ Downgraded to `react-native-mmkv` 2.12.2 (compatible with old architecture)
-2. ✅ Implemented lazy initialization (MMKV only created when first accessed)
-3. ✅ Added graceful fallback to memory-only cache if MMKV fails
-4. ✅ Comprehensive error handling ensures no app crashes
-
-## Final Status
-
-The caching system is now **fully functional and crash-free**. It will:
-- Use MMKV for persistent storage when possible
-- Automatically fall back to memory cache if needed
-- Never crash your app due to caching issues
-- Provide significant performance improvements and cost savings
-
-The system is ready to use and should significantly improve your app's performance while reducing network costs!
+`CachedPhotoService` keeps up to 100MB of downloaded images and falls back to
+the network URL if a cached file is missing. Use the `CachedImage` / `PlantPhotoImage` / `PlantThumbnailImage`
+components to render photos through it.

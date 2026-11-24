@@ -31,3 +31,22 @@ export const mockSession = {
 
 export const waitForAsync = (): Promise<void> => 
   new Promise(resolve => setTimeout(resolve, 0));
+/**
+ * jest.mock('../../services/HouseholdService') auto-mocks every method to
+ * return undefined. Point requireHouseholdId at the getUserSession mock so
+ * tests that stub the session keep driving the household id.
+ */
+export const mockRequireHouseholdId = (HouseholdService: {
+  getUserSession: (...args: any[]) => any;
+  requireHouseholdId: (...args: any[]) => any;
+}) => {
+  (HouseholdService.requireHouseholdId as jest.Mock).mockImplementation(
+    async () => {
+      const session = await HouseholdService.getUserSession();
+      if (!session?.household_id) {
+        throw new Error('No household session found');
+      }
+      return session.household_id;
+    },
+  );
+};

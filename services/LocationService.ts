@@ -19,16 +19,12 @@ export class LocationService {
 
       if (error) {
         // Fallback to manual query if stored procedure doesn't exist
-        // Get current household session for filtering
-        const session = await HouseholdService.getUserSession();
-        if (!session?.household_id) {
-          throw new Error("No household session found");
-        }
+        const householdId = await HouseholdService.requireHouseholdId();
 
         const { data: plantsData, error: plantsError } = await supabase
           .from(DB_TABLES.PLANTS)
           .select("location, created_at")
-          .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+          .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
           .not("location", "is", null)
           .neq("location", "");
 
@@ -103,16 +99,12 @@ export class LocationService {
     try {
       const searchTerm = `%${query.toLowerCase().trim()}%`;
 
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
       const { data: plantsData, error } = await supabase
         .from(DB_TABLES.PLANTS)
         .select("location, created_at")
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
         .not("location", "is", null)
         .neq("location", "")
         .ilike("location", searchTerm);
@@ -171,16 +163,12 @@ export class LocationService {
    */
   static async locationExists(locationName: string): Promise<boolean> {
     try {
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
       const { count, error } = await supabase
         .from(DB_TABLES.PLANTS)
         .select("*", { count: "exact", head: true })
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
         .ilike("location", locationName.toLowerCase().trim());
 
       if (error) {
@@ -202,16 +190,12 @@ export class LocationService {
     [location: string]: any[];
   }> {
     try {
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
       const { data: plants, error } = await supabase
         .from(DB_TABLES.PLANTS)
         .select("*")
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
         .order("location", { ascending: true })
         .order("name", { ascending: true });
 
@@ -248,17 +232,12 @@ export class LocationService {
     plantsWithoutLocation: number;
   }> {
     try {
-      // Get all plants data
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
       const { data: plants, error } = await supabase
         .from(DB_TABLES.PLANTS)
         .select("location")
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
       if (error) {
         console.error("Error fetching plants for stats:", error);
