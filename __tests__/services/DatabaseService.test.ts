@@ -71,7 +71,7 @@ describe('DatabaseService', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('plants');
       expect(mockSupabase.from).toHaveBeenCalledWith('events');
       expect(mockSupabase.from).toHaveBeenCalledWith('plant_photos');
-      expect(mockSupabase.from).toHaveBeenCalledWith('notes');
+      expect(mockSupabase.from).toHaveBeenCalledWith('plant_notes');
       
       expect(result).toEqual({
         connected: true,
@@ -127,7 +127,7 @@ describe('DatabaseService', () => {
       await DatabaseService.resetDatabase();
 
       // Verify tables are deleted in correct order (respecting foreign key constraints)
-      expect(mockSupabase.from).toHaveBeenCalledWith('notes');
+      expect(mockSupabase.from).toHaveBeenCalledWith('plant_notes');
       expect(mockSupabase.from).toHaveBeenCalledWith('plant_photos');
       expect(mockSupabase.from).toHaveBeenCalledWith('events');
       expect(mockSupabase.from).toHaveBeenCalledWith('plants');

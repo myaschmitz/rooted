@@ -2,17 +2,14 @@ import { Plant } from "../types/Plant";
 import dayjs from "dayjs";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
-import { CacheService } from "./CacheService";
 import { CacheInvalidationService } from "./CacheInvalidationService";
 import type { Database } from "../types/Database";
 import {
-  CACHE_TTL,
   isNotFoundError,
   DB_TABLES,
   DB_COLUMNS,
 } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
-import { CacheKeyBuilder } from "./CacheKeyBuilder";
 import { PhotoStorageService } from "./PhotoStorageService";
 
 type PlantRow = Database["public"]["Tables"]["plants"]["Row"];
@@ -21,25 +18,12 @@ type PlantUpdate = Database["public"]["Tables"]["plants"]["Update"];
 
 export class PlantService {
   static async getAllPlants(): Promise<Plant[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
-    const cacheKey = CacheKeyBuilder.plantsList(session.household_id);
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // If not in cache, fetch from database
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .eq("archived", false)
       .order("name", { ascending: true });
 
@@ -49,36 +33,17 @@ export class PlantService {
 
     const plants = (data || []) as Plant[];
 
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      plants,
-      CACHE_TTL.PLANTS_LIST,
-    );
-
     return plants;
   }
 
   static async getPlantById(id: string): Promise<Plant | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
-    const cacheKey = CacheKeyBuilder.plant(id, session.household_id);
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<Plant>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // If not in cache, fetch from database
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select("*")
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .single();
 
     if (error) {
@@ -89,12 +54,6 @@ export class PlantService {
     }
 
     const plant = data as Plant;
-
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      plant,
-      CACHE_TTL.PLANT_SINGLE,
-    );
 
     return plant;
   }
@@ -111,15 +70,11 @@ export class PlantService {
       | "archived_at"
     >,
   ): Promise<Plant> {
-    // Get current household session
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const plantInsert: PlantInsert = {
       ...plantData,
-      household_id: session.household_id,
+      household_id: householdId,
       pinned: false,
       archived: false,
     };
@@ -147,11 +102,7 @@ export class PlantService {
       plant.name || plant.type,
     );
 
-    // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction("plant_added", {
-      entityId: plant.id,
-      additionalData: { location: plant.location },
-    });
+    CacheInvalidationService.invalidate("plant_added", { plantId: plant.id });
 
     return plant;
   }
@@ -160,11 +111,7 @@ export class PlantService {
     id: string,
     updates: Partial<Omit<Plant, "id" | "created_at">>,
   ): Promise<Plant | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const plantUpdate: PlantUpdate = {
       ...updates,
@@ -175,7 +122,7 @@ export class PlantService {
       .from(DB_TABLES.PLANTS)
       .update(plantUpdate)
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .select()
       .single();
 
@@ -201,14 +148,7 @@ export class PlantService {
       );
     }
 
-    // Invalidate relevant caches
-    await CacheInvalidationService.invalidateOnUserAction("plant_updated", {
-      entityId: plant.id,
-      additionalData: {
-        oldLocation: updates.location ? undefined : plant.location, // If location wasn't updated, pass current location
-        newLocation: updates.location,
-      },
-    });
+    CacheInvalidationService.invalidate("plant_updated", { plantId: plant.id });
 
     return plant;
   }
@@ -258,14 +198,9 @@ export class PlantService {
   }
 
   static async deletePlant(id: string): Promise<boolean> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
-    // Get plant info before deleting for activity log
-    // (getPlantById already scopes to this household, so this also acts as access check)
+    // getPlantById already scopes to this household, so it doubles as an access check
     const plant = await this.getPlantById(id);
 
     // Keep the propagation tree intact — children move up to their grandparent.
@@ -277,7 +212,7 @@ export class PlantService {
       .from(DB_TABLES.PLANT_PHOTOS)
       .select(`${DB_COLUMNS.FILE_PATH}, ${DB_COLUMNS.THUMBNAIL_PATH}`)
       .eq(DB_COLUMNS.PLANT_ID, id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (photosError) {
       throw ErrorMapper.mapDatabaseError(photosError, "fetch", "photo");
@@ -288,7 +223,7 @@ export class PlantService {
       .from(DB_TABLES.PLANTS)
       .delete()
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       console.error("Error deleting plant:", error);
@@ -308,38 +243,21 @@ export class PlantService {
         },
         plant.name || plant.type,
       );
-
-      // Invalidate relevant caches
-      await CacheInvalidationService.invalidateOnUserAction("plant_deleted", {
-        entityId: plant.id,
-        additionalData: { location: plant.location },
-        clearPhotoCache: true, // Also clear photo cache for deleted plants
-      });
     }
+
+    CacheInvalidationService.invalidate("plant_deleted", { plantId: id });
 
     return true;
   }
 
   static async searchPlants(query: string): Promise<Plant[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
-
+    const householdId = await HouseholdService.requireHouseholdId();
     const searchTerm = `%${query.toLowerCase()}%`;
-    const cacheKey = CacheKeyBuilder.plantsSearch(session.household_id, query);
-
-    // Try to get from cache first (shorter TTL for searches)
-    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .or(
         `name.ilike.${searchTerm},type.ilike.${searchTerm},location.ilike.${searchTerm}`,
       )
@@ -352,37 +270,16 @@ export class PlantService {
 
     const plants = (data || []) as Plant[];
 
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      plants,
-      CACHE_TTL.PLANTS_SEARCH,
-    );
-
     return plants;
   }
 
   static async getPlantsByLocation(location: string): Promise<Plant[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
-
-    const cacheKey = CacheKeyBuilder.plantsByLocation(
-      session.household_id,
-      location,
-    );
-
-    // Try to get from cache first
-    const cached = await CacheService.getCachedResponse<Plant[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .eq("location", location)
       .order("name", { ascending: true });
 
@@ -393,32 +290,24 @@ export class PlantService {
 
     const plants = (data || []) as Plant[];
 
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      plants,
-      CACHE_TTL.PLANTS_BY_LOCATION,
-    );
-
     return plants;
   }
 
   static async deleteAllPlants(): Promise<void> {
-    // Get current household session — only delete plants for the current
-    // household, never every row in the table.
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    // Scoped to the current household only — never deletes every row.
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .delete()
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       console.error("Error deleting all plants:", error);
       throw ErrorMapper.mapDatabaseError(error, "delete", "plant");
     }
+
+    CacheInvalidationService.invalidate("plant_deleted");
   }
 
   static async pinPlant(id: string): Promise<Plant | null> {
@@ -440,34 +329,13 @@ export class PlantService {
     Array<Plant & { lastWateringDate?: string | null }>
   > {
     try {
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
-
-      const cacheKey = CacheKeyBuilder.plantsWithWatering(session.household_id);
-
-      // Try to get from cache first
-      const cached =
-        await CacheService.getCachedResponse<
-          Array<Plant & { lastWateringDate?: string | null }>
-        >(cacheKey);
-      if (cached) {
-        return cached;
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
       // First get all plants
       const plants = await this.getAllPlants();
 
       if (plants.length === 0) {
-        const result: Array<Plant & { lastWateringDate?: string | null }> = [];
-        await CacheService.cacheApiResponse(
-          cacheKey,
-          result,
-          CACHE_TTL.PLANTS_WITH_WATERING,
-        );
-        return result;
+        return [];
       }
 
       // Get the most recent watering event for each plant in a single query
@@ -480,22 +348,13 @@ export class PlantService {
           plants.map((p) => p.id),
         )
         .in(DB_COLUMNS.EVENT_TYPE, ["water", "fertigate"]) // Both count as watering
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
         .order("date", { ascending: false });
 
       if (error) {
         console.error("Error fetching last watering events:", error);
         // Return plants without watering data rather than failing
-        const result = plants.map((plant) => ({
-          ...plant,
-          lastWateringDate: null,
-        }));
-        await CacheService.cacheApiResponse(
-          cacheKey,
-          result,
-          CACHE_TTL.PLANTS_WITH_WATERING,
-        );
-        return result;
+        return plants.map((plant) => ({ ...plant, lastWateringDate: null }));
       }
 
       // Create a map of plant ID to most recent watering date
@@ -535,11 +394,6 @@ export class PlantService {
         lastWateringDate: lastWateringMap.get(plant.id) || null,
       }));
 
-      await CacheService.cacheApiResponse(
-        cacheKey,
-        result,
-        CACHE_TTL.PLANTS_WITH_WATERING,
-      );
 
       return result;
     } catch (error) {
@@ -551,11 +405,7 @@ export class PlantService {
   }
 
   static async archivePlant(id: string): Promise<boolean> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const plant = await this.getPlantById(id);
 
@@ -563,7 +413,7 @@ export class PlantService {
       .from(DB_TABLES.PLANTS)
       .update({ archived: true, archived_at: new Date().toISOString() })
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       throw ErrorMapper.mapDatabaseError(error, "archive", "plant");
@@ -575,49 +425,38 @@ export class PlantService {
         { plant_id: plant.id, plant_type: plant.type },
         plant.name || plant.type,
       );
-      await CacheInvalidationService.invalidateOnUserAction("plant_deleted", {
-        entityId: plant.id,
-        additionalData: { location: plant.location },
-      });
     }
+
+    CacheInvalidationService.invalidate("plant_archived", { plantId: id });
 
     return true;
   }
 
   static async restorePlant(id: string): Promise<boolean> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .update({ archived: false, archived_at: null })
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       throw ErrorMapper.mapDatabaseError(error, "restore", "plant");
     }
 
-    await CacheInvalidationService.invalidateOnUserAction("plant_deleted", {
-      entityId: id,
-    });
+    CacheInvalidationService.invalidate("plant_restored", { plantId: id });
 
     return true;
   }
 
   static async getArchivedPlants(): Promise<Plant[]> {
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .eq("archived", true)
       .order("archived_at", { ascending: false });
 

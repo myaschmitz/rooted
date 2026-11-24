@@ -30,9 +30,6 @@ describe('PhotoService thumbnail mutations', () => {
       id: 'plant-123',
       household_id: 'household-123',
     });
-    (
-      CacheInvalidationService.invalidateOnUserAction as jest.Mock
-    ).mockResolvedValue(undefined);
 
     mockSupabase.from.mockReturnValue(mockSupabase);
     mockSupabase.select.mockReturnValue(mockSupabase);
@@ -52,10 +49,9 @@ describe('PhotoService thumbnail mutations', () => {
       expect.objectContaining({ thumbnail_photo_id: 'photo-456' }),
     );
     expect(
-      CacheInvalidationService.invalidateOnUserAction,
+      CacheInvalidationService.invalidate,
     ).toHaveBeenCalledWith('thumbnail_changed', {
-      entityId: 'plant-123',
-      immediate: true,
+      plantId: 'plant-123',
     });
   });
 
@@ -66,10 +62,9 @@ describe('PhotoService thumbnail mutations', () => {
       expect.objectContaining({ thumbnail_photo_id: null }),
     );
     expect(
-      CacheInvalidationService.invalidateOnUserAction,
+      CacheInvalidationService.invalidate,
     ).toHaveBeenCalledWith('thumbnail_changed', {
-      entityId: 'plant-123',
-      immediate: true,
+      plantId: 'plant-123',
     });
   });
 
@@ -82,7 +77,7 @@ describe('PhotoService thumbnail mutations', () => {
 
     expect(mockSupabase.update).toHaveBeenCalled();
     expect(
-      CacheInvalidationService.invalidateOnUserAction,
+      CacheInvalidationService.invalidate,
     ).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import { PlantService } from '../../services/PlantService';
 import { HouseholdService } from '../../services/HouseholdService';
+import { mockRequireHouseholdId } from '../utils/testHelpers';
 import { Plant } from '../../types/Plant';
 
 // Mock the dependencies
@@ -35,6 +36,7 @@ describe('PlantService', () => {
   };
 
   beforeEach(() => {
+    mockRequireHouseholdId(HouseholdService);
     // Reset all mocks
     jest.clearAllMocks();
     

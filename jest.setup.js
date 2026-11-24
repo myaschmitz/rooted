@@ -135,8 +135,7 @@ jest.mock('./services/CacheService', () => ({
 jest.mock('./services/CacheInvalidationService', () => ({
   CacheInvalidationService: {
     invalidate: jest.fn(),
-    batchInvalidate: jest.fn(),
-    invalidateOnUserAction: jest.fn(() => Promise.resolve()),
+    setDefaultQueryClient: jest.fn(),
   }
 }));
 

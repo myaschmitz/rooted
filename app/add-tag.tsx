@@ -57,8 +57,7 @@ export default function AddTagScreen() {
     
     setLoading(true);
     try {
-      // Bypass cache to ensure fresh data and avoid inconsistencies
-      const tags = await TagService.getAllTagsWithPlantStatus(plantId, true);
+      const tags = await TagService.getAllTagsWithPlantStatus(plantId);
       setAvailableTags(tags);
             
       // If no tags at all, or all tags are already added, switch to create mode

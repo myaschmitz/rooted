@@ -1,12 +1,10 @@
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
-import { CacheService } from "./CacheService";
 import { CacheInvalidationService } from "./CacheInvalidationService";
-import { CacheKeyBuilder } from "./CacheKeyBuilder";
 import { PlantService } from "./PlantService";
 import { EventService } from "./EventService";
 import { TagService } from "./TagService";
-import { CACHE_TTL, DB_TABLES, DB_COLUMNS } from "../constants/domain";
+import { DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import {
   MAX_LINEAGE_DEPTH,
   buildPropagationNote,
@@ -55,14 +53,6 @@ export class PropagationService {
       throw new Error("No household session found");
     }
 
-    const cacheKey = CacheKeyBuilder.plantLineageGraph(session.household_id);
-
-    const cached =
-      await CacheService.getCachedResponse<LineagePlant[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
     const { data, error } = await supabase
       .from(DB_TABLES.PLANTS)
       .select(LINEAGE_COLUMNS)
@@ -72,15 +62,7 @@ export class PropagationService {
       throw ErrorMapper.mapDatabaseError(error, "fetch", "plant");
     }
 
-    const rows = (data || []) as unknown as LineagePlant[];
-
-    await CacheService.cacheApiResponse(
-      cacheKey,
-      rows,
-      CACHE_TTL.PLANT_LINEAGE,
-    );
-
-    return rows;
+    return (data || []) as unknown as LineagePlant[];
   }
 
   /**
@@ -197,9 +179,9 @@ export class PropagationService {
     // propagation — the lineage link is the durable part.
     await this.writePropagationEvents(parent, child, propagatedAt);
 
-    await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
-      entityId: parent.id,
-      additionalData: { relatedPlantId: child.id },
+    CacheInvalidationService.invalidate("plant_propagated", {
+      plantId: parent.id,
+      relatedPlantIds: [child.id],
     });
 
     return child;
@@ -344,18 +326,11 @@ export class PropagationService {
       await this.writePropagationEvents(parent, updated ?? existing, propagatedAt);
     }
 
-    await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
-      entityId: plantId,
-      additionalData: { relatedPlantId: parentPlantId ?? undefined },
+    // A re-point touches three plants: this one, the new parent and the old one.
+    CacheInvalidationService.invalidate("plant_propagated", {
+      plantId,
+      relatedPlantIds: [parentPlantId, previousParentId],
     });
-
-    // A re-point touches three plants; the old parent needs its caches cleared too.
-    if (previousParentId && previousParentId !== parentPlantId) {
-      await CacheInvalidationService.invalidateOnUserAction("plant_propagated", {
-        entityId: plantId,
-        additionalData: { relatedPlantId: previousParentId },
-      });
-    }
 
     return updated;
   }
