@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Edit } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Pencil, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Tag, PlantTag } from '../types/Plant';
 import { useWebModal } from '../contexts/WebModalContext';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
-import { TextSkeleton } from './Skeleton';
+import { Skeleton } from './Skeleton';
 import { useAlert } from '../contexts/AlertContext';
 
 interface TagsListProps {
@@ -125,27 +125,27 @@ export default function TagsList({
 
   if (loading) {
     return (
-      <View style={styles.tagsContainer}>
-        <TextSkeleton width={100} height={16} style={{ marginBottom: 4 }} />
-        <TextSkeleton width={80} height={14} />
+      <View style={styles.row}>
+        <Skeleton width={84} height={30} borderRadius={15} />
+        <Skeleton width={64} height={30} borderRadius={15} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Error loading tags</Text>
-        <TouchableOpacity onPress={() => loadTags()} style={styles.retryButton}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+      <View style={styles.errorRow}>
+        <Text style={styles.errorText}>Couldn't load tags.</Text>
+        <TouchableOpacity onPress={() => loadTags()} hitSlop={8}>
+          <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.tagsRow}>
+    <View>
+      <View style={styles.row}>
         {tags.map((tag) => (
           <TagDisplay
             key={tag.id}
@@ -157,128 +157,109 @@ export default function TagsList({
             onEdit={handleEditTag}
           />
         ))}
-        {!isEditMode && (
+
+        {!isEditMode ? (
           <TouchableOpacity
-            style={[
-              styles.addButton,
-              tags.length === 0 && styles.addButtonEmpty
-            ]}
+            style={[styles.addChip, tags.length > 0 && styles.addChipIconOnly]}
             onPress={onAddTagPress}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Add tag"
           >
-            <Text style={[
-              styles.addButtonText,
-              tags.length === 0 && styles.addButtonTextEmpty
-            ]}>
-              {tags.length === 0 ? 'Add tags +' : '+'}
-            </Text>
+            <Plus size={14} color={theme.colors.textSecondary} strokeWidth={2.5} />
+            {tags.length === 0 ? <Text style={styles.addChipText}>Add tag</Text> : null}
           </TouchableOpacity>
-        )}
-        {tags.length > 0 && (
+        ) : null}
+
+        {tags.length > 0 ? (
           <TouchableOpacity
-            style={[
-              styles.editButton,
-              isEditMode && styles.editButtonActive
-            ]}
+            style={[styles.editChip, isEditMode && styles.editChipActive]}
             onPress={toggleEditMode}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={isEditMode ? 'Done editing tags' : 'Edit tags'}
           >
             {isEditMode ? (
-              <Text style={styles.editButtonText}>Done</Text>
+              <Text style={styles.editChipText}>Done</Text>
             ) : (
-              <Edit size={16} color={theme.colors.textSecondary} />
+              <Pencil size={13} color={theme.colors.textSecondary} />
             )}
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
+
+      {isEditMode ? (
+        <Text style={styles.hint}>Tap a tag to edit it, or × to remove it from this plant.</Text>
+      ) : null}
     </View>
   );
 }
 
-const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    marginVertical: 8,
-  },
-  tagsContainer: {
-    marginVertical: 8,
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  addButton: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minHeight: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  addButtonEmpty: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minHeight: 36,
-  },
-  addButtonText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  addButtonTextEmpty: {
-    fontSize: 16,
-  },
-  loadingText: {
-    color: theme.colors.textSecondary,
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  errorText: {
-    color: theme.colors.error || '#F44336',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  retryButtonText: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  editButton: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: 'transparent',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minHeight: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  editButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  editButtonText: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme: any) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 6,
+    },
+    addChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      height: 30,
+      paddingHorizontal: 12,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: theme.colors.border,
+      ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
+    },
+    addChipIconOnly: {
+      width: 30,
+      paddingHorizontal: 0,
+      justifyContent: 'center',
+    },
+    addChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textSecondary,
+    },
+    editChip: {
+      height: 30,
+      minWidth: 30,
+      paddingHorizontal: 9,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
+    },
+    editChipActive: {
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: 14,
+    },
+    editChipText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.colors.textOnPrimary,
+    },
+    hint: {
+      fontSize: 12,
+      color: theme.colors.textTertiary,
+      marginTop: 8,
+    },
+    errorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    errorText: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+    },
+    retryText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: theme.colors.primary,
+    },
+  });

@@ -21,6 +21,7 @@ import { usePlant, usePropagatePlant, useAllTags, usePlantTags } from "../hooks/
 import { PropagationMethod } from "../constants/propagation";
 import { Spacing, Typography, BorderRadius } from "../styles/theme";
 import { formStyles } from "../styles/FormStyles";
+import TagChip from "../components/TagChip";
 
 export default function PropagateScreen() {
   const { theme } = useTheme();
@@ -195,34 +196,13 @@ export default function PropagateScreen() {
                   {allTags.map((tag) => {
                     const selected = selectedTagIds.includes(tag.id);
                     return (
-                      <TouchableOpacity
+                      <TagChip
                         key={tag.id}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        style={[
-                          styles.tagChip,
-                          {
-                            borderColor: tag.color,
-                            backgroundColor: selected
-                              ? tag.color
-                              : "transparent",
-                          },
-                        ]}
+                        name={tag.name}
+                        color={tag.color}
+                        selected={selected}
                         onPress={() => toggleTag(tag.id)}
-                      >
-                        <Text
-                          style={[
-                            styles.tagChipText,
-                            {
-                              color: selected
-                                ? theme.colors.textOnPrimary
-                                : theme.colors.text,
-                            },
-                          ]}
-                        >
-                          {tag.name}
-                        </Text>
-                      </TouchableOpacity>
+                      />
                     );
                   })}
                 </View>
@@ -274,11 +254,6 @@ const createStyles = (theme: Theme) =>
       flexDirection: "row",
       flexWrap: "wrap",
       gap: Spacing.sm,
-    },
-    tagChip: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: BorderRadius.full, borderWidth: 1.5 },
-    tagChipText: {
-      fontSize: Typography.sm,
-      fontWeight: Typography.weights.medium,
     },
     saveButton: { ...formStyles(theme).primaryButton, marginTop: 8 },
     saveButtonDisabled: formStyles(theme).buttonDisabled,
