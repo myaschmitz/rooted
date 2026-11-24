@@ -151,7 +151,7 @@ export default function PlantListItem({
 
       {!batchModeEnabled ? (
         <TouchableOpacity
-          style={styles.pinButton}
+          style={[styles.pinButton, !isPinned && styles.pinIdle]}
           onPress={handlePinPress}
           hitSlop={6}
           accessibilityRole="button"
@@ -161,7 +161,6 @@ export default function PlantListItem({
             size={16}
             color={isPinned ? theme.colors.primary : theme.colors.textTertiary}
             fill={isPinned ? theme.colors.primary : 'transparent'}
-            style={isPinned ? undefined : styles.pinIdle}
           />
         </TouchableOpacity>
       ) : null}
@@ -278,8 +277,11 @@ const createStyles = (theme: Theme) =>
       flexShrink: 1,
     },
     pinButton: {
-      alignSelf: 'flex-start',
-      padding: Spacing.xs,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     pinIdle: {
       opacity: 0.6,
