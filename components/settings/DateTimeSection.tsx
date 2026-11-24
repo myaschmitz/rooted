@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import { ChevronDown } from 'lucide-react-native';
+import { View, Text, Pressable, Modal, StyleSheet, Platform } from 'react-native';
+import { CalendarDays, Clock, Check } from 'lucide-react-native';
+import dayjs from 'dayjs';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
-import { DATE_FORMATS, TIME_FORMATS, DateFormatValue, TimeFormatValue } from '../../hooks/useSettings';
+import { DATE_FORMATS, DateFormatValue, TimeFormatValue } from '../../hooks/useSettings';
+import { Spacing, Typography, BorderRadius } from '../../styles/theme';
+import { SettingsGroup, SettingsRow, SegmentedControl } from './SettingsList';
 
 interface DateTimeSectionProps {
   dateFormat: DateFormatValue;
@@ -10,6 +13,11 @@ interface DateTimeSectionProps {
   onDateFormatChange: (format: DateFormatValue) => void;
   onTimeFormatChange: (format: TimeFormatValue) => void;
 }
+
+const TIME_OPTIONS = [
+  { value: '12' as TimeFormatValue, label: '12h', accessibilityLabel: '12-hour (AM/PM)' },
+  { value: '24' as TimeFormatValue, label: '24h', accessibilityLabel: '24-hour' },
+];
 
 export default function DateTimeSection({
   dateFormat,
@@ -19,169 +27,133 @@ export default function DateTimeSection({
 }: DateTimeSectionProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const today = dayjs();
 
-  const handleDateFormatChange = (format: DateFormatValue) => {
+  const choose = (format: DateFormatValue) => {
     onDateFormatChange(format);
-    setDropdownVisible(false);
+    setPickerVisible(false);
   };
 
   return (
-    <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Date & Time Format</Text>
+    <>
+      <SettingsGroup title="Date & time">
+        <SettingsRow
+          icon={CalendarDays}
+          label="Date format"
+          value={today.format(dateFormat)}
+          onPress={() => setPickerVisible(true)}
+        />
+        <SettingsRow
+          icon={Clock}
+          label="Time format"
+          accessory={
+            <SegmentedControl
+              options={TIME_OPTIONS}
+              value={timeFormat}
+              onChange={onTimeFormatChange}
+            />
+          }
+        />
+      </SettingsGroup>
 
-      <Text style={[styles.settingLabel, { color: theme.colors.text }]}>Date Format</Text>
-
-      {/* Dropdown for Date Format */}
-      <TouchableOpacity
-        style={[styles.dropdown, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-        onPress={() => setDropdownVisible(true)}
-      >
-        <Text style={[styles.dropdownText, { color: theme.colors.text }]}>{dateFormat}</Text>
-        <ChevronDown size={20} color={theme.colors.textSecondary} />
-      </TouchableOpacity>
-
-      {/* Dropdown Modal */}
       <Modal
-        visible={dropdownVisible}
-        transparent={true}
+        visible={pickerVisible}
+        transparent
         animationType="fade"
-        onRequestClose={() => setDropdownVisible(false)}
+        onRequestClose={() => setPickerVisible(false)}
       >
-        <TouchableOpacity style={styles.modalOverlay} onPress={() => setDropdownVisible(false)}>
-          <View style={[styles.dropdownModal, { backgroundColor: theme.colors.surface }]}>
-            {DATE_FORMATS.map((format) => (
-              <TouchableOpacity
-                key={format.value}
-                style={[
-                  styles.dropdownOption,
-                  dateFormat === format.value && [
-                    styles.selectedDropdownOption,
-                    { backgroundColor: theme.colors.primary },
-                  ],
-                ]}
-                onPress={() => handleDateFormatChange(format.value)}
-              >
-                <Text
-                  style={[
-                    styles.dropdownOptionText,
-                    { color: theme.colors.text },
-                    dateFormat === format.value && [
-                      styles.selectedDropdownOptionText,
-                      { color: theme.colors.textOnPrimary },
-                    ],
+        <Pressable style={styles.overlay} onPress={() => setPickerVisible(false)}>
+          {/* Inner Pressable swallows taps so they don't close the sheet. */}
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <Text style={styles.sheetTitle}>Date format</Text>
+            {DATE_FORMATS.map((format, i) => {
+              const selected = format.value === dateFormat;
+              return (
+                <Pressable
+                  key={format.value}
+                  onPress={() => choose(format.value)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  style={({ pressed, hovered }: any) => [
+                    styles.option,
+                    i > 0 && styles.optionDivider,
+                    (pressed || hovered) && styles.optionActive,
                   ]}
                 >
-                  {format.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
+                  <View style={styles.optionText}>
+                    <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                      {today.format(format.value)}
+                    </Text>
+                    <Text style={styles.optionHint}>{format.label}</Text>
+                  </View>
+                  {selected ? <Check size={18} color={theme.colors.primary} /> : null}
+                </Pressable>
+              );
+            })}
+          </Pressable>
+        </Pressable>
       </Modal>
-
-      <Text style={[styles.settingLabel, { marginTop: 20, color: theme.colors.text }]}>Time Format</Text>
-      {TIME_FORMATS.map((format) => (
-        <TouchableOpacity
-          key={format.value}
-          style={[
-            styles.formatOption,
-            { borderColor: theme.colors.border },
-            timeFormat === format.value && [styles.selectedFormat, { backgroundColor: theme.colors.primary }],
-          ]}
-          onPress={() => onTimeFormatChange(format.value)}
-        >
-          <Text
-            style={[
-              styles.formatText,
-              { color: theme.colors.text },
-              timeFormat === format.value && [styles.selectedFormatText, { color: theme.colors.textOnPrimary }],
-            ]}
-          >
-            {format.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    </>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    section: {
-      margin: 15,
-      padding: 20,
-      borderRadius: 10,
-      shadowColor: theme.colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 15,
-    },
-    settingLabel: {
-      fontSize: 16,
-      fontWeight: '600',
-      marginBottom: 4,
-    },
-    dropdown: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      marginBottom: 8,
-    },
-    dropdownText: {
-      fontSize: 16,
-    },
-    modalOverlay: {
+    overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: theme.colors.overlay,
       justifyContent: 'center',
       alignItems: 'center',
+      padding: Spacing.lg,
     },
-    dropdownModal: {
-      borderRadius: 8,
-      padding: 8,
-      minWidth: 200,
-      maxWidth: 300,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
+    sheet: {
+      width: '100%',
+      maxWidth: 340,
+      backgroundColor: theme.colors.surface,
+      borderRadius: BorderRadius['2xl'],
+      paddingVertical: Spacing.sm,
+      overflow: 'hidden',
+      ...(Platform.OS === 'web' ? { cursor: 'default' as any } : {}),
     },
-    dropdownOption: {
-      padding: 12,
-      borderRadius: 4,
+    sheetTitle: {
+      fontSize: Typography.xs + 1,
+      fontWeight: Typography.weights.semibold,
+      color: theme.colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.sm,
+      paddingBottom: Spacing.sm,
     },
-    selectedDropdownOption: {},
-    dropdownOptionText: {
-      fontSize: 16,
-      textAlign: 'center',
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm + 4,
+      ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
     },
-    selectedDropdownOptionText: {
-      fontWeight: 'bold',
+    optionDivider: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.border,
     },
-    formatOption: {
-      paddingVertical: 12,
-      paddingHorizontal: 15,
-      borderRadius: 8,
-      borderWidth: 1,
-      marginBottom: 8,
+    optionActive: {
+      backgroundColor: theme.colors.surfaceSecondary,
     },
-    selectedFormat: {
-      borderColor: 'transparent',
+    optionText: {
+      flex: 1,
+      gap: 2,
     },
-    formatText: {
-      fontSize: 16,
+    optionLabel: {
+      fontSize: Typography.base,
+      color: theme.colors.text,
     },
-    selectedFormatText: {
-      fontWeight: '600',
+    optionLabelSelected: {
+      fontWeight: Typography.weights.semibold,
+      color: theme.colors.primary,
+    },
+    optionHint: {
+      fontSize: Typography.xs + 1,
+      color: theme.colors.textTertiary,
     },
   });

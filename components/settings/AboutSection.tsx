@@ -1,46 +1,43 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Sprout } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { Spacing, Typography } from '../../styles/theme';
 
 export default function AboutSection() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
   return (
-    <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>About</Text>
-      <Text style={[styles.aboutText, { color: theme.colors.text }]}>
-        Rooted - Plant Care Tracker{'\n'}
-        Track your plants, log events, and keep your green friends healthy!
+    <View style={styles.about}>
+      <Sprout size={22} color={theme.colors.primary} />
+      <Text style={styles.name}>Rooted</Text>
+      <Text style={styles.tagline}>
+        Track your plants, log events, and keep your green friends healthy.
       </Text>
-      <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>Version 1.0.0</Text>
     </View>
   );
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    section: {
-      margin: 15,
-      padding: 20,
-      borderRadius: 10,
-      shadowColor: theme.colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+    about: {
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: Spacing['2xl'],
+      paddingTop: Spacing['2xl'],
+      paddingBottom: Spacing['3xl'],
     },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 15,
+    name: {
+      fontSize: Typography.base,
+      fontWeight: Typography.weights.semibold,
+      color: theme.colors.text,
+      marginTop: 4,
     },
-    aboutText: {
-      fontSize: 16,
-      marginBottom: 5,
-      lineHeight: 22,
-    },
-    versionText: {
-      fontSize: 14,
+    tagline: {
+      fontSize: Typography.xs + 1,
+      lineHeight: (Typography.xs + 1) * 1.4,
+      color: theme.colors.textSecondary,
+      textAlign: 'center',
     },
   });

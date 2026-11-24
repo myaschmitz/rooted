@@ -3,7 +3,7 @@ import { View, ScrollView } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useTheme } from "../../contexts/ThemeContext";
 import WebContainer from "../../components/WebContainer";
-import { TextSkeleton } from "../../components/Skeleton";
+import { Skeleton, TextSkeleton } from "../../components/Skeleton";
 import { useSettings } from "../../hooks/useSettings";
 import { useHouseholdSettings } from "../../hooks/useHouseholdSettings";
 import {
@@ -66,23 +66,35 @@ export default function SettingsScreen() {
   };
 
   if (householdLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: theme.colors.background,
-        }}
-      >
-        <View style={{ alignItems: "center", padding: 32 }}>
-          <TextSkeleton width={200} height={24} style={{ marginBottom: 20 }} />
-          <TextSkeleton width={150} height={18} style={{ marginBottom: 16 }} />
-          <TextSkeleton width={180} height={16} style={{ marginBottom: 12 }} />
-          <TextSkeleton width={120} height={16} style={{ marginBottom: 12 }} />
-          <TextSkeleton width={160} height={16} />
+    const skeletonGroup = (rows: number, key: number) => (
+      <View key={key} style={{ marginHorizontal: 16, marginTop: 20 }}>
+        <TextSkeleton width={90} height={12} style={{ marginLeft: 16, marginBottom: 8 }} />
+        <View
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderRadius: 14,
+            paddingHorizontal: 16,
+          }}
+        >
+          {Array.from({ length: rows }).map((_, i) => (
+            <View
+              key={i}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, height: 52 }}
+            >
+              <Skeleton width={30} height={30} borderRadius={8} />
+              <TextSkeleton width="45%" height={14} />
+            </View>
+          ))}
         </View>
       </View>
+    );
+
+    return (
+      <WebContainer>
+        <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          {[3, 2, 1, 2].map((rows, i) => skeletonGroup(rows, i))}
+        </ScrollView>
+      </WebContainer>
     );
   }
 
@@ -91,6 +103,7 @@ export default function SettingsScreen() {
       <>
         <ScrollView
           style={{ flex: 1, backgroundColor: theme.colors.background }}
+          contentContainerStyle={{ paddingTop: 4 }}
         >
           <HouseholdSection
             householdContext={householdContext}

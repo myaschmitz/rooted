@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, StyleSheet } from 'react-native';
-import { Download, RefreshCw } from 'lucide-react-native';
+import { Download, Image as ImageIcon, Trash2 } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
+import { SettingsGroup, SettingsRow } from './SettingsList';
 
 interface DataManagementSectionProps {
   loading: boolean;
@@ -49,59 +50,36 @@ export default function DataManagementSection({
 
   return (
     <>
-      <View style={[styles.section, { backgroundColor: theme.colors.surface }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Data Management</Text>
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: theme.colors.primary },
-            (loading || exporting) && styles.disabledButton,
-          ]}
+      <SettingsGroup title="Data">
+        <SettingsRow
+          icon={Download}
+          label={exporting ? 'Preparing export…' : 'Export data & photos'}
+          subtitle="ZIP of all household data and original photos"
           onPress={onExportData}
           disabled={loading || exporting}
-        >
-          <Download size={16} color={theme.colors.textOnPrimary} />
-          <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
-            {exporting ? 'Preparing Export...' : 'Export Data & Photos'}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.warningText, { color: theme.colors.textSecondary }]}>
-          Downloads a ZIP with all household data and original stored photos.
-        </Text>
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            { backgroundColor: theme.colors.primary },
-            (loading || exporting) && styles.disabledButton,
-          ]}
+          loading={exporting}
+          chevron={false}
+        />
+        <SettingsRow
+          icon={ImageIcon}
+          iconColor={BaseColors.info}
+          label="Generate photo thumbnails"
+          subtitle="Smaller copies of existing photos to save data"
           onPress={handleGenerateThumbnails}
           disabled={loading || exporting}
-        >
-          <RefreshCw size={16} color={theme.colors.textOnPrimary} />
-          <Text style={[styles.buttonText, { color: theme.colors.textOnPrimary }]}>
-            {loading ? 'Processing...' : 'Generate Photo Thumbnails'}
-          </Text>
-        </TouchableOpacity>
+          chevron={false}
+        />
+      </SettingsGroup>
 
-        <Text style={[styles.warningText, { color: theme.colors.textSecondary }]}>
-          Creates smaller versions of existing photos to reduce data usage.
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.deleteButton, (loading || exporting) && styles.disabledButton]}
+      <SettingsGroup footer="Permanently deletes all plants, event history, photos, and settings.">
+        <SettingsRow
+          icon={Trash2}
+          label="Delete all plants & data"
           onPress={handleDeleteAllData}
           disabled={loading || exporting}
-        >
-          <Text style={styles.deleteButtonText}>{loading ? 'Deleting...' : 'Delete All Plants & Data'}</Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.warningText, { color: theme.colors.textSecondary }]}>
-          This will permanently delete all plants, event history, photos, and settings.
-        </Text>
-      </View>
+          destructive
+        />
+      </SettingsGroup>
 
       {/* Thumbnail Generation Confirmation Modal */}
       <Modal
@@ -225,57 +203,6 @@ export default function DataManagementSection({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    section: {
-      margin: 15,
-      padding: 20,
-      borderRadius: 10,
-      shadowColor: theme.colors.text,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 15,
-    },
-    button: {
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderRadius: 6,
-      marginBottom: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    buttonText: {
-      fontSize: 16,
-      fontWeight: '500',
-    },
-    disabledButton: {
-      opacity: 0.6,
-    },
-    deleteButton: {
-      backgroundColor: theme.colors.error,
-      paddingVertical: 15,
-      paddingHorizontal: 20,
-      borderRadius: 8,
-      alignItems: 'center',
-      marginTop: 20,
-    },
-    deleteButtonText: {
-      color: BaseColors.white,
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    warningText: {
-      fontSize: 14,
-      textAlign: 'center',
-      fontStyle: 'italic',
-      marginTop: 10,
-    },
     modalOverlay: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -283,7 +210,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
     },
     editModal: {
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 24,
       minWidth: 300,
       maxWidth: 400,
@@ -324,7 +251,7 @@ const createStyles = (theme: Theme) =>
     modalButton: {
       flex: 1,
       padding: 14,
-      borderRadius: 8,
+      borderRadius: 12,
       alignItems: 'center',
     },
     modalButtonText: {
