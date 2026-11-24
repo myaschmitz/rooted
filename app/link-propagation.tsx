@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  Platform,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -20,6 +21,7 @@ import { usePlant, usePlants, usePlantLineage, useSetPlantParent } from "../hook
 import { PropagationMethod } from "../constants/propagation";
 import type { LineageNode } from "../types/Plant";
 import { Spacing, Typography, BorderRadius } from "../styles/theme";
+import { formStyles } from "../styles/FormStyles";
 
 type LinkMode = "parent" | "child";
 
@@ -234,61 +236,15 @@ export default function LinkPropagationScreen() {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: theme.colors.background,
-      gap: Spacing.sm,
-    },
-    form: {
-      padding: Spacing.base,
-      gap: Spacing.base,
-    },
-    intro: {
-      fontSize: Typography.base,
-      color: theme.colors.text,
-    },
-    searchRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: Spacing.sm,
-      paddingHorizontal: Spacing.base - 4,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: BorderRadius.md,
-      backgroundColor: theme.colors.surface,
-    },
-    searchInput: {
-      flex: 1,
-      paddingVertical: Spacing.sm + 2,
-      fontSize: Typography.base,
-      color: theme.colors.text,
-    },
-    list: {
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: BorderRadius.md,
-      overflow: "hidden",
-    },
-    row: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: Spacing.sm,
-      paddingHorizontal: Spacing.base - 4,
-      paddingVertical: Spacing.sm + 4,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    rowSelected: {
-      backgroundColor: theme.colors.surfaceSecondary,
-    },
+    container: formStyles(theme).screen,
+    loadingContainer: { ...formStyles(theme).screen, justifyContent: 'center', alignItems: 'center', gap: Spacing.sm },
+    form: { ...formStyles(theme).form, gap: Spacing.base },
+    intro: formStyles(theme).helper,
+    searchRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: 14, height: 46, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: BorderRadius.xl, backgroundColor: theme.colors.surface },
+    searchInput: { flex: 1, height: '100%', fontSize: Typography.base, color: theme.colors.text, ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}) },
+    list: { borderRadius: BorderRadius['2xl'], overflow: 'hidden', backgroundColor: theme.colors.surface },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, paddingHorizontal: Spacing.base, paddingVertical: Spacing.sm + 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+    rowSelected: { backgroundColor: `${theme.colors.primary}14` },
     rowText: {
       flex: 1,
     },
@@ -301,35 +257,11 @@ const createStyles = (theme: Theme) =>
       fontSize: Typography.sm,
       color: theme.colors.textTertiary,
     },
-    inputGroup: {
-      gap: Spacing.sm,
-    },
-    label: {
-      fontSize: Typography.sm,
-      color: theme.colors.textSecondary,
-      fontWeight: Typography.weights.medium,
-    },
-    saveButton: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: BorderRadius.md,
-      paddingVertical: Spacing.base - 2,
-      alignItems: "center",
-    },
-    saveButtonDisabled: {
-      opacity: 0.6,
-    },
-    saveButtonText: {
-      color: theme.colors.textOnPrimary,
-      fontSize: Typography.base,
-      fontWeight: Typography.weights.medium,
-    },
-    emptyText: {
-      fontSize: Typography.sm,
-      color: theme.colors.textSecondary,
-      textAlign: "center",
-    },
-    linkText: {
-      fontSize: Typography.base,
-      color: theme.colors.primary,
-    },
+    inputGroup: { gap: 0 },
+    label: formStyles(theme).label,
+    saveButton: formStyles(theme).primaryButton,
+    saveButtonDisabled: formStyles(theme).buttonDisabled,
+    saveButtonText: formStyles(theme).primaryButtonText,
+    emptyText: formStyles(theme).empty,
+    linkText: formStyles(theme).link,
   });

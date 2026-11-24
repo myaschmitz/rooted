@@ -4,6 +4,7 @@ import { SquarePen, Trash2, ChevronRight } from "lucide-react-native";
 import { router } from "expo-router";
 import dayjs from "dayjs";
 import { useTheme, Theme } from "../../contexts/ThemeContext";
+import { formStyles } from "../../styles/FormStyles";
 import { useAlert } from "../../contexts/AlertContext";
 import { useWebModal } from "../../contexts/WebModalContext";
 import { useModalParams, useModalDismiss } from "../../hooks/useModalNav";
@@ -179,7 +180,7 @@ export default function EventDetailScreen() {
 
         <View style={styles.actions}>
           <TouchableOpacity style={[styles.button, styles.editButton]} onPress={onEdit}>
-            <SquarePen size={18} color="#fff" />
+            <SquarePen size={18} color={theme.colors.textOnPrimary} />
             <Text style={styles.editText}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={onDelete}>
@@ -195,42 +196,25 @@ export default function EventDetailScreen() {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.colors.background },
-    content: { padding: 16, maxWidth: 600, width: "100%", alignSelf: "center" },
+    content: { padding: 20, maxWidth: 600, width: '100%', alignSelf: 'center' },
     center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
-    empty: { fontSize: 16, color: theme.colors.textSecondary, fontStyle: "italic" },
-    header: { flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 },
-    iconWrap: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
+    empty: formStyles(theme).empty,
+    header: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
+    iconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     headerBody: { flex: 1 },
-    type: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
+    type: { fontSize: 22, fontWeight: '700', color: theme.colors.text },
     date: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 2 },
-    plantRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 12,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: theme.colors.border,
-      marginBottom: 8,
-    },
+    plantRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 4 },
     plantName: { fontSize: 16, fontWeight: "600", color: theme.colors.primary },
-    field: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-    label: { fontSize: 13, fontWeight: "600", color: theme.colors.textSecondary, marginBottom: 4 },
-    value: { fontSize: 15, color: theme.colors.text },
+    field: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+    label: { ...formStyles(theme).label, marginBottom: 4, marginLeft: 0 },
+    value: { fontSize: 16, lineHeight: 22, color: theme.colors.text },
     photos: { marginTop: 6 },
-    photo: { width: 80, height: 80, borderRadius: 8, marginRight: 8 },
-    actions: { flexDirection: "row", gap: 12, marginTop: 24 },
-    button: {
-      flex: 1,
-      flexDirection: "row",
-      gap: 8,
-      paddingVertical: 12,
-      borderRadius: 8,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    editButton: { backgroundColor: theme.colors.primary },
-    editText: { fontSize: 15, fontWeight: "600", color: "#fff" },
-    deleteButton: { borderWidth: 1, borderColor: theme.colors.error },
-    deleteText: { fontSize: 15, fontWeight: "600", color: theme.colors.error },
+    photo: { width: 84, height: 84, borderRadius: 12, marginRight: 8, backgroundColor: theme.colors.surface },
+    actions: { flexDirection: 'row', gap: 10, marginTop: 28 },
+    button: { flex: 1 },
+    editButton: formStyles(theme).primaryButton,
+    editText: formStyles(theme).primaryButtonText,
+    deleteButton: formStyles(theme).dangerButton,
+    deleteText: formStyles(theme).dangerButtonText,
   });

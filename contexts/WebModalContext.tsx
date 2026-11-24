@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import {
   View,
+  Text,
   Modal,
   TouchableOpacity,
   StyleSheet,
   Platform,
   ScrollView,
 } from 'react-native';
+import { X } from 'lucide-react-native';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useTheme } from './ThemeContext';
 
@@ -46,6 +48,18 @@ const WebModalContext = createContext<WebModalContextValue>({
 export function useWebModal() {
   return useContext(WebModalContext);
 }
+
+const MODAL_TITLES: Record<ModalScreen, string> = {
+  'add-plant': 'Add Plant',
+  'edit-plant': 'Edit Plant',
+  'log-care': 'Log Event',
+  'edit-care-event': 'Edit Event',
+  event: 'Event Details',
+  'add-tag': 'Add Tag',
+  'edit-tag': 'Edit Tag',
+  propagate: 'Propagate',
+  'link-propagation': 'Link Propagation',
+};
 
 // Use synchronous require() to avoid Metro's async bundle fetching on web,
 // deferred to render time to avoid circular dependency at module load.
@@ -126,6 +140,27 @@ export function WebModalProvider({ children }: { children: React.ReactNode }) {
                 { backgroundColor: theme.colors.background },
               ]}
             >
+              <View
+                style={[
+                  styles.modalHeader,
+                  { borderBottomColor: theme.colors.border },
+                ]}
+              >
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                  {MODAL_TITLES[modalState.screen]}
+                </Text>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  style={[
+                    styles.closeButton,
+                    { backgroundColor: theme.colors.surfaceSecondary },
+                  ]}
+                >
+                  <X size={16} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
               <ModalContentContext.Provider
                 value={{
                   isInModal: true,
@@ -146,20 +181,43 @@ export function WebModalProvider({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'default' as any } : {}),
   },
   modalCard: {
     width: '90%',
-    maxWidth: 600,
-    maxHeight: '85%',
-    borderRadius: 16,
+    maxWidth: 560,
+    maxHeight: '88%',
+    borderRadius: 20,
     overflow: 'hidden',
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    ...(Platform.OS === 'web' ? { cursor: 'default' as any } : {}),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 20,
+    paddingRight: 14,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
 });

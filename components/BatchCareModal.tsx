@@ -13,7 +13,9 @@ import {
 } from "react-native";
 import { useTheme, Theme } from "../contexts/ThemeContext";
 import { useGlobalStyles } from "../styles";
+import { ChevronRight } from "lucide-react-native";
 import DateTimeInput from "./DateTimeInput";
+import { formStyles } from "../styles/FormStyles";
 import {
   CARE_ACTIONS,
   CareEventType,
@@ -117,8 +119,16 @@ export default function BatchCareModal({
               style={styles.careTypeItem}
               onPress={() => handleCareTypeSelect(careType.type)}
             >
-              <IconComponent size={24} color={careType.color} />
+              <View
+                style={[
+                  styles.careTypeIconWrap,
+                  { backgroundColor: `${careType.color}1F` },
+                ]}
+              >
+                <IconComponent size={18} color={careType.color} />
+              </View>
               <Text style={styles.careTypeLabel}>{careType.label}</Text>
+              <ChevronRight size={18} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           );
         })}
@@ -177,12 +187,22 @@ export default function BatchCareModal({
             </Text>
 
             <View style={globalStyles.inputGroup}>
+              <View style={styles.whenHeader}>
+                <Text style={[globalStyles.label, styles.whenLabel]}>When</Text>
+                <TouchableOpacity
+                  style={styles.nowButton}
+                  onPress={() => setCareDetails((prev) => ({ ...prev, date: new Date() }))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Set to now"
+                >
+                  <Text style={styles.nowButtonText}>Now</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateSection}>
                   <DateTimeInput
                     value={careDetails.date}
                     mode="date"
-                    label="Date"
                     compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
@@ -193,23 +213,12 @@ export default function BatchCareModal({
                   <DateTimeInput
                     value={careDetails.date}
                     mode="time"
-                    label="Time"
                     compact
                     onChange={(date) =>
                       setCareDetails((prev) => ({ ...prev, date }))
                     }
                   />
                 </View>
-              </View>
-              <View style={styles.buttonSection}>
-                <TouchableOpacity
-                  style={styles.nowButton}
-                  onPress={() =>
-                    setCareDetails((prev) => ({ ...prev, date: new Date() }))
-                  }
-                >
-                  <Text style={styles.nowButtonText}>Set to Now</Text>
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -383,22 +392,10 @@ const getSeverityStyle = (
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    careTypeList: {
-      maxHeight: 400,
-    },
-    careTypeItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    careTypeLabel: {
-      marginLeft: 12,
-      fontSize: 16,
-      color: theme.colors.textPrimary,
-    },
+    careTypeList: { maxHeight: 400, marginTop: 12, marginBottom: 16 },
+    careTypeItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+    careTypeIconWrap: { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+    careTypeLabel: { flex: 1, fontSize: 16, color: theme.colors.text },
     keyboardAvoidingView: {
       flex: 1,
       justifyContent: "center",
@@ -407,25 +404,17 @@ const createStyles = (theme: Theme) =>
       maxHeight: "80%",
       minHeight: 300,
     },
-    detailsTitle: {
-      marginLeft: 8,
-    },
+    detailsTitle: { marginLeft: 10 },
     detailsScrollView: {
       maxHeight: 400,
     },
     detailsScrollContent: {
       paddingBottom: 8,
     },
-    selectedCountText: {
-      marginBottom: 8,
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-    },
-    dateTimeRow: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      gap: 8,
-    },
+    selectedCountText: { ...formStyles(theme).helper, marginBottom: 12 },
+    dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    whenHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    whenLabel: { marginBottom: 0 },
     dateSection: {
       flex: 3,
       minWidth: 0,
@@ -434,62 +423,15 @@ const createStyles = (theme: Theme) =>
       flex: 2,
       minWidth: 0,
     },
-    buttonSection: {
-      alignItems: "flex-start",
-      marginTop: 4,
-    },
-    nowButton: {
-      backgroundColor: theme.colors.primary,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 6,
-    },
-    nowButtonText: {
-      color: theme.colors.background,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    strengthContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 8,
-    },
-    strengthOption: {
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 2,
-      borderColor: theme.colors.border,
-      borderRadius: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 8,
-      alignItems: "center",
-      marginHorizontal: 4,
-    },
-    strengthOptionSelected: {
-      borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.surfaceSecondary,
-    },
-    strengthText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: theme.colors.textSecondary,
-    },
-    strengthTextSelected: {
-      color: theme.colors.primary,
-      fontWeight: "bold",
-    },
-    severityContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 8,
-    },
-    severityButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      justifyContent: "center",
-      alignItems: "center",
-    },
+    nowButton: { ...formStyles(theme).smallButton, paddingVertical: 5, paddingHorizontal: 12 },
+    nowButtonText: formStyles(theme).smallButtonText,
+    strengthContainer: { flexDirection: 'row', gap: 8 },
+    strengthOption: { ...formStyles(theme).chip, flex: 1, paddingHorizontal: 4 },
+    strengthOptionSelected: formStyles(theme).chipSelected,
+    strengthText: formStyles(theme).chipText,
+    strengthTextSelected: formStyles(theme).chipTextSelected,
+    severityContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+    severityButton: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', opacity: 0.55 },
     severityLow: {
       backgroundColor: "#4CAF50",
     },
@@ -499,33 +441,9 @@ const createStyles = (theme: Theme) =>
     severityHigh: {
       backgroundColor: "#F44336",
     },
-    severityLowSelected: {
-      backgroundColor: "#2E7D32",
-      transform: [{ scale: 1.1 }],
-      shadowColor: theme.colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 6,
-    },
-    severityMediumSelected: {
-      backgroundColor: "#e6ad00",
-      transform: [{ scale: 1.1 }],
-      shadowColor: theme.colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 6,
-    },
-    severityHighSelected: {
-      backgroundColor: "#C62828",
-      transform: [{ scale: 1.1 }],
-      shadowColor: theme.colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 6,
-    },
+    severityLowSelected: { backgroundColor: '#4CAF50', opacity: 1, transform: [{ scale: 1.15 }] },
+    severityMediumSelected: { backgroundColor: '#ffcb2e', opacity: 1, transform: [{ scale: 1.15 }] },
+    severityHighSelected: { backgroundColor: '#F44336', opacity: 1, transform: [{ scale: 1.15 }] },
     severityText: {
       fontSize: 14,
       color: "#FFFFFF",
@@ -534,21 +452,10 @@ const createStyles = (theme: Theme) =>
       fontWeight: "bold",
       fontSize: 16,
     },
-    buttonRow: {
-      flexDirection: "row",
-      marginTop: 16,
-    },
-    backButton: {
-      flex: 1,
-      marginRight: 8,
-    },
-    confirmButton: {
-      flex: 1,
-      marginLeft: 8,
-    },
-    buttonDisabled: {
-      opacity: 0.6,
-    },
+    buttonRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    backButton: { flex: 1 },
+    confirmButton: { flex: 1 },
+    buttonDisabled: formStyles(theme).buttonDisabled,
     submitSpinner: {
       marginRight: 8,
     },
