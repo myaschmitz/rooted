@@ -113,6 +113,7 @@ export default function DateTimeInput({
                   <Text style={f.sheetActionStrong}>Done</Text>
                 </Pressable>
               </View>
+              <View style={styles.pickerWrap}>
               <DateTimePicker
                 value={draft}
                 mode={mode}
@@ -125,6 +126,7 @@ export default function DateTimeInput({
                 }}
                 style={mode === 'date' ? styles.inlinePicker : styles.spinnerPicker}
               />
+              </View>
             </View>
           </View>
         </Modal>
@@ -161,11 +163,18 @@ const styles = StyleSheet.create({
   sheetHeader: {
     backgroundColor: 'transparent',
   },
+  // The native iOS picker sizes itself; center it rather than stretching it,
+  // which left the time wheel hugging the left edge.
+  pickerWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
   inlinePicker: {
     alignSelf: 'center',
-    marginHorizontal: 8,
   },
   spinnerPicker: {
-    alignSelf: 'stretch',
+    alignSelf: 'center',
+    width: 300,
+    height: 216,
   },
 });
