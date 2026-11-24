@@ -14,9 +14,9 @@ import { router, useFocusEffect } from "expo-router";
 import WebContainer from "../../components/WebContainer";
 import { useWebModal } from "../../contexts/WebModalContext";
 import {
-  CheckSquare,
-  Square,
   Filter,
+  Plus,
+  CalendarPlus,
   Search,
   X,
   ArrowDownWideNarrow,
@@ -44,7 +44,11 @@ import {
   useAllTags,
   useBatchPlantTags,
 } from "../../hooks/queries";
-import { TextSkeleton, PlantCardSkeleton } from "../../components/Skeleton";
+import {
+  Skeleton,
+  TextSkeleton,
+  PlantCardSkeleton,
+} from "../../components/Skeleton";
 
 // Custom hooks
 import { usePinnedPlants } from "../../hooks/usePinnedPlants";
@@ -206,7 +210,7 @@ export default function HomeScreen() {
 
     if (pinnedPlants.length > 0) {
       sections.push({
-        title: "Pinned Plants",
+        title: "Pinned",
         data: sortPlants(pinnedPlants, plantWateringData),
       });
     }
@@ -419,6 +423,7 @@ export default function HomeScreen() {
   }) => (
     <PlantSectionHeader
       title={section.title}
+      pinned={section.title === "Pinned"}
       plantCount={section.data.length}
       batchModeEnabled={batchModeEnabled}
       plants={section.data}
@@ -462,6 +467,7 @@ export default function HomeScreen() {
           <View key={section.title}>
             <PlantSectionHeader
               title={section.title}
+              pinned={section.title === "Pinned"}
               plantCount={section.data.length}
               batchModeEnabled={batchModeEnabled}
               plants={section.data}
@@ -477,6 +483,9 @@ export default function HomeScreen() {
     </ScrollView>
   );
 
+  const sortLabel =
+    sortPreference.type === "name" ? "Name" : "Last watered";
+
   // Header toolbar (shared between loading and loaded states)
   const renderToolbar = () => (
     <>
@@ -484,7 +493,7 @@ export default function HomeScreen() {
       {isGridLayout && (
         <View style={styles.pageHeader}>
           <View style={styles.pageHeaderLeft}>
-            <Leaf size={24} color={theme.colors.primary} />
+            <Leaf size={22} color={theme.colors.primary} />
             <Text style={styles.pageTitle}>My Plants</Text>
           </View>
           <Text style={styles.plantCount}>
@@ -494,90 +503,109 @@ export default function HomeScreen() {
       )}
 
       {plants.length > 0 && (
-        <View style={[globalStyles.flexRowBetween, { zIndex: 1000 }]}>
-          <TouchableOpacity
+        <View style={styles.toolbar}>
+          {/* Search Bar */}
+          <View
             style={[
-              globalStyles.flexRowCenter,
-              {
-                margin: 16,
-                padding: 8,
-                borderRadius: 8,
-                backgroundColor: batchModeEnabled
-                  ? theme.colors.primary
-                  : theme.colors.surface,
-              },
+              styles.searchBarContainer,
+              isSearching && styles.searchBarActive,
             ]}
-            onPress={toggleBatchMode}
           >
-            {batchModeEnabled ? (
-              <CheckSquare size={20} color={theme.colors.textOnPrimary} />
-            ) : (
-              <Square size={20} color={theme.colors.textSecondary} />
+            <Search size={18} color={theme.colors.textTertiary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search plants"
+              placeholderTextColor={theme.colors.textTertiary}
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={clearSearch}
+                style={styles.searchClear}
+                accessibilityLabel="Clear search"
+              >
+                <X size={16} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
             )}
-            <Text
-              style={[
-                globalStyles.buttonTextSecondary,
-                {
-                  marginLeft: 8,
-                  color: batchModeEnabled
-                    ? theme.colors.textOnPrimary
-                    : theme.colors.textPrimary,
-                },
-              ]}
-            >
-              Batch Mode
-            </Text>
-          </TouchableOpacity>
+          </View>
 
-          <View style={globalStyles.flexRowCenter}>
-            {batchModeEnabled && selectedPlants.size > 0 ? (
-              <Text style={[globalStyles.bodySmall, { marginRight: 16 }]}>
-                {selectedPlants.size} selected
+          <View style={styles.controlsRow}>
+            {batchModeEnabled ? (
+              <Text style={styles.selectionCount}>
+                {selectedPlants.size === 0
+                  ? "Tap plants to select"
+                  : `${selectedPlants.size} selected`}
               </Text>
             ) : (
-              <View
-                style={[
-                  globalStyles.flexRowCenter,
-                  { marginRight: 16, zIndex: 1000 },
-                ]}
-              >
-                {/* Filter Button */}
+              <View style={styles.controlsLeft}>
+                {/* Sort */}
                 <TouchableOpacity
-                  style={[styles.sortDropdownButton, { marginRight: 8 }]}
-                  onPress={() => setShowFilterDropdown(!showFilterDropdown)}
+                  style={styles.chip}
+                  onPress={() => {
+                    setShowFilterDropdown(false);
+                    setShowSortDropdown(!showSortDropdown);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sort by ${sortLabel}`}
+                >
+                  <ArrowDownUp size={14} color={theme.colors.textSecondary} />
+                  <Text style={styles.chipText}>{sortLabel}</Text>
+                  <ChevronDown size={14} color={theme.colors.textTertiary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.chipIcon}
+                  onPress={toggleSortDirection}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    sortPreference.direction === "asc"
+                      ? "Sort ascending"
+                      : "Sort descending"
+                  }
+                >
+                  {sortPreference.direction === "asc" ? (
+                    <ArrowUpNarrowWide
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
+                  ) : (
+                    <ArrowDownWideNarrow
+                      size={16}
+                      color={theme.colors.textSecondary}
+                    />
+                  )}
+                </TouchableOpacity>
+
+                {/* Tag filter */}
+                <TouchableOpacity
+                  style={[styles.chip, hasActiveFilters && styles.chipActive]}
+                  onPress={() => {
+                    setShowSortDropdown(false);
+                    setShowFilterDropdown(!showFilterDropdown);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Filter by tag"
                 >
                   <Filter
-                    size={18}
+                    size={14}
                     color={
                       hasActiveFilters
                         ? theme.colors.primary
                         : theme.colors.textSecondary
                     }
                   />
-                  {hasActiveFilters && (
-                    <View style={styles.filterBadge}>
-                      <Text style={styles.filterBadgeText}>
-                        {selectedTagsForFilter.size}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {/* Sort Dropdown Button */}
-                <TouchableOpacity
-                  style={[styles.sortDropdownButton, { marginRight: 8 }]}
-                  onPress={() => setShowSortDropdown(!showSortDropdown)}
-                >
-                  <ArrowDownUp size={18} color={theme.colors.textSecondary} />
                   <Text
                     style={[
-                      styles.sortButtonText,
-                      { marginLeft: 6, marginRight: 4 },
+                      styles.chipText,
+                      hasActiveFilters && styles.chipTextActive,
                     ]}
                   >
-                    {sortPreference.type === "name" ? "Name" : "Last Watered"}
+                    {hasActiveFilters
+                      ? `Tags · ${selectedTagsForFilter.size}`
+                      : "Tags"}
                   </Text>
-                  <ChevronDown size={16} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
 
                 {/* Sort Dropdown */}
@@ -589,55 +617,42 @@ export default function HomeScreen() {
                       activeOpacity={1}
                     />
                     <View style={styles.sortDropdown}>
-                      <TouchableOpacity
-                        style={[
-                          styles.sortDropdownItem,
-                          styles.sortDropdownItemWithBorder,
-                          sortPreference.type === "name" &&
-                            styles.sortDropdownItemSelected,
-                        ]}
-                        onPress={() => {
-                          updateSortPreference(
-                            "name",
-                            sortPreference.direction,
-                          );
-                          setShowSortDropdown(false);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.sortDropdownText,
-                            sortPreference.type === "name" &&
-                              styles.sortDropdownTextSelected,
-                          ]}
-                        >
-                          Name
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.sortDropdownItem,
-                          sortPreference.type === "lastWatered" &&
-                            styles.sortDropdownItemSelected,
-                        ]}
-                        onPress={() => {
-                          updateSortPreference(
-                            "lastWatered",
-                            sortPreference.direction,
-                          );
-                          setShowSortDropdown(false);
-                        }}
-                      >
-                        <Text
-                          style={[
-                            styles.sortDropdownText,
-                            sortPreference.type === "lastWatered" &&
-                              styles.sortDropdownTextSelected,
-                          ]}
-                        >
-                          Last Watered
-                        </Text>
-                      </TouchableOpacity>
+                      {(
+                        [
+                          ["name", "Name"],
+                          ["lastWatered", "Last watered"],
+                        ] as const
+                      ).map(([type, label]) => {
+                        const selected = sortPreference.type === type;
+                        return (
+                          <TouchableOpacity
+                            key={type}
+                            style={[
+                              styles.sortDropdownItem,
+                              selected && styles.sortDropdownItemSelected,
+                            ]}
+                            onPress={() => {
+                              updateSortPreference(
+                                type,
+                                sortPreference.direction,
+                              );
+                              setShowSortDropdown(false);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.sortDropdownText,
+                                selected && styles.sortDropdownTextSelected,
+                              ]}
+                            >
+                              {label}
+                            </Text>
+                            {selected && (
+                              <Check size={16} color={theme.colors.primary} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </>
                 )}
@@ -650,23 +665,11 @@ export default function HomeScreen() {
                       onPress={() => setShowFilterDropdown(false)}
                       activeOpacity={1}
                     />
-                    <View style={[styles.sortDropdown, { width: 200 }]}>
-                      <Text
-                        style={[
-                          styles.filterDropdownTitle,
-                          { padding: 12, fontWeight: "bold" },
-                        ]}
-                      >
-                        Filter by Tags
-                      </Text>
+                    <View style={[styles.sortDropdown, styles.filterDropdown]}>
+                      <Text style={styles.dropdownTitle}>Filter by tag</Text>
                       {availableTags.length === 0 ? (
-                        <Text
-                          style={[
-                            styles.sortDropdownText,
-                            { padding: 12, fontStyle: "italic" },
-                          ]}
-                        >
-                          No tags available
+                        <Text style={styles.dropdownEmpty}>
+                          No tags yet
                         </Text>
                       ) : (
                         availableTags.map((tag) => {
@@ -691,6 +694,7 @@ export default function HomeScreen() {
                                   styles.sortDropdownText,
                                   isSelected && styles.sortDropdownTextSelected,
                                 ]}
+                                numberOfLines={1}
                               >
                                 {tag.name}
                               </Text>
@@ -705,10 +709,7 @@ export default function HomeScreen() {
                         <TouchableOpacity
                           style={[
                             styles.sortDropdownItem,
-                            {
-                              borderTopWidth: 1,
-                              borderTopColor: theme.colors.border,
-                            },
+                            styles.dropdownFooter,
                           ]}
                           onPress={clearAllFilters}
                         >
@@ -718,59 +719,32 @@ export default function HomeScreen() {
                               { color: theme.colors.error },
                             ]}
                           >
-                            Clear All Filters
+                            Clear filters
                           </Text>
                         </TouchableOpacity>
                       )}
                     </View>
                   </>
                 )}
-
-                {/* Sort Direction Toggle */}
-                <TouchableOpacity
-                  style={styles.sortButton}
-                  onPress={toggleSortDirection}
-                >
-                  {sortPreference.direction === "asc" ? (
-                    <ArrowUpNarrowWide
-                      size={20}
-                      color={theme.colors.textSecondary}
-                    />
-                  ) : (
-                    <ArrowDownWideNarrow
-                      size={20}
-                      color={theme.colors.textSecondary}
-                    />
-                  )}
-                </TouchableOpacity>
               </View>
             )}
-          </View>
-        </View>
-      )}
 
-      {/* Search Bar */}
-      {plants.length > 0 && (
-        <View
-          style={[
-            styles.searchBarContainer,
-            isSearching && styles.searchBarActive,
-          ]}
-        >
-          <Search size={20} color={theme.colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search plants..."
-            placeholderTextColor={theme.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} style={{ padding: 4 }}>
-              <X size={20} color={theme.colors.textSecondary} />
+            {/* Batch select mode */}
+            <TouchableOpacity
+              style={styles.selectButton}
+              onPress={toggleBatchMode}
+              accessibilityRole="button"
+            >
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  batchModeEnabled && styles.selectButtonTextActive,
+                ]}
+              >
+                {batchModeEnabled ? "Done" : "Select"}
+              </Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
       )}
     </>
@@ -781,39 +755,18 @@ export default function HomeScreen() {
     return (
       <WebContainer>
         <View style={styles.container}>
-          <View style={globalStyles.flexRowBetween}>
-            <View
-              style={[
-                globalStyles.flexRowCenter,
-                {
-                  margin: 16,
-                  padding: 8,
-                  borderRadius: 8,
-                  backgroundColor: theme.colors.surface,
-                },
-              ]}
-            >
-              <Square size={20} color={theme.colors.textSecondary} />
-              <Text
-                style={[
-                  globalStyles.buttonTextSecondary,
-                  { marginLeft: 8, color: theme.colors.textPrimary },
-                ]}
-              >
-                Batch Mode
-              </Text>
+          <View style={styles.toolbar}>
+            <View style={styles.searchBarContainer}>
+              <Search size={18} color={theme.colors.textTertiary} />
+              <TextSkeleton width="40%" style={{ marginLeft: 8 }} />
             </View>
-
-            <View style={[globalStyles.flexRowCenter, { marginRight: 16 }]}>
-              <TextSkeleton width={32} style={{ marginRight: 8 }} />
-              <TextSkeleton width={80} style={{ marginRight: 8 }} />
-              <TextSkeleton width={20} />
+            <View style={styles.controlsRow}>
+              <View style={styles.controlsLeft}>
+                <Skeleton width={110} height={32} borderRadius={16} />
+                <Skeleton width={32} height={32} borderRadius={16} />
+                <Skeleton width={70} height={32} borderRadius={16} />
+              </View>
             </View>
-          </View>
-
-          <View style={styles.searchBarContainer}>
-            <Search size={20} color={theme.colors.textSecondary} />
-            <TextSkeleton width="60%" style={{ marginLeft: 8 }} />
           </View>
 
           <ScrollView style={styles.list}>
@@ -934,16 +887,13 @@ export default function HomeScreen() {
               {/* FAB for adding plants or batch care */}
               {batchModeEnabled && selectedPlants.size > 0 ? (
                 <TouchableOpacity
-                  style={globalStyles.fab}
+                  style={styles.batchFab}
                   onPress={() => setShowCareModal(true)}
+                  accessibilityRole="button"
                 >
-                  <Text
-                    style={[
-                      globalStyles.buttonText,
-                      { fontSize: 12, textAlign: "center" },
-                    ]}
-                  >
-                    Add Event ({selectedPlants.size})
+                  <CalendarPlus size={18} color={theme.colors.textOnPrimary} />
+                  <Text style={styles.batchFabText}>
+                    Log event · {selectedPlants.size}
                   </Text>
                 </TouchableOpacity>
               ) : (
@@ -952,8 +902,10 @@ export default function HomeScreen() {
                   onPress={() =>
                     openModal("add-plant") || router.navigate("/add-plant")
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel="Add plant"
                 >
-                  <Text style={styles.fabText}>+</Text>
+                  <Plus size={26} color={theme.colors.textOnPrimary} />
                 </TouchableOpacity>
               )}
             </>

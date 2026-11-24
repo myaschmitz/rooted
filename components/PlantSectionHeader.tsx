@@ -1,13 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check, Minus, Pin } from 'lucide-react-native';
 import { Plant } from '../types/Plant';
 import { useTheme, Theme } from '../contexts/ThemeContext';
-import { useGlobalStyles } from '../styles';
+import { BaseColors, Spacing, Typography } from '../styles/theme';
 
 interface PlantSectionHeaderProps {
   title: string;
   plantCount: number;
+  /** Show a pin icon before the title (the pinned section). */
+  pinned?: boolean;
   // Batch mode props
   batchModeEnabled: boolean;
   plants?: Plant[];
@@ -18,97 +20,95 @@ interface PlantSectionHeaderProps {
 export default function PlantSectionHeader({
   title,
   plantCount,
+  pinned = false,
   batchModeEnabled,
   plants = [],
   selectedPlantIds = new Set(),
   onSelectAll,
 }: PlantSectionHeaderProps) {
   const { theme } = useTheme();
-  const globalStyles = useGlobalStyles();
   const styles = createStyles(theme);
+
+  const label = (
+    <View style={styles.labelRow}>
+      {pinned ? (
+        <Pin size={12} color={theme.colors.primary} fill={theme.colors.primary} />
+      ) : null}
+      <Text style={styles.title} numberOfLines={1}>
+        {title}
+      </Text>
+      <Text style={styles.count}>{plantCount}</Text>
+    </View>
+  );
 
   if (batchModeEnabled && plants.length > 0) {
     const allSelected = plants.every((plant) => selectedPlantIds.has(plant.id));
-    const someSelected = plants.some((plant) => selectedPlantIds.has(plant.id));
+    const someSelected = !allSelected && plants.some((plant) => selectedPlantIds.has(plant.id));
 
     return (
-      <View style={styles.locationHeader}>
-        <TouchableOpacity
-          style={globalStyles.flexRowBetween}
-          onPress={() => onSelectAll?.(plants)}
+      <TouchableOpacity
+        style={styles.header}
+        onPress={() => onSelectAll?.(plants)}
+        accessibilityRole="button"
+        accessibilityLabel={`${allSelected ? 'Deselect' : 'Select'} all in ${title}`}
+      >
+        <View
+          style={[
+            styles.checkbox,
+            (allSelected || someSelected) && styles.checkboxSelected,
+          ]}
         >
-          <View style={globalStyles.flexRowCenter}>
-            <View
-              style={[
-                styles.checkbox,
-                allSelected && styles.checkboxSelected,
-                someSelected && !allSelected && styles.checkboxPartial,
-              ]}
-            >
-              {allSelected && <Check size={16} color={theme.colors.textOnPrimary} />}
-              {someSelected && !allSelected && <Text style={styles.checkboxText}>−</Text>}
-            </View>
-            <Text style={styles.locationTitle}>{title}</Text>
-          </View>
-          <Text style={styles.selectAllText}>
-            {plantCount} plant{plantCount !== 1 ? 's' : ''}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {allSelected ? <Check size={12} color={BaseColors.white} strokeWidth={3} /> : null}
+          {someSelected ? <Minus size={12} color={BaseColors.white} strokeWidth={3} /> : null}
+        </View>
+        {label}
+        <Text style={styles.selectAll}>{allSelected ? 'Deselect all' : 'Select all'}</Text>
+      </TouchableOpacity>
     );
   }
 
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionCount}>
-        {plantCount} plant{plantCount !== 1 ? 's' : ''}
-      </Text>
-    </View>
-  );
+  return <View style={styles.header}>{label}</View>;
 }
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    sectionHeader: {
+    header: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
       alignItems: 'center',
-      padding: 12,
-      paddingTop: 16,
+      gap: Spacing.sm,
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.base + 2,
+      paddingBottom: Spacing.sm,
       backgroundColor: theme.colors.background,
     },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: theme.colors.text,
+    labelRow: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
     },
-    sectionCount: {
-      fontSize: 14,
+    title: {
+      flexShrink: 1,
+      fontSize: Typography.sm - 1,
+      fontWeight: Typography.weights.semibold,
       color: theme.colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
     },
-    locationHeader: {
-      paddingVertical: 8,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-      marginBottom: 8,
-      backgroundColor: theme.colors.background,
+    count: {
+      fontSize: Typography.sm - 1,
+      fontWeight: Typography.weights.medium,
+      color: theme.colors.textTertiary,
     },
-    locationTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: theme.colors.text,
-      marginLeft: 12,
-    },
-    selectAllText: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
+    selectAll: {
+      fontSize: Typography.sm - 1,
+      fontWeight: Typography.weights.semibold,
+      color: theme.colors.primary,
     },
     checkbox: {
-      width: 24,
-      height: 24,
-      borderRadius: 6,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
       borderWidth: 2,
       borderColor: theme.colors.border,
       justifyContent: 'center',
@@ -117,12 +117,5 @@ const createStyles = (theme: Theme) =>
     checkboxSelected: {
       backgroundColor: theme.colors.primary,
       borderColor: theme.colors.primary,
-    },
-    checkboxPartial: {
-      backgroundColor: theme.colors.border,
-    },
-    checkboxText: {
-      fontSize: 16,
-      color: theme.colors.textSecondary,
     },
   });
