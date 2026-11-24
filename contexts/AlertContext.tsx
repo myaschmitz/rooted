@@ -8,6 +8,7 @@ import {
   Platform,
 } from "react-native";
 import { useTheme, Theme } from "./ThemeContext";
+import { formStyles } from "../styles/FormStyles";
 
 interface AlertButton {
   text: string;
@@ -84,7 +85,7 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
       ];
     }
     if (button.style === "cancel") {
-      return [styles.button, { backgroundColor: theme.colors.background }];
+      return [styles.button, { backgroundColor: theme.colors.surfaceSecondary }];
     }
     return [styles.button, { backgroundColor: theme.colors.primary }];
   };
@@ -149,60 +150,19 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    modal: {
-      backgroundColor: theme.colors.surface,
-      borderRadius: 12,
-      padding: 24,
-      minWidth: 300,
-      maxWidth: Platform.OS === "web" ? 420 : 340,
-      width: "85%",
-      shadowColor: theme.colors.text,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: theme.colors.text,
-      marginBottom: 12,
-      textAlign: "center",
-    },
-    message: {
-      fontSize: 16,
-      lineHeight: 22,
-      color: theme.colors.text,
-      marginBottom: 20,
-      textAlign: "center",
-    },
-    buttonRow: {
-      flexDirection: "row",
-      gap: 12,
-    },
-    buttonColumn: {
-      flexDirection: "column",
-      gap: 10,
-    },
+    overlay: formStyles(theme).dialogOverlay,
+    modal: { ...formStyles(theme).dialogCard, maxWidth: Platform.OS === 'web' ? 400 : 340 },
+    title: formStyles(theme).dialogTitle,
+    message: formStyles(theme).dialogMessage,
+    buttonRow: { flexDirection: 'row', gap: 10 },
+    buttonColumn: { flexDirection: 'column', gap: 10 },
     buttonStacked: {
       alignSelf: "stretch",
     },
     buttonRowItem: {
       flex: 1,
     },
-    button: {
-      padding: 14,
-      borderRadius: 8,
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: 48,
-    },
+    button: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', minHeight: 48, ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}) },
     buttonText: {
       fontSize: 16,
       fontWeight: "600",

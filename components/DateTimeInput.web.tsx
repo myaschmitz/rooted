@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
+import { formStyles } from '../styles/FormStyles';
 
 interface DateTimeInputProps {
   value: Date;
@@ -53,11 +54,7 @@ export default function DateTimeInput({
     <View>
       {label && (
         <Text
-          style={[
-            styles.label,
-            compact && styles.compactLabel,
-            { color: theme.colors.textPrimary },
-          ]}
+          style={[formStyles(theme).label, compact && styles.compactLabel]}
         >
           {label}
         </Text>
@@ -67,10 +64,11 @@ export default function DateTimeInput({
         value={inputValue}
         onChange={handleChange}
         style={{
-          padding: 10,
+          padding: '0 14px',
+          height: 48,
           fontSize: 16,
-          borderRadius: 8,
-          border: `1px solid ${theme.colors.border}`,
+          borderRadius: 12,
+          border: `1px solid ${theme.colors.borderLight}`,
           backgroundColor: theme.colors.surface,
           color: theme.colors.textPrimary,
           outline: 'none',

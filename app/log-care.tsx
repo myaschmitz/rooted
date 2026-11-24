@@ -12,7 +12,13 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
-import { ChevronRight } from "lucide-react-native";
+import {
+  ChevronRight,
+  ChevronDown,
+  Camera,
+  ImagePlus,
+  Sprout,
+} from "lucide-react-native";
 import DateTimeInput from "../components/DateTimeInput";
 import { EventService } from "../services/EventService";
 import { PlantService } from "../services/PlantService";
@@ -27,6 +33,7 @@ import {
 import { useGlobalStyles } from "../styles";
 import { useTheme } from "../contexts/ThemeContext";
 import { useCareStyles } from "../styles/CareStyles";
+import { formStyles } from "../styles/FormStyles";
 import KeyboardAwareScrollView from "../components/KeyboardAwareScrollView";
 import { useCreateEvent, useUpdatePlant } from "../hooks/queries";
 import LocationDropdown from "../components/LocationDropdown";
@@ -418,7 +425,7 @@ export default function LogCareScreen() {
                       setCareDateTime(new Date());
                     }}
                   >
-                    <Text style={styles.nowButtonText}>Set to Now</Text>
+                    <Text style={styles.nowButtonText}>Now</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -528,9 +535,11 @@ export default function LogCareScreen() {
                 onPress={() => setPhotosExpanded(!photosExpanded)}
               >
                 <Text style={globalStyles.label}>Photos (Optional)</Text>
-                <Text style={styles.expandIcon}>
-                  {photosExpanded ? "▼" : "▶"}
-                </Text>
+                {photosExpanded ? (
+                  <ChevronDown size={18} color={theme.colors.textSecondary} />
+                ) : (
+                  <ChevronRight size={18} color={theme.colors.textSecondary} />
+                )}
               </TouchableOpacity>
 
               {photosExpanded && (
@@ -555,7 +564,7 @@ export default function LogCareScreen() {
                         </>
                       ) : (
                         <>
-                          <Text style={styles.photoActionIcon}>📸</Text>
+                          <Camera size={20} color={theme.colors.primary} />
                           <Text style={styles.photoActionText}>Take Photo</Text>
                         </>
                       )}
@@ -579,7 +588,7 @@ export default function LogCareScreen() {
                         </>
                       ) : (
                         <>
-                          <Text style={styles.photoActionIcon}>🖼️</Text>
+                          <ImagePlus size={20} color={theme.colors.primary} />
                           <Text style={styles.photoActionText}>
                             From Library
                           </Text>
@@ -591,7 +600,7 @@ export default function LogCareScreen() {
                       style={styles.photoActionButton}
                       onPress={handlePickFromPlantPhotos}
                     >
-                      <Text style={styles.photoActionIcon}>🌱</Text>
+                      <Sprout size={20} color={theme.colors.primary} />
                       <Text style={styles.photoActionText}>Plant Photos</Text>
                     </TouchableOpacity>
                   </View>
@@ -774,39 +783,12 @@ export default function LogCareScreen() {
 
 const createStyles = (theme) =>
   StyleSheet.create({
-    plantInfo: {
-      marginBottom: 20,
-      alignItems: "center",
-    },
-    plantName: {
-      fontSize: 20,
-      fontWeight: "bold",
-      color: theme.colors.textPrimary,
-    },
-    plantType: {
-      fontSize: 16,
-      color: theme.colors.textSecondary,
-    },
-    careTypeGrid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "space-between",
-    },
-    careTypeOption: {
-      width: "30%",
-      borderRadius: 12,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 2,
-      borderColor: theme.colors.border,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 12,
-      padding: 8,
-    },
-    careTypeOptionSelected: {
-      borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.primaryLight,
-    },
+    plantInfo: { marginBottom: 20, alignItems: 'center', gap: 2 },
+    plantName: { fontSize: 20, fontWeight: '700', color: theme.colors.text },
+    plantType: { fontSize: 14, color: theme.colors.textSecondary },
+    careTypeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+    careTypeOption: { ...formStyles(theme).tile, width: '31.5%' },
+    careTypeOptionSelected: formStyles(theme).tileSelected,
     careTypeOptionLink: {
       borderStyle: "dashed",
       backgroundColor: "transparent",
@@ -816,160 +798,34 @@ const createStyles = (theme) =>
       top: 4,
       right: 4,
     },
-    careTypeIcon: {
-      fontSize: 24,
-    },
-    careTypeText: {
-      fontSize: 12,
-      color: theme.colors.textSecondary,
-      fontWeight: "500",
-      marginTop: 8,
-      textAlign: "center",
-    },
-    careTypeTextSelected: {
-      color: theme.colors.primary,
-      fontWeight: "bold",
-    },
-    dateTimeButton: {
-      backgroundColor: theme.colors.surface,
-      padding: 16,
-      borderRadius: 8,
-      marginTop: 8,
-    },
-    dateTimeText: {
-      fontSize: 16,
-      color: theme.colors.textPrimary,
-    },
-    saveButton: {
-      ...useGlobalStyles().buttonLarge,
-      marginTop: 20,
-    },
-    tabContainer: {
-      flexDirection: "row",
-      backgroundColor: theme.colors.surface,
-      borderRadius: 8,
-      padding: 4,
-      marginBottom: 16,
-    },
-    tab: {
-      flex: 1,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 6,
-      alignItems: "center",
-    },
-    tabActive: {
-      backgroundColor: theme.colors.primary,
-    },
-    tabText: {
-      fontSize: 16,
-      fontWeight: "500",
-      color: theme.colors.textSecondary,
-    },
-    tabTextActive: {
-      color: theme.colors.background,
-      fontWeight: "bold",
-    },
-    dateTimeRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
-    dateTimeSection: {
-      flex: 1,
-      marginHorizontal: 4,
-      marginBottom: 8,
-    },
-    dateTimeLabel: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      fontWeight: "500",
-      marginBottom: 8,
-    },
-    buttonSection: {
-      justifyContent: "flex-end",
-      alignItems: "center",
-      paddingHorizontal: 4,
-      paddingTop: 26,
-    },
-    nowButton: {
-      backgroundColor: theme.colors.primary,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 6,
-    },
-    nowButtonText: {
-      color: theme.colors.background,
-      fontSize: 12,
-      fontWeight: "600",
-    },
-    strengthContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 8,
-    },
-    strengthOption: {
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 2,
-      borderColor: theme.colors.border,
-      borderRadius: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 8,
-      alignItems: "center",
-      marginHorizontal: 4,
-    },
-    strengthOptionSelected: {
-      borderColor: theme.colors.primary,
-      backgroundColor: theme.colors.primaryLight,
-    },
-    strengthText: {
-      fontSize: 14,
-      fontWeight: "600",
-      color: theme.colors.textSecondary,
-    },
-    strengthTextSelected: {
-      color: theme.colors.primary,
-      fontWeight: "bold",
-    },
-    photoActionContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginTop: 8,
-      marginBottom: 16,
-    },
-    photoActionButton: {
-      flex: 1,
-      backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: 8,
-      padding: 12,
-      alignItems: "center",
-      marginHorizontal: 4,
-    },
-    photoActionIcon: {
-      fontSize: 24,
-      marginBottom: 4,
-    },
-    photoActionText: {
-      fontSize: 12,
-      color: theme.colors.textSecondary,
-      fontWeight: "500",
-      textAlign: "center",
-    },
+    careTypeText: formStyles(theme).tileText,
+    careTypeTextSelected: formStyles(theme).tileTextSelected,
+    saveButton: { ...formStyles(theme).primaryButton, marginTop: 12 },
+    tabContainer: formStyles(theme).segmented,
+    tab: formStyles(theme).segment,
+    tabActive: formStyles(theme).segmentActive,
+    tabText: formStyles(theme).segmentText,
+    tabTextActive: formStyles(theme).segmentTextActive,
+    dateTimeRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    dateTimeSection: { flex: 1 },
+    buttonSection: { justifyContent: 'flex-end' },
+    nowButton: { ...formStyles(theme).smallButton, height: 48, borderRadius: 12, paddingHorizontal: 14 },
+    nowButtonText: formStyles(theme).smallButtonText,
+    strengthContainer: { flexDirection: 'row', gap: 8 },
+    strengthOption: { ...formStyles(theme).chip, flex: 1, paddingHorizontal: 4 },
+    strengthOptionSelected: formStyles(theme).chipSelected,
+    strengthText: formStyles(theme).chipText,
+    strengthTextSelected: formStyles(theme).chipTextSelected,
+    photoActionContainer: { flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 12 },
+    photoActionButton: { flex: 1, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.borderLight, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', gap: 6 },
+    photoActionText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500', textAlign: 'center' },
     photoActionButtonDisabled: {
       opacity: 0.6,
     },
     selectedPhotosContainer: {
       marginTop: 8,
     },
-    selectedPhotosLabel: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      fontWeight: "500",
-      marginBottom: 8,
-    },
+    selectedPhotosLabel: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500', marginBottom: 4 },
     selectedPhotosScroll: {
       maxHeight: 100,
     },
@@ -978,23 +834,8 @@ const createStyles = (theme) =>
       marginRight: 20,
       paddingTop: 10,
     },
-    selectedPhotoImage: {
-      width: 80,
-      height: 80,
-      borderRadius: 8,
-      backgroundColor: theme.colors.surface,
-    },
-    removePhotoButton: {
-      position: "absolute",
-      top: 0,
-      right: -8,
-      backgroundColor: theme.colors.error,
-      borderRadius: 12,
-      width: 24,
-      height: 24,
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    selectedPhotoImage: { width: 80, height: 80, borderRadius: 12, backgroundColor: theme.colors.surface },
+    removePhotoButton: { position: 'absolute', top: 2, right: -8, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.colors.background },
     removePhotoText: {
       color: "white",
       fontSize: 12,
@@ -1005,47 +846,15 @@ const createStyles = (theme) =>
       backgroundColor: theme.colors.background,
       paddingTop: 50,
     },
-    modalHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingBottom: 20,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border,
-    },
-    modalTitle: {
-      fontSize: 18,
-      fontWeight: "bold",
-      color: theme.colors.textPrimary,
-    },
-    modalCancelButton: {
-      padding: 8,
-    },
-    modalCancelText: {
-      fontSize: 16,
-      color: theme.colors.textSecondary,
-    },
-    modalConfirmButton: {
-      backgroundColor: theme.colors.primary,
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    modalConfirmButtonDisabled: {
-      backgroundColor: theme.colors.disabled,
-    },
-    modalConfirmText: {
-      fontSize: 16,
-      fontWeight: "bold",
-      color: theme.colors.background,
-    },
-    modalConfirmTextDisabled: {
-      color: theme.colors.textSecondary,
-    },
-    photoGrid: {
-      padding: 20,
-    },
+    modalHeader: formStyles(theme).sheetHeader,
+    modalTitle: formStyles(theme).sheetTitle,
+    modalCancelButton: { padding: 4 },
+    modalCancelText: formStyles(theme).sheetAction,
+    modalConfirmButton: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: theme.colors.primary },
+    modalConfirmButtonDisabled: { opacity: 0.4 },
+    modalConfirmText: { fontSize: 15, fontWeight: '600', color: theme.colors.textOnPrimary },
+    modalConfirmTextDisabled: {},
+    photoGrid: { padding: 12 },
     photoGridItem: {
       flex: 1,
       aspectRatio: 1,
@@ -1056,24 +865,13 @@ const createStyles = (theme) =>
       borderColor: "transparent",
       maxWidth: Dimensions.get("window").width / 3 - 16,
     },
-    photoGridItemSelected: {
-      borderColor: theme.colors.primary,
-    },
+    photoGridItemSelected: { borderColor: theme.colors.primary },
     photoGridImage: {
       width: "100%",
       height: "100%",
       backgroundColor: theme.colors.surface,
     },
-    photoSelectedOverlay: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      alignItems: "center",
-      justifyContent: "center",
-    },
+    photoSelectedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.35)', alignItems: 'center', justifyContent: 'center' },
     photoSelectedIcon: {
       color: "white",
       fontSize: 24,
@@ -1085,10 +883,7 @@ const createStyles = (theme) =>
       justifyContent: "center",
       paddingVertical: 40,
     },
-    emptyPhotoText: {
-      fontSize: 16,
-      color: theme.colors.textSecondary,
-    },
+    emptyPhotoText: formStyles(theme).empty,
     notesSection: {
       marginTop: 6,
     },
@@ -1100,10 +895,5 @@ const createStyles = (theme) =>
       justifyContent: "space-between",
       alignItems: "center",
       paddingVertical: 4,
-    },
-    expandIcon: {
-      fontSize: 14,
-      color: theme.colors.textSecondary,
-      fontWeight: "bold",
     },
   });

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTheme, Theme } from '../../contexts/ThemeContext';
+import { View, Text, Modal, TextInput, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
+import { formStyles } from '../../styles/FormStyles';
 
 interface EditHouseholdNameModalProps {
   visible: boolean;
@@ -20,46 +21,35 @@ export default function EditHouseholdNameModal({
   onClose,
 }: EditHouseholdNameModalProps) {
   const { theme } = useTheme();
-  const styles = createStyles(theme);
+  const f = formStyles(theme);
 
   return (
-    <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.editModal, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Edit Household Name</Text>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={f.dialogOverlay}>
+        <View style={f.dialogCard}>
+          <Text style={f.dialogTitle}>Rename household</Text>
+          <Text style={f.dialogMessage}>Everyone in the household will see the new name.</Text>
 
           <TextInput
-            style={[
-              styles.modalInput,
-              {
-                backgroundColor: theme.colors.background,
-                borderColor: theme.colors.border,
-                color: theme.colors.text,
-              },
-            ]}
+            style={[f.input, { marginBottom: 20 }]}
             value={householdName}
             onChangeText={onChangeText}
-            placeholder="Enter household name"
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholder="Household name"
+            placeholderTextColor={theme.colors.textTertiary}
             autoCapitalize="words"
+            autoFocus
           />
 
-          <View style={styles.modalButtons}>
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
-              onPress={onClose}
-            >
-              <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
+          <View style={f.dialogButtonsRow}>
+            <TouchableOpacity style={[f.secondaryButton, { flex: 1 }]} onPress={onClose}>
+              <Text style={f.secondaryButtonText}>Cancel</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: theme.colors.primary }]}
+              style={[f.primaryButton, { flex: 1 }, loading && f.buttonDisabled]}
               onPress={onSave}
               disabled={loading}
             >
-              <Text style={[styles.modalButtonText, { color: theme.colors.textOnPrimary }]}>
-                {loading ? 'Saving...' : 'Save'}
-              </Text>
+              <Text style={f.primaryButtonText}>{loading ? 'Saving…' : 'Save'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -67,50 +57,3 @@ export default function EditHouseholdNameModal({
     </Modal>
   );
 }
-
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    editModal: {
-      borderRadius: 12,
-      padding: 24,
-      minWidth: 300,
-      maxWidth: 400,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 16,
-      textAlign: 'center',
-    },
-    modalInput: {
-      borderWidth: 1,
-      borderRadius: 8,
-      padding: 12,
-      fontSize: 16,
-      marginBottom: 20,
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    modalButton: {
-      flex: 1,
-      padding: 14,
-      borderRadius: 8,
-      alignItems: 'center',
-    },
-    modalButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-    },
-  });

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { TagService } from '../services/TagService';
 import { useTheme } from '../contexts/ThemeContext';
+import { formStyles } from '../styles/FormStyles';
 import { Tag } from '../types/Plant';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { TextSkeleton } from '../components/Skeleton';
@@ -137,7 +138,6 @@ export default function EditTagScreen() {
     <WebContainer>
     <KeyboardAwareScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Edit Tag</Text>
         
         {/* Tag Name Input */}
         <View style={styles.section}>
@@ -264,46 +264,16 @@ export default function EditTagScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: formStyles(theme).screen,
+  loadingContainer: { justifyContent: 'center', alignItems: 'center' },
   loadingText: {
     fontSize: 16,
     color: theme.colors.textSecondary,
   },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: 25,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    color: theme.colors.text,
-  },
+  content: formStyles(theme).form,
+  section: formStyles(theme).inputGroup,
+  label: formStyles(theme).label,
+  input: formStyles(theme).input,
   characterCount: {
     fontSize: 12,
     color: theme.colors.textTertiary,
@@ -313,90 +283,22 @@ const createStyles = (theme: any) => StyleSheet.create({
   previewContainer: {
     alignItems: 'flex-start',
   },
-  tagPreview: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    minHeight: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  tagPreview: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, minHeight: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
   tagPreviewText: {
     fontSize: 14,
     fontWeight: '600',
   },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  colorOption: {
-    width: (screenWidth - 40 - (11 * 4)) / 4, // 4 colors per row with gaps
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 3,
-    borderColor: 'transparent',
-  },
-  selectedColorOption: {
-    borderColor: theme.colors.primary,
-    borderWidth: 3,
-  },
-  customColorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  colorInput: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    color: theme.colors.text,
-    fontFamily: 'monospace', // For better hex display
-  },
-  colorPreview: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 30,
-  },
-  button: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  cancelButtonText: {
-    color: theme.colors.textSecondary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  saveButtonText: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  colorOption: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: 'transparent' },
+  selectedColorOption: { borderColor: theme.colors.text, transform: [{ scale: 1.08 }] },
+  customColorContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  colorInput: { ...formStyles(theme).input, flex: 1, fontFamily: 'monospace' },
+  colorPreview: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: theme.colors.border },
+  buttonContainer: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  button: { flex: 1 },
+  cancelButton: formStyles(theme).secondaryButton,
+  saveButton: formStyles(theme).primaryButton,
+  buttonDisabled: formStyles(theme).buttonDisabled,
+  cancelButtonText: formStyles(theme).secondaryButtonText,
+  saveButtonText: formStyles(theme).primaryButtonText,
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
+import { formStyles } from '../styles/FormStyles';
 
 interface DateTimeInputProps {
   value: Date;
@@ -24,11 +25,7 @@ export default function DateTimeInput({
     <View style={compact && styles.compactContainer}>
       {label && (
         <Text
-          style={[
-            styles.label,
-            compact && styles.compactLabel,
-            { color: theme.colors.textPrimary },
-          ]}
+          style={[formStyles(theme).label, compact && styles.compactLabel]}
         >
           {label}
         </Text>

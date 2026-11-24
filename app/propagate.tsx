@@ -20,6 +20,7 @@ import { useModalParams, useModalReplace } from "../hooks/useModalNav";
 import { usePlant, usePropagatePlant, useAllTags, usePlantTags } from "../hooks/queries";
 import { PropagationMethod } from "../constants/propagation";
 import { Spacing, Typography, BorderRadius } from "../styles/theme";
+import { formStyles } from "../styles/FormStyles";
 
 export default function PropagateScreen() {
   const { theme } = useTheme();
@@ -260,86 +261,28 @@ export default function PropagateScreen() {
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: theme.colors.background,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      gap: Spacing.sm,
-      backgroundColor: theme.colors.background,
-    },
-    form: {
-      padding: Spacing.lg,
-    },
-    intro: {
-      color: theme.colors.textSecondary,
-      fontSize: Typography.sm,
-      marginBottom: Spacing.lg,
-    },
-    inputGroup: {
-      marginBottom: Spacing.lg,
-    },
-    label: {
-      fontSize: Typography.base,
-      fontWeight: "600",
-      marginBottom: Spacing.sm,
-      color: theme.colors.text,
-    },
-    input: {
-      backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.base - 1,
-      fontSize: Typography.base,
-      color: theme.colors.text,
-    },
-    notesInput: {
-      minHeight: 100,
-    },
-    tagHint: {
-      fontSize: Typography.sm,
-      color: theme.colors.textSecondary,
-      marginBottom: Spacing.sm,
-    },
+    container: formStyles(theme).screen,
+    loadingContainer: { ...formStyles(theme).screen, justifyContent: 'center', alignItems: 'center', gap: Spacing.sm },
+    form: formStyles(theme).form,
+    intro: { ...formStyles(theme).helper, marginBottom: Spacing.lg },
+    inputGroup: formStyles(theme).inputGroup,
+    label: formStyles(theme).label,
+    input: formStyles(theme).input,
+    notesInput: { minHeight: 104, textAlignVertical: 'top' },
+    tagHint: formStyles(theme).sublabel,
     tagRow: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: Spacing.sm,
     },
-    tagChip: {
-      paddingVertical: Spacing.xs,
-      paddingHorizontal: Spacing.base,
-      borderRadius: BorderRadius.full,
-      borderWidth: 1,
-    },
+    tagChip: { paddingVertical: 7, paddingHorizontal: 14, borderRadius: BorderRadius.full, borderWidth: 1.5 },
     tagChipText: {
       fontSize: Typography.sm,
       fontWeight: Typography.weights.medium,
     },
-    saveButton: {
-      backgroundColor: theme.colors.primary,
-      padding: Spacing.base - 1,
-      borderRadius: BorderRadius.md,
-      alignItems: "center",
-    },
-    saveButtonDisabled: {
-      opacity: 0.6,
-    },
-    saveButtonText: {
-      color: theme.colors.textOnPrimary,
-      fontSize: Typography.base,
-      fontWeight: "bold",
-    },
-    emptyText: {
-      color: theme.colors.text,
-      fontSize: Typography.base,
-    },
-    linkText: {
-      color: theme.colors.primary,
-      fontSize: Typography.sm,
-    },
+    saveButton: { ...formStyles(theme).primaryButton, marginTop: 8 },
+    saveButtonDisabled: formStyles(theme).buttonDisabled,
+    saveButtonText: formStyles(theme).primaryButtonText,
+    emptyText: formStyles(theme).empty,
+    linkText: formStyles(theme).link,
   });

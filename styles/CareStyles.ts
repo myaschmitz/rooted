@@ -7,16 +7,17 @@ export const useCareStyles = () => {
 
   return StyleSheet.create({
     plantInfo: {
-      marginBottom: 24,
+      marginBottom: 20,
       alignItems: 'center',
+      gap: 2,
     },
     plantName: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
     },
     plantType: {
-      fontSize: 18,
+      fontSize: 14,
       color: colors.textSecondary,
     },
     careTypeGrid: {
@@ -95,12 +96,13 @@ export const useCareStyles = () => {
     severityContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 8,
+      marginTop: 4,
     },
     severityButton: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      opacity: 0.55,
       justifyContent: 'center',
       alignItems: 'center',
       // borderWidth: 1,
@@ -110,9 +112,8 @@ export const useCareStyles = () => {
     severityMedium: { backgroundColor: '#ffcb2eff' },
     severityHigh: { backgroundColor: '#F44336' },
     severityButtonSelected: {
-      // borderWidth: 2,
-      // borderColor: colors.border,
-      transform: [{ scale: 1.1 }],
+      opacity: 1,
+      transform: [{ scale: 1.15 }],
       shadowColor: colors.textPrimary,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,

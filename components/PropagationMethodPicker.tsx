@@ -16,6 +16,7 @@ import {
   PropagationMethod,
 } from "../constants/propagation";
 import { Spacing, Typography, BorderRadius } from "../styles/theme";
+import { formStyles } from "../styles/FormStyles";
 
 // Kept out of constants/propagation.ts, which the service imports and so must
 // stay free of UI dependencies.
@@ -57,7 +58,7 @@ export default function PropagationMethodPicker({
             <Icon
               size={16}
               color={
-                selected ? theme.colors.textOnPrimary : theme.colors.textSecondary
+                selected ? theme.colors.primary : theme.colors.textSecondary
               }
             />
             <Text
@@ -82,27 +83,8 @@ const createStyles = (theme: Theme) =>
       flexWrap: "wrap",
       gap: Spacing.sm,
     },
-    methodChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: Spacing.xs + 2,
-      paddingHorizontal: Spacing.base - 4,
-      paddingVertical: Spacing.sm + 2,
-      borderRadius: BorderRadius.full,
-      borderWidth: 1,
-      borderColor: theme.colors.border,
-      backgroundColor: theme.colors.surface,
-    },
-    methodChipSelected: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
-    },
-    methodChipText: {
-      fontSize: Typography.sm,
-      color: theme.colors.textSecondary,
-    },
-    methodChipTextSelected: {
-      color: theme.colors.textOnPrimary,
-      fontWeight: Typography.weights.medium,
-    },
+    methodChip: { ...formStyles(theme).chip, flexDirection: 'row', gap: Spacing.xs + 2 },
+    methodChipSelected: formStyles(theme).chipSelected,
+    methodChipText: formStyles(theme).chipText,
+    methodChipTextSelected: formStyles(theme).chipTextSelected,
   });

@@ -14,6 +14,7 @@ import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
 import { BaseColors } from '../styles/theme';
+import { formStyles } from '../styles/FormStyles';
 import { Camera } from 'lucide-react-native';
 import { useCreatePlant, useSavePhoto, useCreateEvent } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
@@ -152,7 +153,7 @@ export default function AddPlantScreen() {
                 </View>
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Camera size={48} color={theme.colors.textSecondary} />
+                  <Camera size={30} color={theme.colors.textTertiary} />
                   <Text style={styles.photoPlaceholderSubtext}>Tap to add photo</Text>
                 </View>
               )}
@@ -255,39 +256,13 @@ export default function AddPlantScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  form: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: theme.colors.text,
-  },
-  input: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  notesInput: {
-    minHeight: 100,
-  },
-  photoContainer: {
-    width: '100%',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
+  container: formStyles(theme).screen,
+  form: formStyles(theme).form,
+  inputGroup: formStyles(theme).inputGroup,
+  label: formStyles(theme).label,
+  input: formStyles(theme).input,
+  notesInput: { minHeight: 104, textAlignVertical: 'top' },
+  photoContainer: { width: '100%', borderRadius: 16, overflow: 'hidden' },
   photoWrapper: {
     position: 'relative',
     width: '100%',
@@ -313,14 +288,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  removePhotoButton: {
-    backgroundColor: 'rgba(255, 0, 0, 0.8)',
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  removePhotoButton: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 18, width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   removePhotoButtonText: {
     color: BaseColors.white,
     fontSize: 20,
@@ -330,91 +298,22 @@ const createStyles = (theme: any) => StyleSheet.create({
   changePhotoText: {
     fontSize: 18,
   },
-  photoPlaceholder: {
-    width: '100%',
-    height: 200,
-    backgroundColor: theme.colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 8,
-  },
+  photoPlaceholder: { width: '100%', height: 168, backgroundColor: theme.colors.surface, justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1.5, borderColor: theme.colors.border, borderStyle: 'dashed', borderRadius: 16 },
   photoPlaceholderText: {
     fontSize: 48,
     marginBottom: 8,
   },
-  photoPlaceholderSubtext: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 8,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 30, // Extra bottom margin for keyboard accessibility
-  },
-  saveButtonDisabled: {
-    backgroundColor: theme.colors.disabled,
-  },
-  saveButtonText: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 24,
-    minWidth: 300,
-    maxWidth: 340,
-    width: '85%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalMessage: {
-    fontSize: 16,
-    color: theme.colors.text,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    gap: 10,
-  },
-  modalButton: {
-    backgroundColor: theme.colors.primary,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonTextPrimary: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalButtonCancel: {
-    backgroundColor: theme.colors.background,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonTextCancel: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  photoPlaceholderSubtext: { fontSize: 15, fontWeight: '500', color: theme.colors.textSecondary },
+  saveButton: { ...formStyles(theme).primaryButton, marginTop: 8, marginBottom: 30 },
+  saveButtonDisabled: formStyles(theme).buttonDisabled,
+  saveButtonText: formStyles(theme).primaryButtonText,
+  modalOverlay: formStyles(theme).dialogOverlay,
+  modalContent: formStyles(theme).dialogCard,
+  modalTitle: formStyles(theme).dialogTitle,
+  modalMessage: formStyles(theme).dialogMessage,
+  modalButtons: formStyles(theme).dialogButtons,
+  modalButton: formStyles(theme).primaryButton,
+  modalButtonTextPrimary: formStyles(theme).primaryButtonText,
+  modalButtonCancel: formStyles(theme).secondaryButton,
+  modalButtonTextCancel: formStyles(theme).secondaryButtonText,
 });

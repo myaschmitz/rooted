@@ -1,6 +1,7 @@
 import { StyleSheet, Platform, useWindowDimensions } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { getThemeColors, Typography, Spacing, BorderRadius, Shadows, Layout } from './theme';
+import { formStyles } from './FormStyles';
 
 const webCursor = Platform.OS === 'web' ? { cursor: 'pointer' as any } : {};
 const webTransition = Platform.OS === 'web' ? { transition: 'opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.2s ease' as any } : {};
@@ -26,10 +27,7 @@ export const useGlobalStyles = () => {
       flex: 1,
     },
     
-    form: {
-      padding: Spacing.lg,
-      paddingBottom: Spacing['3xl'], // Extra bottom padding for keyboard
-    },
+    form: formStyles(theme).form,
     
     content: {
       padding: Spacing.base,
@@ -58,16 +56,7 @@ export const useGlobalStyles = () => {
     },
     
     // ========== BUTTONS ==========
-    button: {
-      backgroundColor: colors.primary,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.base,
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: Layout.buttonHeight,
-      ...webCursor,
-      ...webTransition,
-    },
+    button: formStyles(theme).primaryButton,
     
     buttonLarge: {
       backgroundColor: colors.primary,
@@ -80,14 +69,7 @@ export const useGlobalStyles = () => {
       ...webTransition,
     },
     
-    buttonSecondary: {
-      backgroundColor: colors.surfaceSecondary,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.base,
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: Layout.buttonHeight,
-    },
+    buttonSecondary: formStyles(theme).secondaryButton,
     
     buttonOutline: {
       backgroundColor: 'transparent',
@@ -100,9 +82,7 @@ export const useGlobalStyles = () => {
       minHeight: Layout.buttonHeight,
     },
     
-    buttonDisabled: {
-      backgroundColor: colors.gray400,
-    },
+    buttonDisabled: formStyles(theme).buttonDisabled,
     
     buttonSmall: {
       backgroundColor: colors.surfaceSecondary,
@@ -113,17 +93,9 @@ export const useGlobalStyles = () => {
     },
     
     // ========== BUTTON TEXT ==========
-    buttonText: {
-      color: colors.textInverse,
-      fontSize: Typography.lg,
-      fontWeight: Typography.weights.bold,
-    },
+    buttonText: formStyles(theme).primaryButtonText,
     
-    buttonTextSecondary: {
-      color: colors.textPrimary,
-      fontSize: Typography.base,
-      fontWeight: Typography.weights.semibold,
-    },
+    buttonTextSecondary: formStyles(theme).secondaryButtonText,
     
     buttonTextOutline: {
       color: colors.primary,
@@ -137,51 +109,20 @@ export const useGlobalStyles = () => {
     },
     
     // ========== INPUTS ==========
-    input: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.base,
-      fontSize: Typography.base,
-      color: colors.text,
-      minHeight: Layout.inputHeight,
-    },
+    input: formStyles(theme).input,
     
     inputFocused: {
       borderColor: colors.borderFocus,
     },
     
-    inputTextArea: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.base,
-      fontSize: Typography.base,
-      color: colors.text,
-      minHeight: 75,
-      textAlignVertical: 'top',
-    },
+    inputTextArea: formStyles(theme).textArea,
     
     // ========== FORM ELEMENTS ==========
-    inputGroup: {
-      marginBottom: Spacing.sm,
-    },
+    inputGroup: formStyles(theme).inputGroup,
     
-    label: {
-      fontSize: Typography.base,
-      fontWeight: Typography.weights.semibold,
-      marginBottom: Spacing.sm,
-      color: colors.textPrimary,
-    },
+    label: formStyles(theme).label,
     
-    sublabel: {
-      fontSize: Typography.sm,
-      color: colors.textSecondary,
-      marginBottom: Spacing.sm,
-      fontStyle: 'italic',
-    },
+    sublabel: formStyles(theme).sublabel,
     
     // ========== TYPOGRAPHY ==========
     heading1: {
@@ -277,39 +218,13 @@ export const useGlobalStyles = () => {
     },
     
     // ========== MODALS & OVERLAYS ==========
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
+    modalOverlay: formStyles(theme).dialogOverlay,
     
-    modalContent: {
-      backgroundColor: colors.surface,
-      borderRadius: BorderRadius.lg,
-      padding: Spacing.lg,
-      margin: Spacing.lg,
-      width: '90%',
-      maxWidth: Platform.OS === 'web' ? 520 : undefined,
-      maxHeight: '80%',
-      ...Shadows.xl,
-    },
+    modalContent: { ...formStyles(theme).dialogCard, maxWidth: 480, maxHeight: '85%' },
     
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: Spacing.lg,
-      paddingBottom: Spacing.base,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
-    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.base },
     
-    modalTitle: {
-      fontSize: Typography.xl,
-      fontWeight: Typography.weights.semibold,
-      color: colors.textPrimary,
-    },
+    modalTitle: { fontSize: Typography.lg, fontWeight: Typography.weights.bold, color: colors.text },
     
     modalCloseButton: {
       padding: Spacing.sm,

@@ -4,6 +4,7 @@ import { Download, Image as ImageIcon, Trash2 } from 'lucide-react-native';
 import { useTheme, Theme } from '../../contexts/ThemeContext';
 import { BaseColors } from '../../styles/theme';
 import { SettingsGroup, SettingsRow } from './SettingsList';
+import { formStyles } from '../../styles/FormStyles';
 
 interface DataManagementSectionProps {
   loading: boolean;
@@ -85,7 +86,7 @@ export default function DataManagementSection({
       <Modal
         visible={thumbnailConfirmVisible}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setThumbnailConfirmVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -99,7 +100,7 @@ export default function DataManagementSection({
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
+                style={[styles.modalButton, { backgroundColor: theme.colors.surfaceSecondary }]}
                 onPress={() => setThumbnailConfirmVisible(false)}
               >
                 <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
@@ -123,7 +124,7 @@ export default function DataManagementSection({
       <Modal
         visible={deleteConfirmVisible}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setDeleteConfirmVisible(false)}
       >
         <View style={styles.modalOverlay}>
@@ -160,7 +161,7 @@ export default function DataManagementSection({
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: theme.colors.background }]}
+                style={[styles.modalButton, { backgroundColor: theme.colors.surfaceSecondary }]}
                 onPress={() => setDeleteConfirmVisible(false)}
               >
                 <Text style={[styles.modalButtonText, { color: theme.colors.text }]}>Cancel</Text>
@@ -203,59 +204,13 @@ export default function DataManagementSection({
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    editModal: {
-      borderRadius: 16,
-      padding: 24,
-      minWidth: 300,
-      maxWidth: 400,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      marginBottom: 16,
-      textAlign: 'center',
-    },
-    modalDescription: {
-      fontSize: 16,
-      lineHeight: 22,
-      marginBottom: 20,
-      textAlign: 'center',
-    },
-    confirmationInstructions: {
-      fontSize: 16,
-      fontWeight: '600',
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-    modalInput: {
-      borderWidth: 1,
-      borderRadius: 8,
-      padding: 12,
-      fontSize: 16,
-      marginBottom: 20,
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    modalButton: {
-      flex: 1,
-      padding: 14,
-      borderRadius: 12,
-      alignItems: 'center',
-    },
-    modalButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-    },
+    modalOverlay: formStyles(theme).dialogOverlay,
+    editModal: formStyles(theme).dialogCard,
+    modalTitle: formStyles(theme).dialogTitle,
+    modalDescription: formStyles(theme).dialogMessage,
+    confirmationInstructions: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginBottom: 10 },
+    modalInput: { ...formStyles(theme).input, marginBottom: 20, textAlign: 'center', letterSpacing: 1 },
+    modalButtons: formStyles(theme).dialogButtonsRow,
+    modalButton: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    modalButtonText: { fontSize: 16, fontWeight: '600' },
   });

@@ -11,6 +11,7 @@ import { Plant } from '../types/Plant';
 import LocationDropdown from '../components/LocationDropdown';
 import KeyboardAwareScrollView from '../components/KeyboardAwareScrollView';
 import { useTheme } from '../contexts/ThemeContext';
+import { formStyles } from '../styles/FormStyles';
 import { usePlant, useUpdatePlant } from '../hooks/queries';
 import WebContainer from '../components/WebContainer';
 import { useModalDismiss, useModalParams } from '../hooks/useModalNav';
@@ -153,7 +154,7 @@ export default function EditPlantScreen() {
             disabled={saving}
           >
             <Text style={styles.saveButtonText}>
-              {saving ? 'Updating Plant...' : 'Update Plant'}
+              {saving ? 'Saving…' : 'Save Changes'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -164,54 +165,14 @@ export default function EditPlantScreen() {
 }
 
 const createStyles = (theme: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  form: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: theme.colors.text,
-  },
-  input: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  notesInput: {
-    minHeight: 100,
-  },
-  saveButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 8,
-    padding: 18,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 30, // Extra bottom margin for keyboard accessibility
-  },
-  saveButtonDisabled: {
-    backgroundColor: theme.colors.disabled,
-  },
-  saveButtonText: {
-    color: theme.colors.textOnPrimary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
+  container: formStyles(theme).screen,
+  form: formStyles(theme).form,
+  inputGroup: formStyles(theme).inputGroup,
+  label: formStyles(theme).label,
+  input: formStyles(theme).input,
+  notesInput: { minHeight: 104, textAlignVertical: 'top' },
+  saveButton: { ...formStyles(theme).primaryButton, marginTop: 8, marginBottom: 30 },
+  saveButtonDisabled: formStyles(theme).buttonDisabled,
+  saveButtonText: formStyles(theme).primaryButtonText,
+  loadingContainer: { ...formStyles(theme).screen, justifyContent: 'center', alignItems: 'center' },
 });

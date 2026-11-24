@@ -13,7 +13,9 @@ import {
 import { LocationService, PlantLocation } from '../services/LocationService';
 import { useTheme } from '../contexts/ThemeContext';
 import { BaseColors } from '../styles/theme';
+import { ChevronDown, X, MapPin, Plus } from 'lucide-react-native';
 
+import { formStyles } from '../styles/FormStyles';
 interface LocationDropdownProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -101,7 +103,7 @@ export default function LocationDropdown({
         ]}>
           {value || placeholder}
         </Text>
-        <Text style={styles.dropdownArrow}>▼</Text>
+        <ChevronDown size={18} color={theme.colors.textTertiary} />
       </TouchableOpacity>
 
       <Modal
@@ -127,7 +129,7 @@ export default function LocationDropdown({
                 style={styles.closeButton}
                 onPress={() => setIsOpen(false)}
               >
-                <Text style={styles.closeButtonText}>✕</Text>
+                <X size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -158,7 +160,7 @@ export default function LocationDropdown({
                     </Text>
                     <Text style={styles.createNewSubtext}>New location</Text>
                   </View>
-                  <Text style={styles.createIcon}>+</Text>
+                  <Plus size={20} color={theme.colors.primary} />
                 </TouchableOpacity>
               )}
 
@@ -175,7 +177,7 @@ export default function LocationDropdown({
                       {location.plant_count} plant{location.plant_count !== 1 ? 's' : ''}
                     </Text>
                   </View>
-                  <Text style={styles.selectIcon}>📍</Text>
+                  <MapPin size={18} color={theme.colors.textTertiary} />
                 </TouchableOpacity>
               ))}
 
@@ -209,16 +211,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   container: {
     position: 'relative',
   },
-  dropdownButton: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  dropdownButton: { ...formStyles(theme).input, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dropdownText: {
     fontSize: 16,
     color: theme.colors.text,
@@ -227,47 +220,11 @@ const createStyles = (theme: any) => StyleSheet.create({
   placeholderText: {
     color: theme.colors.textTertiary,
   },
-  dropdownArrow: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginLeft: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    maxHeight: '80%',
-    shadowColor: BaseColors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
+  modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  keyboardAvoidingView: { flex: 1, justifyContent: 'center', width: '100%', maxWidth: 440 },
+  modalContent: { backgroundColor: theme.colors.surface, borderRadius: 20, maxHeight: '80%', overflow: 'hidden' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 20, paddingRight: 14, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
+  modalTitle: formStyles(theme).sheetTitle,
   closeButton: {
     width: 30,
     height: 30,
@@ -280,74 +237,19 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textSecondary,
   },
-  searchContainer: {
-    padding: 20,
-    paddingBottom: 10,
-  },
-  searchInput: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    color: theme.colors.text,
-  },
-  locationsList: {
-    maxHeight: 300,
-    paddingHorizontal: 20,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-  },
+  searchContainer: { padding: 16, paddingBottom: 8 },
+  searchInput: { ...formStyles(theme).input, backgroundColor: theme.colors.surfaceSecondary, borderColor: 'transparent' },
+  locationsList: { maxHeight: 320, paddingHorizontal: 16, paddingBottom: 8 },
+  locationItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.border },
   locationInfo: {
     flex: 1,
   },
-  locationName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  locationCount: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  createNewText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.primary,
-    marginBottom: 2,
-  },
-  createNewSubtext: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontStyle: 'italic',
-  },
-  selectIcon: {
-    fontSize: 18,
-    marginLeft: 10,
-  },
-  createIcon: {
-    fontSize: 24,
-    color: theme.colors.primary,
-    marginLeft: 10,
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginBottom: 5,
-  },
+  locationName: { fontSize: 16, color: theme.colors.text },
+  locationCount: { fontSize: 13, color: theme.colors.textTertiary, marginTop: 1 },
+  createNewText: { fontSize: 16, fontWeight: '600', color: theme.colors.primary },
+  createNewSubtext: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 1 },
+  emptyState: { paddingVertical: 32, paddingHorizontal: 16, alignItems: 'center', gap: 4 },
+  emptyStateText: { fontSize: 15, fontWeight: '600', color: theme.colors.textSecondary },
   emptyStateSubtext: {
     fontSize: 14,
     color: theme.colors.textTertiary,
