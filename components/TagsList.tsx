@@ -4,7 +4,7 @@ import { Pencil, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { Tag, PlantTag } from '../types/Plant';
 import { useWebModal } from '../contexts/WebModalContext';
-import { TagService } from '../services/TagService';
+import { usePlantTags, useRemoveTagFromPlant } from '../hooks/queries';
 import { useTheme } from '../contexts/ThemeContext';
 import TagDisplay from './TagDisplay';
 import { Skeleton } from './Skeleton';
@@ -28,30 +28,27 @@ export default function TagsList({
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const { openModal } = useWebModal();
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-
-  const loadTags = async (bypassCache = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const plantTags = await TagService.getTagsByPlantId(plantId, bypassCache);
-      setTags(plantTags);
-    } catch (err) {
-      console.error('Failed to load tags:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load tags');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: tags = [],
+    isLoading: loading,
+    error,
+    refetch: loadTags,
+  } = usePlantTags(plantId);
+  const removeTagMutation = useRemoveTagFromPlant();
 
   useEffect(() => {
-    // Bypass cache when refreshTrigger changes (but not on initial load)
-    const shouldBypassCache = refreshTrigger > 0;
-    loadTags(shouldBypassCache);
-  }, [plantId, refreshTrigger]);
+    if (refreshTrigger > 0) {
+      loadTags();
+    }
+  }, [refreshTrigger, loadTags]);
+
+  // Leave edit mode once the last tag is gone
+  useEffect(() => {
+    if (tags.length === 0 && isEditMode) {
+      setIsEditMode(false);
+    }
+  }, [tags.length, isEditMode]);
 
   const handleRemoveTagFromPlant = async (tag: Tag) => {
     showAlert(
@@ -64,16 +61,7 @@ export default function TagsList({
           style: 'destructive',
           onPress: async () => {
             try {
-              await TagService.removeTagFromPlant(plantId, tag.id);
-              // Remove the tag from local state for immediate UI update
-              setTags(prevTags => {
-                const newTags = prevTags.filter(t => t.id !== tag.id);
-                // Exit edit mode if this was the last tag
-                if (newTags.length === 0 && isEditMode) {
-                  setIsEditMode(false);
-                }
-                return newTags;
-              });
+              await removeTagMutation.mutateAsync({ plantId, tagId: tag.id });
             } catch (err) {
               console.error('Failed to remove tag from plant:', err);
               showAlert('Error', 'Failed to remove tag from plant');

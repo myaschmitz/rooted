@@ -1,6 +1,7 @@
 import { supabase } from "./SupabaseService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DB_TABLES, STORAGE_KEYS } from "../constants/domain";
+import { CacheInvalidationService } from "./CacheInvalidationService";
 import {
   Household,
   HouseholdMember,
@@ -521,10 +522,14 @@ export class HouseholdService {
 
   static async storeUserSession(session: UserSession): Promise<void> {
     try {
+      const previous = await this.getUserSession();
       await AsyncStorage.setItem(
         STORAGE_KEYS.USER_SESSION,
         JSON.stringify(session),
       );
+      if (previous?.household_id !== session.household_id) {
+        CacheInvalidationService.invalidate("household_changed");
+      }
     } catch (error) {
       console.error("Error storing user session:", error);
       throw error;
@@ -544,12 +549,33 @@ export class HouseholdService {
     }
   }
 
+  // Throws if no active household session. Use for service methods that
+  // need a household_id and nothing else from the session.
+  static async requireHouseholdId(): Promise<string> {
+    const session = await this.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+    return session.household_id;
+  }
+
+  // Throws if no active household session. Use when caller also needs
+  // user_id / user_name (e.g. activity logging, audit columns).
+  static async requireSession(): Promise<UserSession> {
+    const session = await this.getUserSession();
+    if (!session?.household_id) {
+      throw new Error("No household session found");
+    }
+    return session;
+  }
+
   static async clearUserSession(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.USER_SESSION,
         STORAGE_KEYS.HOUSEHOLD_CACHE,
       ]);
+      CacheInvalidationService.invalidate("household_changed");
     } catch (error) {
       console.error("Error clearing user session:", error);
       throw error;

@@ -12,6 +12,7 @@ export const queryKeys = {
   allEvents: ['all-events'] as const,
   event: (id: string) => ['event', id] as const,
   eventPhotos: (eventId: string) => ['event-photos', eventId] as const,
+  eventPhotosRoot: ['event-photos'] as const,
   plantsByLocation: (location: string) =>
     ['plants-by-location', location] as const,
   plantsByLocationRoot: ['plants-by-location'] as const,
@@ -29,7 +30,11 @@ export const queryKeys = {
   archivedPlants: ['archived-plants'] as const,
   allTags: ['all-tags'] as const,
   plantTags: (plantId: string) => ['plant-tags', plantId] as const,
+  plantTagsRoot: ['plant-tags'] as const,
   batchPlantTags: (plantIds: string[]) =>
     ['batch-plant-tags', [...plantIds].sort().join(',')] as const,
   batchPlantTagsRoot: ['batch-plant-tags'] as const,
+  batchLastPhotoDates: (plantIds: string[]) =>
+    ['batch-last-photo-dates', [...plantIds].sort().join(',')] as const,
+  batchLastPhotoDatesRoot: ['batch-last-photo-dates'] as const,
 };

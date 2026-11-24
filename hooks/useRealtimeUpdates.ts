@@ -2,7 +2,11 @@ import { useEffect, useRef } from 'react';
 import { logger } from "../utils/logger";
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../services/SupabaseService';
-import { queryKeys } from '../constants/queryKeys';
+import {
+  CacheInvalidationService,
+  InvalidationAction,
+  InvalidationTarget,
+} from '../services/CacheInvalidationService';
 
 interface UseRealtimeUpdatesProps {
   onPlantsUpdate?: () => void;
@@ -63,101 +67,90 @@ class RealtimeSubscriptionManager {
     }
 
     logger.debug('Creating shared realtime subscription');
+
+    // Every change — including ones made by other household members — goes
+    // through the same invalidation map the services use, so remote edits
+    // refresh exactly what a local edit would.
+    const invalidate = (
+      action: InvalidationAction,
+      target: InvalidationTarget,
+    ) => {
+      if (!this.queryClient) return;
+      try {
+        CacheInvalidationService.invalidate(action, target, this.queryClient);
+      } catch (error) {
+        console.error(`Failed to invalidate cache for ${action}:`, error);
+      }
+    };
+
+    type Row = { id?: string; plant_id?: string };
+    const rowsOf = (payload: { new: unknown; old: unknown }) => ({
+      newRow: (payload.new ?? {}) as Row,
+      oldRow: (payload.old ?? {}) as Row,
+    });
+
     this.channel = supabase
       .channel('rooted-db-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'plants'
-        },
-        async (payload) => {
-          const newRecord = payload.new as { id?: string };
-          const oldRecord = payload.old as { id?: string };
-          logger.debug('Plants table changed:', payload.eventType, newRecord?.id || oldRecord?.id);
-          
-          // Trigger React Query cache invalidation instead of full reloads
-          const plantId = newRecord?.id || oldRecord?.id;
-          if (plantId && this.queryClient) {
-            try {
-              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                // Invalidate plants list and specific plant
-                this.queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-                this.queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-              } else if (payload.eventType === 'DELETE') {
-                // Remove specific plant from cache and invalidate list
-                this.queryClient.removeQueries({ queryKey: queryKeys.plant(plantId) });
-                this.queryClient.invalidateQueries({ queryKey: queryKeys.plants });
-              }
-            } catch (error) {
-              console.error('Failed to invalidate cache for plants change:', error);
-            }
-          }
-          
-          // Only notify subscribers for additional custom logic if needed
+        { event: '*', schema: 'public', table: 'plants' },
+        (payload) => {
+          const { newRow, oldRow } = rowsOf(payload);
+          const plantId = newRow.id || oldRow.id;
+          logger.debug('Plants table changed:', payload.eventType, plantId);
+
+          const action: InvalidationAction =
+            payload.eventType === 'INSERT'
+              ? 'plant_added'
+              : payload.eventType === 'DELETE'
+                ? 'plant_deleted'
+                : 'plant_updated';
+          invalidate(action, { plantId });
           this.notifySubscribers('onPlantsUpdate');
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events'
-        },
-        async (payload) => {
-          const newRecord = payload.new as { plant_id?: string };
-          const oldRecord = payload.old as { plant_id?: string };
-          logger.debug('Events table changed:', payload.eventType, newRecord?.plant_id || oldRecord?.plant_id);
-          
-          // Trigger React Query cache invalidation instead of full reloads
-          const plantId = newRecord?.plant_id || oldRecord?.plant_id;
-          if (plantId && this.queryClient) {
-            try {
-              // Invalidate all event-related queries for this plant
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantEvents(plantId) });
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantStats(plantId) });
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.recentEvents });
-            } catch (error) {
-              console.error('Failed to invalidate cache for events change:', error);
-            }
-          }
-          
-          // Only notify subscribers for additional custom logic if needed
+        { event: '*', schema: 'public', table: 'events' },
+        (payload) => {
+          const { newRow, oldRow } = rowsOf(payload);
+          const plantId = newRow.plant_id || oldRow.plant_id;
+          logger.debug('Events table changed:', payload.eventType, plantId);
+
+          invalidate('event_changed', {
+            plantId,
+            eventId: newRow.id || oldRow.id,
+          });
           this.notifySubscribers('onEventsUpdate');
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'plant_photos'
-        },
-        async (payload) => {
-          const newRecord = payload.new as { plant_id?: string };
-          const oldRecord = payload.old as { plant_id?: string };
-          logger.debug('Plant photos table changed:', payload.eventType, newRecord?.plant_id || oldRecord?.plant_id);
-          
-          // Trigger React Query cache invalidation instead of full reloads
-          const plantId = newRecord?.plant_id || oldRecord?.plant_id;
-          if (plantId && this.queryClient) {
-            try {
-              // Invalidate all photo-related queries for this plant
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.plantPhotos(plantId) });
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.thumbnailPhoto(plantId) });
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.allPhotos });
-              // Also invalidate plant data since thumbnail might have changed
-              this.queryClient.invalidateQueries({ queryKey: queryKeys.plant(plantId) });
-            } catch (error) {
-              console.error('Failed to invalidate cache for photos change:', error);
-            }
-          }
-          
-          // Only notify subscribers for additional custom logic if needed
+        { event: '*', schema: 'public', table: 'plant_photos' },
+        (payload) => {
+          const { newRow, oldRow } = rowsOf(payload);
+          const plantId = newRow.plant_id || oldRow.plant_id;
+          logger.debug('Plant photos table changed:', payload.eventType, plantId);
+
+          const action: InvalidationAction =
+            payload.eventType === 'INSERT'
+              ? 'photo_added'
+              : payload.eventType === 'DELETE'
+                ? 'photo_deleted'
+                : 'photo_updated';
+          invalidate(action, { plantId });
           this.notifySubscribers('onPhotosUpdate');
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tags' },
+        () => invalidate('tags_changed', {})
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'plant_tags' },
+        () => invalidate('tags_changed', {})
       )
       .subscribe((status, err) => {
         logger.debug('Subscription status:', status);

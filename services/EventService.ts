@@ -3,10 +3,10 @@ import dayjs from "dayjs";
 import { supabase } from "./SupabaseService";
 import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
+import { CacheInvalidationService } from "./CacheInvalidationService";
 import type { Database } from "../types/Database";
 import { isNotFoundError, DB_TABLES, DB_COLUMNS } from "../constants/domain";
 import { ErrorMapper } from "../errors/ErrorMapper";
-import { CacheKeyBuilder } from "./CacheKeyBuilder";
 import type { ActivityAction } from "../types/Household";
 import type { CareEventType } from "../constants/careTypes";
 
@@ -28,13 +28,8 @@ const EVENT_ACTIVITY_ACTIONS: Partial<Record<CareEventType, ActivityAction>> = {
 
 export class EventService {
   static async getEventsByPlantId(plantId: string): Promise<Event[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
-    // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
       throw new Error("Plant not found or not accessible");
@@ -44,7 +39,7 @@ export class EventService {
       .from(DB_TABLES.EVENTS)
       .select("*")
       .eq(DB_COLUMNS.PLANT_ID, plantId)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .order("date", { ascending: false });
 
     if (error) {
@@ -58,15 +53,11 @@ export class EventService {
   static async createEvent(
     eventData: Omit<Event, "id" | "created_at" | "updated_at" | "household_id">,
   ): Promise<Event> {
-    // Get current household session
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const eventInsert: EventInsert = {
       ...eventData,
-      household_id: session.household_id,
+      household_id: householdId,
     };
 
     const { data, error } = await supabase
@@ -81,6 +72,11 @@ export class EventService {
     }
 
     const event = data as Event;
+
+    CacheInvalidationService.invalidate("event_changed", {
+      plantId: event.plant_id,
+      eventId: event.id,
+    });
 
     // Log activity for the care event
     const plant = await PlantService.getPlantById(event.plant_id);
@@ -102,11 +98,7 @@ export class EventService {
     id: string,
     updates: Partial<Omit<Event, "id" | "created_at">>,
   ): Promise<Event | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const eventUpdate: EventUpdate = {
       ...updates,
@@ -117,7 +109,7 @@ export class EventService {
       .from(DB_TABLES.EVENTS)
       .update(eventUpdate)
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .select()
       .single();
 
@@ -129,21 +121,23 @@ export class EventService {
       throw ErrorMapper.mapDatabaseError(error, "update", "event");
     }
 
-    return data as Event;
+    const event = data as Event;
+    CacheInvalidationService.invalidate("event_changed", {
+      plantId: event.plant_id,
+      eventId: event.id,
+    });
+
+    return event;
   }
 
   static async getEventById(id: string): Promise<Event | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { data, error } = await supabase
       .from(DB_TABLES.EVENTS)
       .select("*")
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .single();
 
     if (error) {
@@ -158,28 +152,29 @@ export class EventService {
   }
 
   static async deleteEvent(id: string): Promise<boolean> {
-    // Get event info before deleting for cache invalidation
+    // getEventById doubles as access check
     const event = await this.getEventById(id);
     if (!event) {
-      return false; // Event not found or not accessible
+      return false;
     }
 
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { error } = await supabase
       .from(DB_TABLES.EVENTS)
       .delete()
       .eq("id", id)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       console.error("Error deleting event:", error);
       throw ErrorMapper.mapDatabaseError(error, "delete", "event");
     }
+
+    CacheInvalidationService.invalidate("event_changed", {
+      plantId: event.plant_id,
+      eventId: event.id,
+    });
 
     return true;
   }
@@ -205,16 +200,12 @@ export class EventService {
   }
 
   static async getRecentEvents(limit: number = 10): Promise<Event[]> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { data, error } = await supabase
       .from(DB_TABLES.EVENTS)
       .select("*")
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .order("date", { ascending: false })
       .limit(limit);
 
@@ -230,13 +221,8 @@ export class EventService {
     plantId: string,
     eventType: string,
   ): Promise<Event | null> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
-    // Verify plant belongs to current household
     const plant = await PlantService.getPlantById(plantId);
     if (!plant) {
       throw new Error("Plant not found or not accessible");
@@ -247,7 +233,7 @@ export class EventService {
       .select("*")
       .eq(DB_COLUMNS.PLANT_ID, plantId)
       .eq(DB_COLUMNS.EVENT_TYPE, eventType)
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
       .order("date", { ascending: false })
       .limit(1);
 
@@ -267,24 +253,18 @@ export class EventService {
     lastRepotted?: string;
   }> {
     try {
-      // Get current household session for filtering
-      const session = await HouseholdService.getUserSession();
-      if (!session?.household_id) {
-        throw new Error("No household session found");
-      }
+      const householdId = await HouseholdService.requireHouseholdId();
 
-      // Verify plant belongs to current household
       const plant = await PlantService.getPlantById(plantId);
       if (!plant) {
         throw new Error("Plant not found or not accessible");
       }
 
-      // Get total events count
       const { count, error: countError } = await supabase
         .from(DB_TABLES.EVENTS)
         .select("*", { count: "exact", head: true })
         .eq(DB_COLUMNS.PLANT_ID, plantId)
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
       if (countError) {
         console.error("Error getting events count:", countError);
@@ -314,33 +294,27 @@ export class EventService {
   }
 
   static async deleteAllEvents(): Promise<void> {
-    // Get current household session — only delete events for the current
-    // household, never every row in the table.
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    // Scoped to the current household only — never deletes every row.
+    const householdId = await HouseholdService.requireHouseholdId();
 
     const { error } = await supabase
       .from(DB_TABLES.EVENTS)
       .delete()
-      .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id);
+      .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId);
 
     if (error) {
       console.error("Error deleting all events:", error);
       throw ErrorMapper.mapDatabaseError(error, "delete", "event");
     }
+
+    CacheInvalidationService.invalidate("event_changed");
   }
 
   static async getLastEventsByTypeForPlants(
     plantIds: string[],
     eventTypes: string[],
   ): Promise<{ [plantId: string]: { [eventType: string]: Event | null } }> {
-    // Get current household session for filtering
-    const session = await HouseholdService.getUserSession();
-    if (!session?.household_id) {
-      throw new Error("No household session found");
-    }
+    const householdId = await HouseholdService.requireHouseholdId();
 
     if (plantIds.length === 0) {
       return {};
@@ -353,7 +327,7 @@ export class EventService {
         .select("*")
         .in("plant_id", plantIds)
         .in("event_type", eventTypes)
-        .eq(DB_COLUMNS.HOUSEHOLD_ID, session.household_id)
+        .eq(DB_COLUMNS.HOUSEHOLD_ID, householdId)
         .order("date", { ascending: false });
 
       if (error) {

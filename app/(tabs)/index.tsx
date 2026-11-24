@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   TextInput,
   Platform,
 } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import WebContainer from "../../components/WebContainer";
 import { useWebModal } from "../../contexts/WebModalContext";
 import {
@@ -43,6 +44,7 @@ import {
   useBatchLastEvents,
   useAllTags,
   useBatchPlantTags,
+  useBatchLastPhotoDates,
 } from "../../hooks/queries";
 import {
   Skeleton,
@@ -81,14 +83,16 @@ export default function HomeScreen() {
   const {
     data: plants = [],
     isLoading: plantsLoading,
-    refetch: refetchPlants,
   } = usePlants();
+  const queryClient = useQueryClient();
   const createEventMutation = useCreateEvent();
 
   // Batch queries for plant data
   const plantIds = useMemo(() => plants.map((p) => p.id), [plants]);
   const { data: batchThumbnailData = {} } = useBatchThumbnails(plantIds);
   const { data: batchTagsData = {} } = useBatchPlantTags(plantIds);
+  // Most recent photo per plant, for the "needs a photo" camera icon
+  const { data: plantLastPhotoData = {} } = useBatchLastPhotoDates(plantIds);
   const { data: availableTags = [] } = useAllTags();
   const { data: rawEventData, isLoading: eventsLoading } = useBatchLastEvents(
     plantIds,
@@ -122,9 +126,6 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [plantLastPhotoData, setPlantLastPhotoData] = useState<
-    Record<string, string | null>
-  >({});
 
   // Batch care mode state
   const [batchModeEnabled, setBatchModeEnabled] = useState(false);
@@ -251,50 +252,20 @@ export default function HomeScreen() {
     plantWateringData,
   ]);
 
-  // Load auxiliary photo data
-  const loadPlantAuxiliaryData = useCallback(async () => {
-    if (!plants.length) return;
-
-    try {
-      // Single batched query for every plant's most-recent photo date,
-      // replacing the previous N+1 (one getPhotosByPlantId per plant).
-      const plantIds = plants.map((p) => p.id);
-      const lastPhotoData =
-        await PhotoService.getLastPhotoDatesByPlantIds(plantIds);
-      setPlantLastPhotoData(lastPhotoData);
-    } catch (error) {
-      console.error("Failed to load plant auxiliary data:", error);
-      setPlantLastPhotoData({});
-    }
-  }, [plants]);
-
-  useEffect(() => {
-    if (plants.length > 0) {
-      loadPlantAuxiliaryData();
-    }
-  }, [plants, loadPlantAuxiliaryData]);
-
   // Set up real-time subscriptions
   useRealtimeUpdates({});
-
-  // Refresh on focus so camera icon clears after a new photo.
-  useFocusEffect(
-    useCallback(() => {
-      if (plants.length > 0) {
-        loadPlantAuxiliaryData();
-      }
-    }, [plants, loadPlantAuxiliaryData]),
-  );
 
   // Handlers
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refetchPlants();
+      // Refetch everything on screen (plants, thumbnails, tags, watering and
+      // photo dates), not just the plant list.
+      await queryClient.refetchQueries({ type: "active" });
     } finally {
       setRefreshing(false);
     }
-  }, [refetchPlants]);
+  }, [queryClient]);
 
   const handleTogglePin = useCallback(
     async (plantId: string, event: any) => {
