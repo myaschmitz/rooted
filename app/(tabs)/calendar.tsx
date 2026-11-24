@@ -7,7 +7,7 @@ import { useWebModal } from "../../contexts/WebModalContext";
 import WebContainer from "../../components/WebContainer";
 import { MonthCalendar } from "../../components/calendar/MonthCalendar";
 import { DayEventsList } from "../../components/calendar/DayEventsList";
-import { TextSkeleton } from "../../components/Skeleton";
+import { CalendarSkeleton } from "../../components/calendar/CalendarSkeleton";
 import { useAllEvents, usePlants } from "../../hooks/queries";
 import { Event } from "../../types/Plant";
 
@@ -35,7 +35,7 @@ export default function CalendarScreen() {
     <WebContainer>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {eventsLoading || plantsLoading ? (
-          <TextSkeleton width={220} height={300} />
+          <CalendarSkeleton />
         ) : (
           <>
             <MonthCalendar
