@@ -52,7 +52,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
 
     try {
       await Share.share({
-        message: `Join my household "${householdContext.household.name}" in Rooted!\n\nUse code: ${householdContext.household.id}\n\nDownload Rooted to track your plants together!`,
+        message: `Join my household "${householdContext.household.name}" in Rooted!\n\nUse code: ${householdContext.household.join_code}\n\nDownload Rooted to track your plants together!`,
         title: 'Join My Household in Rooted',
       });
     } catch (error) {
@@ -63,7 +63,7 @@ export const useHouseholdSettings = (): UseHouseholdSettingsReturn => {
   const copyHouseholdCode = useCallback(async () => {
     if (!householdContext.household) return;
 
-    await Clipboard.setString(householdContext.household.id);
+    await Clipboard.setString(householdContext.household.join_code);
     showAlert('Copied!', 'Household code copied to clipboard');
   }, [householdContext.household]);
 

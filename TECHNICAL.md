@@ -127,6 +127,8 @@ The database links that auth user to a `household_members` row through `househol
 - `join_household(household_code, member_user_name)` - signs in as the member with that name (case-insensitive) or adds a new member
 - `claim_household_membership(p_household_id, p_user_name)` - run on every launch by `HouseholdService.restoreSession()`; links the member already stored on the device and refreshes its role, but never creates one
 
+Households have an `id`, which every table's `household_id` refers to and which never changes, and a separate `join_code`, which people share and type to join. Both start out as the same `H` + 7 character value; "Generate new invite code" (`regenerate_household_code`) replaces only `join_code`, so the old code stops working and no data moves. The app stores the `id` in its session; `join_household` returns it.
+
 A device belongs to one household at a time. These functions, `validate_household_code` and `regenerate_household_code` are `SECURITY DEFINER`; the policy helpers live in the unexposed `private` schema. The anon role has no table access.
 
 What members can do is enforced in the database: any member reads and writes household data, the activity log is append-only, only admins rename or delete the household and change or remove members, and anyone can leave. Policies and functions are in `supabase/migrations/20261124000000_household_rls_lockdown.sql`.

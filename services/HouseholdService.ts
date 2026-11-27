@@ -166,9 +166,11 @@ export class HouseholdService {
       };
 
       if (joinResult.success) {
+        // Store the household's id, not the code that was typed: the two
+        // differ once the code has been regenerated.
         await this.storeUserSession({
           user_name: joinResult.user_name,
-          household_id: request.householdCode.trim().toUpperCase(),
+          household_id: joinResult.household_id,
           role: joinResult.role,
         });
       }
@@ -440,8 +442,9 @@ export class HouseholdService {
         throw new Error("Unauthorized: Admin access required");
       }
 
-      // Generates the code and moves the household to it in one step; the
-      // database checks that this device is an admin.
+      // Replaces the household's join code. The household id, and so this
+      // session, stays the same. The database checks that this device is an
+      // admin.
       const { data, error } = await supabase.rpc("regenerate_household_code", {
         p_household_id: session.household_id,
       });
@@ -451,9 +454,6 @@ export class HouseholdService {
       }
 
       const newCode = data as string;
-
-      session.household_id = newCode;
-      await this.storeUserSession(session);
 
       await this.logActivity("regenerated household code", {
         regenerated_by: session.user_name,

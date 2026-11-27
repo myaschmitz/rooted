@@ -1,6 +1,8 @@
 export interface Household {
   id: string;
   name: string;
+  // The code people share to join. Separate from id, which never changes.
+  join_code: string;
   created_at: string;
   updated_at: string;
 }
