@@ -1,4 +1,5 @@
 import { PlantPhoto } from '../types/Plant';
+import { PhotoUrlService } from './PhotoUrlService';
 
 /**
  * Web implementation of CachedPhotoService.
@@ -32,6 +33,10 @@ export class CachedPhotoService {
     photos: PlantPhoto[],
     _priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<void> {
+    // Callers may pass rows straight from the table, whose stored URLs don't
+    // load from the private bucket. Signing reuses saved links, so this also
+    // warms the cache for the exact URLs the screen will show.
+    photos = await PhotoUrlService.signPhotos(photos);
     // Preload using browser Image objects for faster rendering
     photos.slice(0, 10).forEach(photo => {
       if (photo.thumbnail_path) {
