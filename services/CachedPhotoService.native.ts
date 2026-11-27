@@ -2,6 +2,7 @@ import { File, Directory, Paths } from 'expo-file-system';
 import { logger } from "../utils/logger";
 import { Image } from 'expo-image';
 import { PlantPhoto } from '../types/Plant';
+import { PhotoUrlService } from './PhotoUrlService';
 import { CacheService } from './CacheService';
 
 export class CachedPhotoService {
@@ -247,6 +248,10 @@ export class CachedPhotoService {
     photos: PlantPhoto[], 
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<void> {
+    // Callers may pass rows straight from the table, whose stored URLs don't
+    // load from the private bucket. Signing reuses saved links, so this also
+    // warms the cache for the exact URLs the screen will show.
+    photos = await PhotoUrlService.signPhotos(photos);
     const maxPreload = priority === 'high' ? 20 : priority === 'medium' ? 10 : 5;
     const photosToPreload = photos.slice(0, maxPreload);
     
