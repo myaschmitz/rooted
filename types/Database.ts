@@ -8,17 +8,18 @@ export type Database = {
         Row: {
           id: string;
           name: string;
+          join_code: string;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id: string;
           name: string;
+          join_code: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          id?: string;
           name?: string;
           updated_at?: string;
         };

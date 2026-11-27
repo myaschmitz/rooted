@@ -65,7 +65,7 @@ export default function HouseholdSection({
         <SettingsRow
           icon={KeyRound}
           label="Invite code"
-          subtitle={household.id}
+          subtitle={household.join_code}
           accessory={
             <View style={styles.codeActions}>
               <TouchableOpacity

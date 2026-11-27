@@ -126,8 +126,9 @@ describe("HouseholdService", () => {
   });
 
   describe("joinHousehold", () => {
-    it("stores the member name and role the database returns", async () => {
+    it("stores the household id, member name and role the database returns", async () => {
       const { HouseholdService, AsyncStorage } = load();
+      // The code was regenerated, so it no longer matches the household id.
       mockSupabase.rpc.mockResolvedValue({
         data: [
           {
@@ -136,13 +137,14 @@ describe("HouseholdService", () => {
             error_message: null,
             user_name: "Ann",
             role: "admin",
+            household_id: "HAAAAAAA",
           },
         ],
         error: null,
       });
 
       const result = await HouseholdService.joinHousehold({
-        householdCode: " haaaaaaa ",
+        householdCode: " hnewcode ",
         memberUserName: "ann",
       });
 
@@ -175,6 +177,24 @@ describe("HouseholdService", () => {
       });
 
       expect(result.success).toBe(false);
+      expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("regenerateHouseholdCode", () => {
+    it("returns the new code and keeps the stored household id", async () => {
+      const { HouseholdService, AsyncStorage } = load();
+      AsyncStorage.getItem.mockResolvedValue(
+        JSON.stringify({ ...storedSession, role: "admin" }),
+      );
+      mockSupabase.rpc.mockResolvedValue({ data: "HNEWCODE", error: null });
+      mockSupabase._response = { data: null, error: null };
+
+      await expect(HouseholdService.regenerateHouseholdCode()).resolves.toBe("HNEWCODE");
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith("regenerate_household_code", {
+        p_household_id: "HAAAAAAA",
+      });
       expect(AsyncStorage.setItem).not.toHaveBeenCalled();
     });
   });
