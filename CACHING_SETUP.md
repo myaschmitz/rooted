@@ -55,9 +55,15 @@ covers the important cases.
 ## Realtime setup
 
 Realtime only delivers changes for tables in the `supabase_realtime`
-publication. Make sure `plants`, `events`, `plant_photos`, `tags` and
-`plant_tags` are all enabled (Supabase dashboard → Database → Publications, or
-`alter publication supabase_realtime add table …`).
+publication. `supabase/migrations/20261127000000_realtime_publication.sql`
+adds `plants`, `events`, `plant_photos`, `tags` and `plant_tags`; add any new
+table the app subscribes to there too. If a table is missing, the client still
+reports `SUBSCRIBED`, but the channel gets a `system` error message ("Unable to
+subscribe to changes with given parameters") and no changes arrive.
+
+Realtime checks row-level security before delivering inserts and updates, so
+a device only receives changes for its own household. Deletes are delivered
+without that check.
 
 ## Image cache
 

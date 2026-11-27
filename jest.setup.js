@@ -38,6 +38,7 @@ const mockSupabaseClient = {
   auth: {
     getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
     getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+    signInAnonymously: jest.fn(() => Promise.resolve({ data: { session: {} }, error: null })),
     signInWithPassword: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(),
