@@ -2,6 +2,7 @@ import { supabase } from "./SupabaseService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DB_TABLES, STORAGE_KEYS } from "../constants/domain";
 import { CacheInvalidationService } from "./CacheInvalidationService";
+import { PhotoUrlService } from "./PhotoUrlService";
 import {
   Household,
   HouseholdMember,
@@ -601,6 +602,7 @@ export class HouseholdService {
         STORAGE_KEYS.USER_SESSION,
         STORAGE_KEYS.HOUSEHOLD_CACHE,
       ]);
+      await PhotoUrlService.clear();
       CacheInvalidationService.invalidate("household_changed");
     } catch (error) {
       console.error("Error clearing user session:", error);

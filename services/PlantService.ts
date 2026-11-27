@@ -219,6 +219,11 @@ export class PlantService {
     }
     const photoFileNames = PhotoStorageService.getFileNames(photos || []);
 
+    // Remove the photo files first: storage only lets a household delete a
+    // file while its plant still exists, since that's how it knows whose file
+    // it is (see 20261130000000_private_photo_storage.sql).
+    await PhotoStorageService.removeFiles(photoFileNames);
+
     const { error } = await supabase
       .from(DB_TABLES.PLANTS)
       .delete()
@@ -229,8 +234,6 @@ export class PlantService {
       console.error("Error deleting plant:", error);
       throw ErrorMapper.mapDatabaseError(error, "delete", "plant");
     }
-
-    await PhotoStorageService.removeFiles(photoFileNames);
 
     // Log activity
     if (plant) {

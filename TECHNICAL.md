@@ -183,9 +183,17 @@ Supabase Storage is the durable photo store. Native and web services share the s
    - an optimized JPEG with a maximum 2048-pixel edge at 0.8 quality;
    - a 300-pixel thumbnail at 0.7 quality.
 3. `PhotoService` uploads both files to the `plant-photos` Supabase Storage bucket.
-4. A `plant_photos` row stores the cloud URLs, caption, timestamp, household, plant, and optional event.
+4. A `plant_photos` row stores the files' public-style storage URLs, caption, timestamp, household, plant, and optional event.
 5. If database persistence fails, `PhotoStorageService` removes uploaded files.
 6. Native temporary processing files are deleted.
+
+### Access
+
+The `plant-photos` bucket is private. File names start with the plant's id (`<plant id>_<timestamp>.jpg`, `<plant id>_event_<event id>_<timestamp>.jpg`, plus `_thumb` variants), and the storage rules use that to find the owning household: a signed-in device can read, upload or delete a file only if the plant belongs to its household. The anon key gets nothing. Rules are in `supabase/migrations/20261130000000_private_photo_storage.sql`.
+
+The stored URLs don't load on their own. Every `PhotoService` method that returns photos passes them through `PhotoUrlService`, which replaces `file_path` and `thumbnail_path` with signed links (24 hours, one batched request). Links are saved on the device and reused until two hours before they expire, so `expo-image` and the native photo cache, which key on URL, keep their cache hits across refreshes and launches. Code that reads `plant_photos` rows directly (data export, thumbnail generation) signs with `PhotoUrlService.signUrl` before downloading.
+
+Because the rules look up the plant, a plant's files have to be removed while the plant still exists: `PlantService.deletePlant` deletes them before the plant row.
 
 ### Reads and local caching
 

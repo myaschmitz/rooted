@@ -5,6 +5,7 @@ import {
   type DataExportDataset,
   type ExportPhoto,
 } from "./DataExportDataService";
+import { PhotoUrlService } from "./PhotoUrlService";
 
 export interface DataExportSummary {
   fileName: string;
@@ -133,7 +134,8 @@ export class DataExportArchiveService {
   }
 
   private static async downloadPhoto(photo: ExportPhoto): Promise<Uint8Array> {
-    const response = await fetch(photo.file_path);
+    // The export keeps the stored URL; downloading needs a signed link.
+    const response = await fetch(await PhotoUrlService.signUrl(photo.file_path));
     if (!response.ok) {
       throw new Error(
         `Failed to download photo ${photo.id}: HTTP ${response.status}`,

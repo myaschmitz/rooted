@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { PlantPhoto } from "../types/Plant";
 import { supabase } from "./SupabaseService";
+import { PhotoUrlService } from "./PhotoUrlService";
 import { HouseholdService } from "./HouseholdService";
 import { PlantService } from "./PlantService";
 import { CachedPhotoService } from "./CachedPhotoService";
@@ -1057,7 +1058,7 @@ export class PhotoService {
       const { data, error } = await supabase.storage.createBucket(
         this.STORAGE_BUCKET,
         {
-          public: true,
+          public: false,
           allowedMimeTypes: [...STORAGE_CONFIG.ALLOWED_MIME_TYPES],
           fileSizeLimit: STORAGE_CONFIG.MAX_FILE_SIZE_BYTES,
         },
@@ -1293,7 +1294,9 @@ export class PhotoService {
               }
 
               // Create thumbnail from the full-size image URL
-              const thumbnailUri = await this.createThumbnail(photo.file_path);
+              // Rows here are read straight from the table, so sign the link first.
+              const sourceUrl = await PhotoUrlService.signUrl(photo.file_path);
+              const thumbnailUri = await this.createThumbnail(sourceUrl);
 
               // Generate filename for thumbnail using centralized utility
               const originalFileName = extractFilenameFromPath(photo.file_path);
@@ -1452,3 +1455,22 @@ export class PhotoService {
     }
   }
 }
+
+// plant_photos stores public-style storage URLs, but the bucket is private.
+// Every method that returns photos hands back signed links instead, so
+// callers can use file_path and thumbnail_path as image sources directly.
+PhotoUrlService.signResultsOf(PhotoService, [
+  "getPhotosByPlantId",
+  "getPhotosByPlantIdOldestFirst",
+  "getPhotosByEventId",
+  "getPhotoById",
+  "getAllPhotos",
+  "getThumbnailPhoto",
+  "getBatchThumbnailPhotos",
+  "savePhoto",
+  "saveEventPhoto",
+  "saveMultipleEventPhotos",
+  "linkPhotoToEvent",
+  "unlinkPhotoFromEvent",
+  "updatePhotoCaption",
+]);

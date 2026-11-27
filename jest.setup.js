@@ -32,6 +32,16 @@ const createChainableMock = () => {
 // Mock Supabase
 const mockSupabaseStorageBucket = {
   remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
+  createSignedUrls: jest.fn((paths) =>
+    Promise.resolve({
+      data: paths.map((path) => ({
+        path,
+        signedUrl: `https://example.supabase.co/storage/v1/object/sign/plant-photos/${path}?token=t`,
+        error: null,
+      })),
+      error: null,
+    }),
+  ),
 };
 
 const mockSupabaseClient = {

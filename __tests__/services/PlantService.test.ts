@@ -307,6 +307,33 @@ describe('PlantService', () => {
       ]);
     });
 
+    it('removes photo files before deleting the plant row', async () => {
+      jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
+      mockSupabase._response = {
+        data: [
+          {
+            file_path:
+              'https://example.supabase.co/storage/v1/object/public/plant-photos/photo.jpg',
+            thumbnail_path: null,
+          },
+        ],
+        error: null,
+      };
+      const order: string[] = [];
+      global.mockSupabaseStorageBucket.remove.mockImplementationOnce(() => {
+        order.push('remove files');
+        return Promise.resolve({ data: [], error: null });
+      });
+      mockSupabase.delete.mockImplementationOnce(() => {
+        order.push('delete plant');
+        return mockSupabase;
+      });
+
+      await PlantService.deletePlant('plant-123');
+
+      expect(order).toEqual(['remove files', 'delete plant']);
+    });
+
     it('should throw error when deletion fails', async () => {
       jest.spyOn(PlantService, 'getPlantById').mockResolvedValue(mockPlant);
       const mockError = { message: 'Delete failed' };

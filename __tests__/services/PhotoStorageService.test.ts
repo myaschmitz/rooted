@@ -19,6 +19,19 @@ describe("PhotoStorageService", () => {
     });
   });
 
+  it("reads file names from signed links", () => {
+    const fileNames = PhotoStorageService.getFileNames([
+      {
+        file_path:
+          "https://example.supabase.co/storage/v1/object/sign/plant-photos/photo.jpg?token=abc",
+        thumbnail_path:
+          "https://example.supabase.co/storage/v1/object/sign/plant-photos/photo_thumb.jpg?token=def",
+      },
+    ]);
+
+    expect(fileNames).toEqual(["photo.jpg", "photo_thumb.jpg"]);
+  });
+
   it("collects both original and thumbnail file names", () => {
     const fileNames = PhotoStorageService.getFileNames([
       {

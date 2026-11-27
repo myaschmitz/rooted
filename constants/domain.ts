@@ -109,6 +109,11 @@ export const DB_COLUMNS = {
  */
 export const STORAGE_CONFIG = {
   BUCKET_NAME: "plant-photos",
+  // The bucket is private; photos load through signed links
+  // (services/PhotoUrlService.ts). Links last a day and are reused until two
+  // hours before they expire, so image caches keyed by URL keep hitting.
+  SIGNED_URL_TTL_SECONDS: 24 * 60 * 60,
+  SIGNED_URL_REFRESH_MARGIN_MS: 2 * 60 * 60 * 1000,
   ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/jpg"] as const,
   MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB
 } as const;
@@ -140,6 +145,7 @@ export const STORAGE_KEYS = {
   FILTER_SELECTED_TAGS: "filter_selected_tags",
   SORT_PREFERENCES: "global_plant_sort_preferences",
   PINNED_PLANTS: "pinned_plants",
+  SIGNED_PHOTO_URLS: "signed_photo_urls",
 } as const;
 
 // ============================================================================
@@ -223,7 +229,8 @@ export function generateEventPhotoFilename(
  */
 export function extractFilenameFromPath(path: string): string | null {
   if (!path) return null;
-  const parts = path.split("/");
+  // Signed links carry the file name before a "?token=..." query.
+  const parts = path.split(/[?#]/, 1)[0].split("/");
   return parts[parts.length - 1] || null;
 }
 
